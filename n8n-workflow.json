@@ -1,0 +1,293 @@
+{
+  "name": "會員註冊系統 API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "=={{ $json.method }}",
+        "path": "member-api",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "member-system-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.query.action }}",
+              "operation": "equals",
+              "value2": "check"
+            }
+          ]
+        }
+      },
+      "name": "檢查會員",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.query.action }}",
+              "operation": "equals",
+              "value2": "profile"
+            }
+          ]
+        }
+      },
+      "name": "取得資料",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.action }}",
+              "operation": "equals",
+              "value2": "register"
+            }
+          ]
+        }
+      },
+      "name": "註冊會員",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.action }}",
+              "operation": "equals",
+              "value2": "transfer"
+            }
+          ]
+        }
+      },
+      "name": "轉點",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 800]
+    },
+    {
+      "parameters": {
+        "url": "=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?action=check&lineUserId={{ $json.query.lineUserId }}",
+        "options": {}
+      },
+      "name": "呼叫 Google Apps Script - Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "url": "=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?action=profile&lineUserId={{ $json.query.lineUserId }}",
+        "options": {}
+      },
+      "name": "呼叫 Google Apps Script - Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "url": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?action=register",
+        "method": "POST",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "lineUserId",
+              "value": "={{ $json.body.lineUserId }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.body.name }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json.body.phone }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.body.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "呼叫 Google Apps Script - Register",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [650, 600]
+    },
+    {
+      "parameters": {
+        "url": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?action=transfer",
+        "method": "POST",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "senderUserId",
+              "value": "={{ $json.body.senderUserId }}"
+            },
+            {
+              "name": "receiverUserId",
+              "value": "={{ $json.body.receiverUserId }}"
+            },
+            {
+              "name": "points",
+              "value": "={{ $json.body.points }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "呼叫 Google Apps Script - Transfer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [650, 800]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "name": "回傳結果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 500]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "檢查會員",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "取得資料",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "註冊會員",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "轉點",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "檢查會員": {
+      "main": [
+        [
+          {
+            "node": "呼叫 Google Apps Script - Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "取得資料": {
+      "main": [
+        [
+          {
+            "node": "呼叫 Google Apps Script - Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "註冊會員": {
+      "main": [
+        [
+          {
+            "node": "呼叫 Google Apps Script - Register",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "轉點": {
+      "main": [
+        [
+          {
+            "node": "呼叫 Google Apps Script - Transfer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "呼叫 Google Apps Script - Check": {
+      "main": [
+        [
+          {
+            "node": "回傳結果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "呼叫 Google Apps Script - Profile": {
+      "main": [
+        [
+          {
+            "node": "回傳結果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "呼叫 Google Apps Script - Register": {
+      "main": [
+        [
+          {
+            "node": "回傳結果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "呼叫 Google Apps Script - Transfer": {
+      "main": [
+        [
+          {
+            "node": "回傳結果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+
