@@ -61,6 +61,25 @@ function doGet(e) {
         });
         break;
         
+      case 'transfer':
+        // 轉點（支援 GET 方式以避免 CORS 問題）
+        result = transferPoints({
+          senderUserId: e.parameter.senderUserId,
+          receiverUserId: e.parameter.receiverUserId,
+          points: parseInt(e.parameter.points),
+          message: e.parameter.message || ''
+        });
+        break;
+        
+      case 'update-profile':
+        // 更新會員資料（支援 GET 方式以避免 CORS 問題）
+        result = updateMemberProfile({
+          lineUserId: e.parameter.lineUserId,
+          email: e.parameter.email,
+          birthday: e.parameter.birthday
+        });
+        break;
+        
       default:
         result = {
           success: false,

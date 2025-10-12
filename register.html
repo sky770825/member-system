@@ -78,7 +78,7 @@ async function initLiff() {
     document.getElementById('name').value = lineProfile.displayName || '';
     
     // 檢查是否已註冊
-    const checkRes = await fetch(`https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec?action=check&lineUserId=${lineUserId}`);
+    const checkRes = await fetch(`https://script.google.com/macros/s/AKfycbxFv7JMisVZej65MukMAnMq8VMBLmdcxh_y46HQX5Jv4D4U2C9gfo9vYnHTY-DvMXKx/exec?action=check&lineUserId=${lineUserId}`);
     const checkData = await checkRes.json();
     
     console.log('註冊檢查結果:', checkData);
@@ -134,7 +134,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   console.log('提交註冊資料:', formData);
   
   try {
-    const url = 'https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec?action=register';
+    const url = 'https://script.google.com/macros/s/AKfycbxFv7JMisVZej65MukMAnMq8VMBLmdcxh_y46HQX5Jv4D4U2C9gfo9vYnHTY-DvMXKx/exec?action=register';
     console.log('發送請求到:', url);
     
     // 使用 URL 參數方式避免 CORS 預檢請求
@@ -149,7 +149,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
       linePicture: formData.linePicture
     });
     
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec?${params.toString()}`, {
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbxFv7JMisVZej65MukMAnMq8VMBLmdcxh_y46HQX5Jv4D4U2C9gfo9vYnHTY-DvMXKx/exec?${params.toString()}`, {
       method: 'GET',
       redirect: 'follow'
     });

@@ -50,7 +50,7 @@
 
 <script>
 const LIFF_ID = "2008231108-dmPJ4BrZ"; // 編輯會員資料頁面
-const API_URL = "https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxFv7JMisVZej65MukMAnMq8VMBLmdcxh_y46HQX5Jv4D4U2C9gfo9vYnHTY-DvMXKx/exec";
 
 let lineUserId = '';
 
@@ -103,10 +103,17 @@ document.getElementById('editForm').addEventListener('submit', async (e) => {
   };
   
   try {
-    const res = await fetch(`${API_URL}?action=update-profile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+    // 使用 URL 參數方式避免 CORS 預檢請求
+    const params = new URLSearchParams({
+      action: 'update-profile',
+      lineUserId: payload.lineUserId,
+      email: payload.email,
+      birthday: payload.birthday
+    });
+    
+    const res = await fetch(`${API_URL}?${params.toString()}`, {
+      method: 'GET',
+      redirect: 'follow'
     });
     
     const data = await res.json();
