@@ -11,13 +11,16 @@
 <div class="container" id="profile">
   <div class="loading">
     <div class="spinner"></div>
-    <h2>載入中...</h2>
+    <p style="margin-top: 15px; color: #666;">載入會員資料中...</p>
   </div>
 </div>
 
 <script>
 async function initLiff() {
   try {
+    // 記錄開始時間
+    const startTime = Date.now();
+    
     await liff.init({ liffId: "2008231108-2PDbO5qk" });
     
     if (!liff.isLoggedIn()) {
@@ -30,52 +33,30 @@ async function initLiff() {
     const displayName = profile.displayName;
     const pictureUrl = profile.pictureUrl;
     
+    // 檢查本地快取
+    const cacheKey = `profile_${lineUserId}`;
+    const cached = getCache(cacheKey);
+    
+    // 如果有快取，先顯示快取資料
+    if (cached) {
+      console.log('使用快取資料');
+      renderProfile(cached, pictureUrl, displayName);
+    }
+    
+    // 同時發送 API 請求更新最新資料
     const res = await fetch("https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec?action=profile&lineUserId=" + lineUserId);
     const data = await res.json();
     
-    document.getElementById("profile").innerHTML = `
-      <div class="profile-card">
-        <div class="profile-header">
-          <img src="${pictureUrl}" alt="頭像" class="profile-avatar">
-          <div class="profile-header-center">
-            <h2 style="text-align:left;margin:0;">${data.name || displayName || '會員'}</h2>
-          </div>
-          <div class="points-card">
-            <div class="points-icon">💰</div>
-            <div class="points-info">
-              <p class="points-label">目前點數</p>
-              <p class="points-value">${data.points || 0} <span>點</span></p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="profile-info">
-          <div class="info-item">
-            <span class="info-label">📱 電話</span>
-            <span class="info-value">${data.phone || '未登錄'}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">📧 Email</span>
-            <span class="info-value">${data.email || '未登錄'}</span>
-          </div>
-        </div>
-        
-        <div class="action-buttons">
-          <button class="btn btn-primary" onclick="goTransfer()">
-            <span class="btn-icon">💸</span>
-            轉點給好友
-          </button>
-          <button class="btn btn-secondary" onclick="goHistory()">
-            <span class="btn-icon">📊</span>
-            點數記錄
-          </button>
-          <button class="btn btn-outline" onclick="editProfile()">
-            <span class="btn-icon">✏️</span>
-            編輯資料
-          </button>
-        </div>
-      </div>
-    `;
+    // 記錄載入時間
+    const loadTime = Date.now() - startTime;
+    console.log(`載入時間: ${loadTime}ms`);
+    
+    // 更新快取（5 分鐘有效）
+    setCache(cacheKey, data, 5 * 60 * 1000);
+    
+    // 渲染最新資料
+    renderProfile(data, pictureUrl, displayName);
+    
   } catch (error) {
     console.error('LIFF 初始化錯誤:', error);
     document.getElementById("profile").innerHTML = `
@@ -86,6 +67,83 @@ async function initLiff() {
         <button class="btn btn-primary" onclick="initLiff()">重新載入</button>
       </div>
     `;
+  }
+}
+
+// 渲染會員資料
+function renderProfile(data, pictureUrl, displayName) {
+  document.getElementById("profile").innerHTML = `
+    <div class="profile-card">
+      <div class="profile-header">
+        <img src="${pictureUrl}" alt="頭像" class="profile-avatar">
+        <div class="profile-header-center">
+          <h2 style="text-align:left;margin:0;">${data.name || displayName || '會員'}</h2>
+        </div>
+        <div class="points-card">
+          <div class="points-icon">💰</div>
+          <div class="points-info">
+            <p class="points-label">目前點數</p>
+            <p class="points-value">${data.points || 0} <span>點</span></p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="profile-info">
+        <div class="info-item">
+          <span class="info-label">📱 電話</span>
+          <span class="info-value">${data.phone || '未登錄'}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">📧 Email</span>
+          <span class="info-value">${data.email || '未登錄'}</span>
+        </div>
+      </div>
+      
+      <div class="action-buttons">
+        <button class="btn btn-primary" onclick="goTransfer()">
+          <span class="btn-icon">💸</span>
+          轉點給好友
+        </button>
+        <button class="btn btn-secondary" onclick="goHistory()">
+          <span class="btn-icon">📊</span>
+          點數記錄
+        </button>
+        <button class="btn btn-outline" onclick="editProfile()">
+          <span class="btn-icon">✏️</span>
+          編輯資料
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// 簡單的本地快取
+function setCache(key, data, ttl = 5 * 60 * 1000) {
+  const item = {
+    data: data,
+    expiry: Date.now() + ttl
+  };
+  try {
+    localStorage.setItem(key, JSON.stringify(item));
+  } catch (e) {
+    console.warn('快取儲存失敗:', e);
+  }
+}
+
+function getCache(key) {
+  try {
+    const item = localStorage.getItem(key);
+    if (!item) return null;
+    
+    const parsed = JSON.parse(item);
+    if (Date.now() > parsed.expiry) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    
+    return parsed.data;
+  } catch (e) {
+    return null;
   }
 }
 
