@@ -11,7 +11,19 @@
 const SHEET_ID = '1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw'; // 替換為您的 Google Sheet ID
 const MEMBERS_SHEET = 'Members';
 const TRANSACTIONS_SHEET = 'Transactions';
+const MEMBER_LEVELS_SHEET = 'MemberLevels';
+const ACTIVITIES_SHEET = 'Activities';
+const SETTINGS_SHEET = 'Settings';
+const DAILY_STATS_SHEET = 'DailyStats';
 const INITIAL_POINTS = 100; // 新會員註冊贈送點數
+
+// 會員等級定義
+const MEMBER_LEVELS = {
+  BRONZE: { name: '銅級會員', minPoints: 0, discount: 0, icon: '🥉' },
+  SILVER: { name: '銀級會員', minPoints: 500, discount: 0.05, icon: '🥈' },
+  GOLD: { name: '金級會員', minPoints: 1000, discount: 0.1, icon: '🥇' },
+  PLATINUM: { name: '白金會員', minPoints: 5000, discount: 0.15, icon: '💎' }
+};
 
 // ==================== 主要 API 處理函數 ====================
 
