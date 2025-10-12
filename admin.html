@@ -294,6 +294,7 @@
               <th>點數</th>
               <th>等級</th>
               <th>推薦碼</th>
+              <th>被誰推薦</th>
               <th>推薦人數</th>
               <th>狀態</th>
               <th>操作</th>
@@ -301,7 +302,7 @@
           </thead>
           <tbody id="membersList">
             <tr>
-              <td colspan="8" style="text-align: center; padding: 40px;">
+              <td colspan="9" style="text-align: center; padding: 40px;">
                 <div class="spinner-small"></div>
                 <p>載入中...</p>
               </td>
@@ -665,7 +666,7 @@ function renderMembers(members) {
   const tbody = document.getElementById('membersList');
   
   if (!members || members.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;">暫無會員資料</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">暫無會員資料</td></tr>';
     return;
   }
   
@@ -676,6 +677,7 @@ function renderMembers(members) {
       <td><strong>${m.points}</strong></td>
       <td><span class="level-badge level-${m.memberLevel || 'BRONZE'}">${getLevelIcon(m.memberLevel)} ${getLevelName(m.memberLevel)}</span></td>
       <td><code style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${m.referralCode || 'N/A'}</code></td>
+      <td>${m.referredBy ? `<code style="background: #fff3cd; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #856404;">🎁 ${m.referredBy}</code>` : '<span style="color: #999;">-</span>'}</td>
       <td><strong style="color: #667eea;">${m.referralCount || 0}</strong> 人</td>
       <td>${m.status === 'active' ? '✅ 正常' : '⚠️ 停用'}</td>
       <td class="action-btns">

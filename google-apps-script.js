@@ -247,7 +247,7 @@ function getMemberProfile(lineUserId) {
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === lineUserId) {
       // 計算推薦人數
-      const referralCount = countReferrals(data[i][11]); // referralCode
+      const referralCount = countReferrals(data[i][11]); // 推薦碼
       
       return {
         success: true,
@@ -260,10 +260,14 @@ function getMemberProfile(lineUserId) {
         linePicture: data[i][6],
         points: data[i][7],
         memberLevel: data[i][8],
-        referralCode: data[i][11],        // 🎯 推薦碼
+        totalEarned: data[i][9],          // 累計獲得
+        totalSpent: data[i][10],          // 累計消費
+        referralCode: data[i][11],        // 🎯 我的推薦碼
+        referredBy: data[i][12],          // 🎯 被誰推薦（新增）
         referralCount: referralCount,     // 🎯 推薦人數
-        createdAt: data[i][14],
-        updatedAt: data[i][15]
+        status: data[i][13],              // 帳號狀態
+        createdAt: data[i][15],
+        updatedAt: data[i][16]
       };
     }
   }
@@ -327,26 +331,27 @@ function registerMember(data) {
     const now = new Date().toISOString();
     const initialPoints = getSetting('initialPoints', INITIAL_POINTS);
     const memberLevel = calculateMemberLevel(initialPoints);
-    const referralCode = generateReferralCode(data.lineUserId);
+    const referralCode = generateReferralCode(data.lineUserId, data.phone);
     
     // 新增會員資料（包含新欄位）
     sheet.appendRow([
-      data.lineUserId,
-      data.name,
-      data.phone,
-      data.email || '',
-      data.birthday || '',
-      data.lineName || '',
-      data.linePicture || '',
-      initialPoints,
-      memberLevel,
-      initialPoints,  // totalEarned
-      0,              // totalSpent
-      referralCode,
-      'active',       // status
-      now,            // lastLoginAt
-      now,            // createdAt
-      now             // updatedAt
+      data.lineUserId,                    // LINE用戶ID
+      data.name,                          // 姓名
+      data.phone,                         // 手機號碼
+      data.email || '',                   // 電子郵件
+      data.birthday || '',                // 生日
+      data.lineName || '',                // LINE顯示名稱
+      data.linePicture || '',             // LINE頭像網址
+      initialPoints,                      // 目前點數
+      memberLevel,                        // 會員等級
+      initialPoints,                      // 累計獲得
+      0,                                  // 累計消費
+      referralCode,                       // 推薦碼
+      data.referralCode || '',            // 被誰推薦 🎯 新增
+      'active',                           // 帳號狀態
+      now,                                // 最後登入
+      now,                                // 註冊時間
+      now                                 // 更新時間
     ]);
     
     // 記錄註冊交易
@@ -731,6 +736,9 @@ function getAllMembers() {
     const members = [];
     
     for (let i = 1; i < data.length; i++) {
+      // 計算推薦人數
+      const referralCount = countReferrals(data[i][11]);
+      
       members.push({
         lineUserId: data[i][0],
         name: data[i][1],
@@ -740,10 +748,12 @@ function getAllMembers() {
         memberLevel: data[i][8] || 'BRONZE',
         totalEarned: Number(data[i][9]) || 0,
         totalSpent: Number(data[i][10]) || 0,
-        referralCode: data[i][11],
-        status: data[i][12] || 'active',
-        lastLoginAt: data[i][13],
-        createdAt: data[i][14]
+        referralCode: data[i][11],           // 我的推薦碼
+        referredBy: data[i][12] || '',       // 被誰推薦 🎯
+        referralCount: referralCount,        // 推薦人數 🎯
+        status: data[i][13] || 'active',
+        lastLoginAt: data[i][14],
+        createdAt: data[i][15]
       });
     }
     
@@ -794,7 +804,7 @@ function getAdminStats() {
     let todayNewMembers = 0;
     
     for (let i = 1; i < membersData.length; i++) {
-      const createdDate = new Date(membersData[i][14]); // createdAt 在第15欄（索引14）
+      const createdDate = new Date(membersData[i][15]); // 註冊時間在第16欄（索引15）
       if (createdDate >= today) {
         todayNewMembers++;
       }
@@ -982,43 +992,44 @@ function getSheet(sheetName) {
 function initializeSheet(sheet, sheetName) {
   if (sheetName === MEMBERS_SHEET) {
     sheet.appendRow([
-      'lineUserId',
-      'name',
-      'phone',
-      'email',
-      'birthday',
-      'lineName',
-      'linePicture',
-      'points',
-      'memberLevel',
-      'totalEarned',
-      'totalSpent',
-      'referralCode',
-      'status',
-      'lastLoginAt',
-      'createdAt',
-      'updatedAt'
+      'LINE用戶ID',        // lineUserId
+      '姓名',              // name
+      '手機號碼',          // phone
+      '電子郵件',          // email
+      '生日',              // birthday
+      'LINE顯示名稱',      // lineName
+      'LINE頭像網址',      // linePicture
+      '目前點數',          // points
+      '會員等級',          // memberLevel
+      '累計獲得',          // totalEarned
+      '累計消費',          // totalSpent
+      '推薦碼',            // referralCode
+      '被誰推薦',          // referredBy (🎯 新增)
+      '帳號狀態',          // status
+      '最後登入',          // lastLoginAt
+      '註冊時間',          // createdAt
+      '更新時間'           // updatedAt
     ]);
     
     // 設定標題列樣式
-    const headerRange = sheet.getRange(1, 1, 1, 16);
+    const headerRange = sheet.getRange(1, 1, 1, 17);
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#4285f4');
     headerRange.setFontColor('#ffffff');
     
   } else if (sheetName === TRANSACTIONS_SHEET) {
     sheet.appendRow([
-      'id',
-      'type',
-      'senderUserId',
-      'receiverUserId',
-      'senderName',
-      'receiverName',
-      'points',
-      'message',
-      'balanceAfter',
-      'status',
-      'createdAt'
+      '交易ID',            // id
+      '交易類型',          // type
+      '發送者ID',          // senderUserId
+      '接收者ID',          // receiverUserId
+      '發送者姓名',        // senderName
+      '接收者姓名',        // receiverName
+      '點數變動',          // points
+      '交易說明',          // message
+      '交易後餘額',        // balanceAfter
+      '交易狀態',          // status
+      '交易時間'           // createdAt
     ]);
     
     // 設定標題列樣式
@@ -1029,15 +1040,15 @@ function initializeSheet(sheet, sheetName) {
     
   } else if (sheetName === MEMBER_LEVELS_SHEET) {
     sheet.appendRow([
-      'id',
-      'levelCode',
-      'levelName',
-      'minPoints',
-      'discount',
-      'icon',
-      'color',
-      'isActive',
-      'createdAt'
+      '等級ID',            // id
+      '等級代碼',          // levelCode
+      '等級名稱',          // levelName
+      '最低點數',          // minPoints
+      '折扣比例',          // discount
+      '圖示',              // icon
+      '顏色代碼',          // color
+      '是否啟用',          // isActive
+      '建立時間'           // createdAt
     ]);
     
     // 設定標題列樣式
@@ -1055,13 +1066,13 @@ function initializeSheet(sheet, sheetName) {
     
   } else if (sheetName === ACTIVITIES_SHEET) {
     sheet.appendRow([
-      'id',
-      'lineUserId',
-      'activityType',
-      'points',
-      'metadata',
-      'completedAt',
-      'createdAt'
+      '活動ID',            // id
+      '會員ID',            // lineUserId
+      '活動類型',          // activityType
+      '點數變動',          // points
+      '額外資料',          // metadata
+      '完成時間',          // completedAt
+      '記錄時間'           // createdAt
     ]);
     
     // 設定標題列樣式
@@ -1072,13 +1083,13 @@ function initializeSheet(sheet, sheetName) {
     
   } else if (sheetName === SETTINGS_SHEET) {
     sheet.appendRow([
-      'key',
-      'value',
-      'type',
-      'description',
-      'category',
-      'updatedBy',
-      'updatedAt'
+      '設定鍵值',          // key
+      '設定值',            // value
+      '資料類型',          // type
+      '說明',              // description
+      '分類',              // category
+      '更新者',            // updatedBy
+      '更新時間'           // updatedAt
     ]);
     
     // 設定標題列樣式
@@ -1090,6 +1101,7 @@ function initializeSheet(sheet, sheetName) {
     // 插入預設設定
     const now = new Date().toISOString();
     sheet.appendRow(['initialPoints', '100', 'number', '註冊贈送點數', 'points', 'system', now]);
+    sheet.appendRow(['referralReward', '50', 'number', '推薦獎勵點數', 'points', 'system', now]);
     sheet.appendRow(['pointsExpiryDays', '365', 'number', '點數有效天數（0=永久）', 'points', 'system', now]);
     sheet.appendRow(['minTransferPoints', '1', 'number', '最小轉點數量', 'points', 'system', now]);
     sheet.appendRow(['maxTransferPoints', '10000', 'number', '最大轉點數量', 'points', 'system', now]);
@@ -1097,13 +1109,13 @@ function initializeSheet(sheet, sheetName) {
     
   } else if (sheetName === DAILY_STATS_SHEET) {
     sheet.appendRow([
-      'date',
-      'newMembers',
-      'activeMembers',
-      'totalTransactions',
-      'pointsIssued',
-      'pointsRedeemed',
-      'createdAt'
+      '統計日期',          // date
+      '新增會員',          // newMembers
+      '活躍會員',          // activeMembers
+      '交易筆數',          // totalTransactions
+      '發出點數',          // pointsIssued
+      '消費點數',          // pointsRedeemed
+      '記錄時間'           // createdAt
     ]);
     
     // 設定標題列樣式
@@ -1169,12 +1181,44 @@ function calculateMemberLevel(points) {
 
 /**
  * 生成推薦碼
+ * 方案：固定6位字母數字混合（隱藏會員數量）
+ * 例如：A3K8M2, B7N5P9, C2Q4R8
+ * 優點：
+ * - 固定6位，簡潔好記
+ * - 看起來隨機，無法推測會員數
+ * - 字母數字交錯，易讀不混淆
+ * - 專業感強
  */
-function generateReferralCode(lineUserId) {
-  // 使用 userId 的最後 6 碼 + 隨機 2 碼
-  const userPart = lineUserId.slice(-6).toUpperCase();
-  const randomPart = Math.random().toString(36).substring(2, 4).toUpperCase();
-  return userPart + randomPart;
+function generateReferralCode(lineUserId, phone = '') {
+  const sheet = getSheet(MEMBERS_SHEET);
+  const memberCount = sheet.getLastRow(); // 會員編號
+  
+  // 使用會員編號 + 時間戳生成偽隨機種子
+  const seed = memberCount + new Date().getTime();
+  
+  // 字母表（排除容易混淆的 O, I, L）
+  const letters = 'ABCDEFGHJKMNPQRSTUVWXYZ';
+  const numbers = '23456789'; // 排除 0, 1
+  
+  // 生成固定6位混合碼（字母-數字交錯）
+  let code = '';
+  let random = seed;
+  
+  for (let i = 0; i < 6; i++) {
+    // 線性同餘生成器
+    random = (random * 9301 + 49297) % 233280;
+    
+    if (i % 2 === 0) {
+      // 偶數位置：字母（第 0, 2, 4 位）
+      code += letters[random % letters.length];
+    } else {
+      // 奇數位置：數字（第 1, 3, 5 位）
+      code += numbers[random % numbers.length];
+    }
+  }
+  
+  // 確保返回固定6位
+  return code.substring(0, 6);
 }
 
 /**
@@ -1684,19 +1728,25 @@ function migrateExistingMembers() {
       
       // 如果沒有 referralCode (第12欄)，補上
       if (!data[i][11]) {
-        const code = generateReferralCode(lineUserId);
+        const phone = data[i][2]; // 手機號碼在第3欄（index 2）
+        const code = generateReferralCode(lineUserId, phone);
         sheet.getRange(row, 12).setValue(code);
         Logger.log(`會員 ${data[i][1]}: 生成推薦碼 ${code}`);
       }
       
-      // 如果沒有 status (第13欄)，補上
+      // 🎯 如果沒有 referredBy (第13欄)，補上空值
       if (!data[i][12]) {
-        sheet.getRange(row, 13).setValue('active');
+        sheet.getRange(row, 13).setValue('');
       }
       
-      // 如果沒有 lastLoginAt (第14欄)，補上
+      // 如果沒有 status (第14欄)，補上
       if (!data[i][13]) {
-        sheet.getRange(row, 14).setValue(data[i][14] || data[i][8]); // 使用 updatedAt 或 createdAt
+        sheet.getRange(row, 14).setValue('active');
+      }
+      
+      // 如果沒有 lastLoginAt (第15欄)，補上
+      if (!data[i][14]) {
+        sheet.getRange(row, 15).setValue(data[i][15] || data[i][8]); // 使用 createdAt
       }
     }
     
