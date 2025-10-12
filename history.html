@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>交易紀錄</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  .transaction-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 15px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    transition: var(--transition);
+  }
+  .transaction-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+  .transaction-item .info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .transaction-item .info .type {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 14px;
+  }
+  .transaction-item .info .date {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .amount {
+    font-weight: bold;
+    font-size: 16px;
+  }
+  .amount.plus { color: #06C755; }
+  .amount.minus { color: #ff5252; }
+  
+  @media (max-width: 600px) {
+    .transaction-list {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>📊 點數交易紀錄</h2>
+    <ul class="transaction-list" id="transactions">
+      <li>載入中...</li>
+    </ul>
+    <button class="btn btn-outline" onclick="goBack()">返回會員中心</button>
+  </div>
+
+<script>
+async function initLiff() {
+  try {
+    await liff.init({ liffId: "YOUR_LIFF_ID" });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+
+    const profile = await liff.getProfile();
+    const userId = profile.userId;
+
+    const res = await fetch(`https://YOUR_N8N_URL/webhook/history?lineUserId=${userId}`);
+    const data = await res.json();
+
+    const list = document.getElementById("transactions");
+    if (!data || data.length === 0) {
+      list.innerHTML = '<li>尚無交易紀錄</li>';
+      return;
+    }
+
+    list.innerHTML = data.map(item => `
+      <li class="transaction-item">
+        <div class="info">
+          <span class="type">${translateType(item.type)}</span>
+          <span class="date">${formatDate(item.createdAt)}</span>
+        </div>
+        <span class="amount ${item.type === 'transfer_in' || item.type === 'register' ? 'plus' : 'minus'}">
+          ${item.type === 'transfer_in' || item.type === 'register' ? '+' : '-'}${item.points}
+        </span>
+      </li>
+    `).join('');
+  } catch (err) {
+    console.error(err);
+    document.getElementById("transactions").innerHTML = '<li>載入錯誤，請稍後再試</li>';
+  }
+}
+
+function translateType(type) {
+  const map = {
+    register: '註冊贈點',
+    transfer_in: '轉入點數',
+    transfer_out: '轉出點數'
+  };
+  return map[type] || '其他';
+}
+
+function formatDate(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function goBack() {
+  liff.openWindow({ url: "https://YOUR_DOMAIN/profile.html", external: false });
+}
+
+initLiff();
+</script>
+</body>
+</html>
+

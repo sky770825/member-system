@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>編輯會員資料</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="register-card">
+      <div class="register-header">
+        <h1>✏️ 編輯會員資料</h1>
+        <p>更新您的個人資料</p>
+      </div>
+
+      <form id="editForm">
+        <div class="form-grid">
+          <div class="form-group form-group-full">
+            <label for="phone">手機號碼（不可更改）</label>
+            <input type="tel" id="phone" disabled>
+          </div>
+
+          <div class="form-group">
+            <label for="email">電子郵件</label>
+            <input type="email" id="email" placeholder="example@email.com">
+          </div>
+
+          <div class="form-group">
+            <label for="birthday">生日</label>
+            <input type="date" id="birthday">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">💾 儲存修改</button>
+      </form>
+
+      <div id="msg" class="message"></div>
+      <button class="btn btn-outline" onclick="goBack()">返回會員中心</button>
+    </div>
+  </div>
+
+<script>
+let lineUserId = '';
+
+async function initLiff() {
+  try {
+    await liff.init({ liffId: "YOUR_LIFF_ID" });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+
+    const profile = await liff.getProfile();
+    lineUserId = profile.userId;
+
+    // 取得現有資料
+    const res = await fetch(`https://YOUR_N8N_URL/webhook/profile?lineUserId=${lineUserId}`);
+    const data = await res.json();
+
+    document.getElementById('phone').value = data.phone || '';
+    document.getElementById('email').value = data.email || '';
+    document.getElementById('birthday').value = data.birthday || '';
+  } catch (e) {
+    console.error(e);
+    showMsg('載入錯誤，請稍後再試', true);
+  }
+}
+
+document.getElementById('editForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const payload = {
+    lineUserId,
+    email: document.getElementById('email').value,
+    birthday: document.getElementById('birthday').value
+  };
+
+  try {
+    const res = await fetch('https://YOUR_N8N_URL/webhook/update-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      showMsg('✅ 修改成功！', false);
+      setTimeout(() => liff.closeWindow(), 2000);
+    } else {
+      showMsg('❌ 修改失敗：' + (data.message || ''), true);
+    }
+  } catch (err) {
+    console.error(err);
+    showMsg('系統錯誤，請稍後再試', true);
+  }
+});
+
+function showMsg(msg, isError) {
+  const el = document.getElementById('msg');
+  el.textContent = msg;
+  el.className = 'message ' + (isError ? 'error' : 'success');
+  el.style.display = 'block';
+}
+
+function goBack() {
+  liff.openWindow({ url: "https://YOUR_DOMAIN/profile.html", external: false });
+}
+
+initLiff();
+</script>
+</body>
+</html>
+
