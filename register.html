@@ -76,7 +76,7 @@ async function initLiff() {
     document.getElementById('name').value = lineProfile.displayName || '';
     
     // 檢查是否已註冊
-    const checkRes = await fetch(`https://script.google.com/macros/s/AKfycbz0O1jF7gusT6Hems3fcvevonETMsS0qILgs80N11lmt0apzUSSHzV_yCjC2OgTZypT/exec?action=check&lineUserId=${lineUserId}`);
+    const checkRes = await fetch(`https://script.google.com/macros/s/AKfycbwDAOVOpdVxVnOAdE0OZf3Xn4_vtx2tqZ0kagPDyrd1aB9T0Q0HkJsj40bDDRE_Ih0y/exec?action=check&lineUserId=${lineUserId}`);
     const checkData = await checkRes.json();
     
     if (checkData.registered) {
@@ -112,7 +112,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   };
   
   try {
-    const res = await fetch('https://script.google.com/macros/s/AKfycbz0O1jF7gusT6Hems3fcvevonETMsS0qILgs80N11lmt0apzUSSHzV_yCjC2OgTZypT/exec?action=register', {
+    const res = await fetch('https://script.google.com/macros/s/AKfycbwDAOVOpdVxVnOAdE0OZf3Xn4_vtx2tqZ0kagPDyrd1aB9T0Q0HkJsj40bDDRE_Ih0y/exec?action=register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

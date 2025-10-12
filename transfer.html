@@ -95,7 +95,7 @@ async function initLiff() {
     lineUserId = profile.userId;
     
     // 取得當前點數
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbz0O1jF7gusT6Hems3fcvevonETMsS0qILgs80N11lmt0apzUSSHzV_yCjC2OgTZypT/exec?action=profile&lineUserId=${lineUserId}`);
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbwDAOVOpdVxVnOAdE0OZf3Xn4_vtx2tqZ0kagPDyrd1aB9T0Q0HkJsj40bDDRE_Ih0y/exec?action=profile&lineUserId=${lineUserId}`);
     const data = await res.json();
     
     currentPoints = data.points || 0;
@@ -119,7 +119,7 @@ document.getElementById('receiverPhone').addEventListener('blur', async function
   if (!phone) return;
   
   try {
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbz0O1jF7gusT6Hems3fcvevonETMsS0qILgs80N11lmt0apzUSSHzV_yCjC2OgTZypT/exec?action=check-user&phone=${phone}`);
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbwDAOVOpdVxVnOAdE0OZf3Xn4_vtx2tqZ0kagPDyrd1aB9T0Q0HkJsj40bDDRE_Ih0y/exec?action=check-user&phone=${phone}`);
     const data = await res.json();
     
     const infoDiv = document.getElementById('receiverInfo');
@@ -212,7 +212,7 @@ async function confirmTransfer() {
   submitBtn.innerHTML = '<span class="spinner-small"></span> 轉點中...';
   
   try {
-    const res = await fetch('https://script.google.com/macros/s/AKfycbz0O1jF7gusT6Hems3fcvevonETMsS0qILgs80N11lmt0apzUSSHzV_yCjC2OgTZypT/exec?action=transfer', {
+    const res = await fetch('https://script.google.com/macros/s/AKfycbwDAOVOpdVxVnOAdE0OZf3Xn4_vtx2tqZ0kagPDyrd1aB9T0Q0HkJsj40bDDRE_Ih0y/exec?action=transfer', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

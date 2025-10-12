@@ -30,7 +30,7 @@ async function initLiff() {
     const displayName = profile.displayName;
     const pictureUrl = profile.pictureUrl;
     
-    const res = await fetch("https://script.google.com/macros/s/AKfycbz0O1jF7gusT6Hems3fcvevonETMsS0qILgs80N11lmt0apzUSSHzV_yCjC2OgTZypT/exec?action=profile&lineUserId=" + lineUserId);
+    const res = await fetch("https://script.google.com/macros/s/AKfycbwDAOVOpdVxVnOAdE0OZf3Xn4_vtx2tqZ0kagPDyrd1aB9T0Q0HkJsj40bDDRE_Ih0y/exec?action=profile&lineUserId=" + lineUserId);
     const data = await res.json();
     
     document.getElementById("profile").innerHTML = `
