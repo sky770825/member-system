@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>編輯會員資料</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="register-card">
+    <div class="page-header">
+      <button class="btn-back" onclick="goBack()">← 返回</button>
+      <h1>編輯會員資料</h1>
+    </div>
+    
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>載入中...</p>
+    </div>
+    
+    <form id="editForm" style="display:none;">
+      <div class="form-grid">
+        <div class="form-group form-group-full">
+          <label for="phone">手機號碼（不可更改）</label>
+          <input type="tel" id="phone" disabled>
+        </div>
+        
+        <div class="form-group">
+          <label for="email">電子郵件</label>
+          <input type="email" id="email" placeholder="example@email.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="birthday">生日</label>
+          <input type="date" id="birthday">
+        </div>
+      </div>
+      
+      <button type="submit" class="btn btn-primary btn-large" id="submitBtn">
+        <span class="btn-icon">💾</span>
+        儲存修改
+      </button>
+    </form>
+    
+    <div id="message" class="message"></div>
+  </div>
+</div>
+
+<script>
+const LIFF_ID = "2008231108-dmPJ4BrZ"; // 編輯會員資料頁面
+const API_URL = "https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec";
+
+let lineUserId = '';
+
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+    
+    const profile = await liff.getProfile();
+    lineUserId = profile.userId;
+    
+    // 取得現有資料
+    const res = await fetch(`${API_URL}?action=profile&lineUserId=${lineUserId}`);
+    const data = await res.json();
+    
+    if (data.success) {
+      document.getElementById('phone').value = data.phone || '';
+      document.getElementById('email').value = data.email || '';
+      document.getElementById('birthday').value = data.birthday || '';
+      
+      // 顯示表單，隱藏載入中
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('editForm').style.display = 'block';
+    } else {
+      throw new Error(data.message || '載入失敗');
+    }
+    
+  } catch (error) {
+    console.error('LIFF 初始化錯誤:', error);
+    document.getElementById('loading').style.display = 'none';
+    showMessage('載入錯誤，請稍後再試', 'error');
+  }
+}
+
+document.getElementById('editForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-small"></span> 儲存中...';
+  
+  const payload = {
+    lineUserId: lineUserId,
+    email: document.getElementById('email').value,
+    birthday: document.getElementById('birthday').value
+  };
+  
+  try {
+    const res = await fetch(`${API_URL}?action=update-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      showMessage('✅ 修改成功！即將返回...', 'success');
+      setTimeout(() => {
+        liff.closeWindow();
+      }, 2000);
+    } else {
+      showMessage('修改失敗：' + (data.message || '請稍後再試'), 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="btn-icon">💾</span> 儲存修改';
+    }
+  } catch (error) {
+    console.error('更新錯誤:', error);
+    showMessage('系統錯誤，請稍後再試', 'error');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="btn-icon">💾</span> 儲存修改';
+  }
+});
+
+function showMessage(msg, type) {
+  const messageDiv = document.getElementById('message');
+  messageDiv.textContent = msg;
+  messageDiv.className = `message ${type}`;
+  messageDiv.style.display = 'block';
+  
+  setTimeout(() => {
+    if (type === 'error') {
+      messageDiv.style.display = 'none';
+    }
+  }, 5000);
+}
+
+function goBack() {
+  liff.closeWindow();
+}
+
+initLiff();
+</script>
+</body>
+</html>
+

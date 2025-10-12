@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>會員中心</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+<div class="container" id="profile">
+  <div class="loading">
+    <div class="spinner"></div>
+    <h2>載入中...</h2>
+  </div>
+</div>
+
+<script>
+async function initLiff() {
+  try {
+    await liff.init({ liffId: "2008231108-2PDbO5qk" });
+    
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+    
+    const profile = await liff.getProfile();
+    const lineUserId = profile.userId;
+    const displayName = profile.displayName;
+    const pictureUrl = profile.pictureUrl;
+    
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec?action=profile&lineUserId=" + lineUserId);
+    const data = await res.json();
+    
+    document.getElementById("profile").innerHTML = `
+      <div class="profile-card">
+        <div class="profile-header">
+          <img src="${pictureUrl}" alt="頭像" class="profile-avatar">
+          <div class="profile-header-center">
+            <h2 style="text-align:left;margin:0;">${data.name || displayName || '會員'}</h2>
+          </div>
+          <div class="points-card">
+            <div class="points-icon">💰</div>
+            <div class="points-info">
+              <p class="points-label">目前點數</p>
+              <p class="points-value">${data.points || 0} <span>點</span></p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="profile-info">
+          <div class="info-item">
+            <span class="info-label">📱 電話</span>
+            <span class="info-value">${data.phone || '未登錄'}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">📧 Email</span>
+            <span class="info-value">${data.email || '未登錄'}</span>
+          </div>
+        </div>
+        
+        <div class="action-buttons">
+          <button class="btn btn-primary" onclick="goTransfer()">
+            <span class="btn-icon">💸</span>
+            轉點給好友
+          </button>
+          <button class="btn btn-secondary" onclick="goHistory()">
+            <span class="btn-icon">📊</span>
+            點數記錄
+          </button>
+          <button class="btn btn-outline" onclick="editProfile()">
+            <span class="btn-icon">✏️</span>
+            編輯資料
+          </button>
+        </div>
+      </div>
+    `;
+  } catch (error) {
+    console.error('LIFF 初始化錯誤:', error);
+    document.getElementById("profile").innerHTML = `
+      <div class="error-card">
+        <div class="error-icon">❌</div>
+        <h3>載入失敗</h3>
+        <p>請稍後再試或聯繫客服</p>
+        <button class="btn btn-primary" onclick="initLiff()">重新載入</button>
+      </div>
+    `;
+  }
+}
+
+function goTransfer() {
+  window.location.href = "transfer.html";
+}
+
+function goHistory() {
+  window.location.href = "history.html";
+}
+
+function editProfile() {
+  window.location.href = "edit.html";
+}
+
+initLiff();
+</script>
+</body>
+</html>
+

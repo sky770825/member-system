@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIFF 測試</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  max-width: 600px;
+  margin: 50px auto;
+  padding: 20px;
+  background: #f5f5f5;
+}
+.card {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+h1 { color: #06C755; }
+button {
+  background: #06C755;
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+}
+button:hover { background: #05b34a; }
+.info { 
+  background: #f0f0f0;
+  padding: 15px;
+  border-radius: 5px;
+  margin: 10px 0;
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🎯 會員系統 LIFF 測試</h1>
+  <div id="status">正在初始化...</div>
+  
+  <div id="buttons" style="display:none;">
+    <button onclick="openRegister()">📝 開啟註冊頁面</button>
+    <button onclick="openProfile()">👤 開啟會員中心</button>
+    <button onclick="openTransfer()">💸 開啟轉點頁面</button>
+  </div>
+  
+  <div id="info" class="info" style="display:none;"></div>
+</div>
+
+<script>
+async function initLiff() {
+  try {
+    // 使用註冊頁面的 LIFF ID
+    await liff.init({ liffId: "2008231108-rZQKp3mn" });
+    
+    if (!liff.isLoggedIn()) {
+      document.getElementById('status').innerHTML = '需要登入 LINE<br><button onclick="liff.login()">登入</button>';
+      return;
+    }
+    
+    const profile = await liff.getProfile();
+    
+    document.getElementById('status').innerHTML = '✅ LIFF 初始化成功！';
+    document.getElementById('buttons').style.display = 'block';
+    document.getElementById('info').style.display = 'block';
+    document.getElementById('info').innerHTML = `
+      <strong>您的 LINE 資料：</strong><br>
+      名稱：${profile.displayName}<br>
+      User ID：${profile.userId}
+    `;
+    
+  } catch (error) {
+    document.getElementById('status').innerHTML = '❌ 錯誤：' + error.message;
+  }
+}
+
+function openRegister() {
+  liff.openWindow({
+    url: 'https://liff.line.me/2008231108-rZQKp3mn',
+    external: false
+  });
+}
+
+function openProfile() {
+  liff.openWindow({
+    url: 'https://liff.line.me/2008231108-2PDbO5qk',
+    external: false
+  });
+}
+
+function openTransfer() {
+  liff.openWindow({
+    url: 'https://liff.line.me/2008231108-8dwdPJ26',
+    external: false
+  });
+}
+
+initLiff();
+</script>
+</body>
+</html>
+

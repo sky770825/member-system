@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>會員註冊</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="register-card">
+    <div class="register-header">
+      <h1>會員註冊</h1>
+      <p>完成註冊即贈送 100 點</p>
+    </div>
+    
+    <form id="registerForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="name">姓名 *</label>
+          <input type="text" id="name" name="name" required placeholder="請輸入您的姓名">
+        </div>
+        
+        <div class="form-group">
+          <label for="phone">手機號碼 *</label>
+          <input type="tel" id="phone" name="phone" required placeholder="0912-345-678" pattern="[0-9]{4}-[0-9]{3}-[0-9]{3}">
+          <small>格式：0912-345-678</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="email">電子郵件</label>
+          <input type="email" id="email" name="email" placeholder="example@email.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="birthday">生日</label>
+          <input type="date" id="birthday" name="birthday">
+        </div>
+      </div>
+      
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" id="terms" required>
+          <span>我同意 <a href="#" onclick="showTerms(); return false;">會員條款</a> 及 <a href="#" onclick="showPrivacy(); return false;">隱私政策</a></span>
+        </label>
+      </div>
+      
+      <button type="submit" class="btn btn-primary btn-large" id="submitBtn">
+        <span class="btn-icon">✨</span>
+        完成註冊
+      </button>
+    </form>
+    
+    <div id="message" class="message"></div>
+  </div>
+</div>
+
+<script>
+let lineUserId = '';
+let lineProfile = null;
+
+async function initLiff() {
+  try {
+    await liff.init({ liffId: "2008231108-rZQKp3mn" });
+    
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+    
+    lineProfile = await liff.getProfile();
+    lineUserId = lineProfile.userId;
+    
+    console.log('LINE 登入成功:', lineProfile);
+    
+    // 預填 LINE 資料
+    document.getElementById('name').value = lineProfile.displayName || '';
+    
+    // 檢查是否已註冊
+    const checkRes = await fetch(`https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec?action=check&lineUserId=${lineUserId}`);
+    const checkData = await checkRes.json();
+    
+    console.log('註冊檢查結果:', checkData);
+    
+    if (checkData.registered) {
+      showMessage('您已經是會員了！正在跳轉到會員中心...', 'success');
+      setTimeout(() => {
+        window.location.href = "profile.html";
+      }, 2000);
+    } else {
+      showMessage('歡迎註冊！請填寫資料', 'info');
+    }
+  } catch (error) {
+    console.error('LIFF 初始化錯誤:', error);
+    showMessage('❌ LIFF 初始化失敗: ' + error.message, 'error');
+  }
+}
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  // 檢查是否已登入 LINE
+  if (!lineUserId) {
+    showMessage('❌ 請先透過 LINE 登入', 'error');
+    return;
+  }
+  
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-small"></span> 註冊中...';
+  
+  const phone = document.getElementById('phone').value;
+  const name = document.getElementById('name').value;
+  
+  // 驗證手機號碼格式
+  if (!phone.match(/^[0-9]{4}-[0-9]{3}-[0-9]{3}$/)) {
+    showMessage('❌ 請輸入正確的手機號碼格式 (0912-345-678)', 'error');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="btn-icon">✨</span> 完成註冊';
+    return;
+  }
+  
+  const formData = {
+    lineUserId: lineUserId,
+    name: name,
+    phone: phone,
+    email: document.getElementById('email').value,
+    birthday: document.getElementById('birthday').value,
+    lineName: lineProfile?.displayName || '',
+    linePicture: lineProfile?.pictureUrl || ''
+  };
+  
+  console.log('提交註冊資料:', formData);
+  
+  try {
+    const url = 'https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec?action=register';
+    console.log('發送請求到:', url);
+    
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    });
+    
+    console.log('API 回應狀態:', res.status);
+    
+    const data = await res.json();
+    console.log('API 回應資料:', data);
+    
+    if (data.success) {
+      showMessage('🎉 註冊成功！已贈送 100 點，正在跳轉...', 'success');
+      setTimeout(() => {
+        window.location.href = "profile.html";
+      }, 2000);
+    } else {
+      showMessage('❌ ' + (data.message || '註冊失敗，請稍後再試'), 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="btn-icon">✨</span> 完成註冊';
+    }
+  } catch (error) {
+    console.error('註冊錯誤:', error);
+    showMessage('❌ 系統錯誤: ' + error.message, 'error');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="btn-icon">✨</span> 完成註冊';
+  }
+});
+
+function showMessage(msg, type) {
+  const messageDiv = document.getElementById('message');
+  messageDiv.textContent = msg;
+  messageDiv.className = `message ${type}`;
+  messageDiv.style.display = 'block';
+  
+  // 自動隱藏 info 訊息
+  if (type === 'info') {
+    setTimeout(() => {
+      messageDiv.style.display = 'none';
+    }, 3000);
+  }
+}
+
+function showTerms() {
+  alert('會員條款內容（請替換為實際條款）');
+}
+
+function showPrivacy() {
+  alert('隱私政策內容（請替換為實際政策）');
+}
+
+// 手機號碼格式化
+document.getElementById('phone').addEventListener('input', function(e) {
+  let value = e.target.value.replace(/\D/g, '');
+  if (value.length > 10) value = value.slice(0, 10);
+  
+  if (value.length >= 4) {
+    value = value.slice(0, 4) + '-' + value.slice(4);
+  }
+  if (value.length >= 8) {
+    value = value.slice(0, 8) + '-' + value.slice(8);
+  }
+  
+  e.target.value = value;
+});
+
+initLiff();
+</script>
+</body>
+</html>
