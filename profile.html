@@ -90,20 +90,15 @@ async function initLiff() {
 }
 
 function goTransfer() {
-  liff.openWindow({ 
-    url: "https://liff.line.me/2008231108-8dwdPJ26", 
-    external: false 
-  });
+  window.location.href = "transfer.html";
 }
 
 function goHistory() {
-  alert('點數記錄功能開發中...');
-  // 未來可以開啟：https://liff.line.me/YOUR_HISTORY_LIFF_ID
+  window.location.href = "history.html";
 }
 
 function editProfile() {
-  alert('編輯資料功能開發中...');
-  // 未來可以開啟：https://liff.line.me/YOUR_EDIT_LIFF_ID
+  window.location.href = "edit.html";
 }
 
 initLiff();

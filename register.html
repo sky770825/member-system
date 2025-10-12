@@ -82,10 +82,7 @@ async function initLiff() {
     if (checkData.registered) {
       showMessage('您已經是會員了！正在跳轉到會員中心...', 'success');
       setTimeout(() => {
-        liff.openWindow({ 
-          url: "https://liff.line.me/2008231108-2PDbO5qk", 
-          external: false 
-        });
+        window.location.href = "profile.html";
       }, 2000);
     }
   } catch (error) {
@@ -125,10 +122,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     if (data.success) {
       showMessage('🎉 註冊成功！已贈送 100 點，正在跳轉...', 'success');
       setTimeout(() => {
-        liff.openWindow({ 
-          url: "https://liff.line.me/2008231108-2PDbO5qk", 
-          external: false 
-        });
+        window.location.href = "profile.html";
       }, 2000);
     } else {
       showMessage(data.message || '註冊失敗，請稍後再試', 'error');
