@@ -212,12 +212,18 @@ async function confirmTransfer() {
   submitBtn.innerHTML = '<span class="spinner-small"></span> 轉點中...';
   
   try {
-    const res = await fetch('https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec?action=transfer', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(transferData)
+    // 使用 URL 參數方式避免 CORS 預檢請求
+    const params = new URLSearchParams({
+      action: 'transfer',
+      senderUserId: transferData.senderUserId,
+      receiverUserId: transferData.receiverUserId,
+      points: transferData.points,
+      message: transferData.message
+    });
+    
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec?${params.toString()}`, {
+      method: 'GET',
+      redirect: 'follow'
     });
     
     const data = await res.json();

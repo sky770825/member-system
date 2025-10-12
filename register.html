@@ -137,12 +137,21 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     const url = 'https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec?action=register';
     console.log('發送請求到:', url);
     
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(formData)
+    // 使用 URL 參數方式避免 CORS 預檢請求
+    const params = new URLSearchParams({
+      action: 'register',
+      lineUserId: formData.lineUserId,
+      name: formData.name,
+      phone: formData.phone,
+      email: formData.email,
+      birthday: formData.birthday,
+      lineName: formData.lineName,
+      linePicture: formData.linePicture
+    });
+    
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbzzqEQmYZaVF8kgJ9ilFGH8t-ZC5kE_ZjXrp83C-MFyPdl6lnc2k41o__-HKs3AyKi9/exec?${params.toString()}`, {
+      method: 'GET',
+      redirect: 'follow'
     });
     
     console.log('API 回應狀態:', res.status);

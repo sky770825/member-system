@@ -48,6 +48,19 @@ function doGet(e) {
         result = getTransactions(lineUserId, limit);
         break;
         
+      case 'register':
+        // 註冊新會員（支援 GET 方式以避免 CORS 問題）
+        result = registerMember({
+          lineUserId: e.parameter.lineUserId,
+          name: e.parameter.name,
+          phone: e.parameter.phone,
+          email: e.parameter.email || '',
+          birthday: e.parameter.birthday || '',
+          lineName: e.parameter.lineName || '',
+          linePicture: e.parameter.linePicture || ''
+        });
+        break;
+        
       default:
         result = {
           success: false,

@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>會員系統設定精靈</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Noto Sans TC", sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.wizard {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  max-width: 800px;
+  width: 100%;
+  padding: 40px;
+}
+h1 {
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 28px;
+}
+.subtitle {
+  color: #666;
+  margin-bottom: 30px;
+}
+.step {
+  display: none;
+}
+.step.active {
+  display: block;
+  animation: fadeIn 0.3s;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.form-group {
+  margin-bottom: 20px;
+}
+label {
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+  font-weight: 500;
+}
+input, select, textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border 0.3s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+.color-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+  display: inline-block;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+.btn-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 30px;
+}
+button {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+.btn-secondary {
+  background: #f5f5f5;
+  color: #666;
+}
+.btn-secondary:hover {
+  background: #e0e0e0;
+}
+.progress-bar {
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  margin-bottom: 30px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.3s;
+}
+.output {
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+pre {
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.industry-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+.industry-card {
+  padding: 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.industry-card:hover, .industry-card.selected {
+  border-color: #667eea;
+  background: #f8f9ff;
+}
+.industry-card .icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+.industry-card .name {
+  font-weight: 600;
+  color: #333;
+}
+</style>
+</head>
+<body>
+<div class="wizard">
+  <h1>🎯 會員系統設定精靈</h1>
+  <p class="subtitle">只需 4 個步驟，快速生成您的配置文件</p>
+  
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress" style="width: 25%"></div>
+  </div>
+  
+  <!-- 步驟 1: 選擇產業 -->
+  <div class="step active" data-step="1">
+    <h2>步驟 1：選擇您的產業類型</h2>
+    <div class="industry-cards">
+      <div class="industry-card" onclick="selectIndustry('restaurant')">
+        <div class="icon">🍽️</div>
+        <div class="name">餐飲業</div>
+      </div>
+      <div class="industry-card" onclick="selectIndustry('beauty')">
+        <div class="icon">💅</div>
+        <div class="name">美容美髮</div>
+      </div>
+      <div class="industry-card" onclick="selectIndustry('fitness')">
+        <div class="icon">💪</div>
+        <div class="name">健身房</div>
+      </div>
+      <div class="industry-card" onclick="selectIndustry('retail')">
+        <div class="icon">🛍️</div>
+        <div class="name">零售業</div>
+      </div>
+      <div class="industry-card" onclick="selectIndustry('coffee')">
+        <div class="icon">☕</div>
+        <div class="name">咖啡廳</div>
+      </div>
+      <div class="industry-card" onclick="selectIndustry('general')">
+        <div class="icon">🎯</div>
+        <div class="name">其他/通用</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 步驟 2: 基本資訊 -->
+  <div class="step" data-step="2">
+    <h2>步驟 2：填寫基本資訊</h2>
+    <div class="form-group">
+      <label>系統名稱</label>
+      <input type="text" id="systemName" placeholder="例如：美味餐廳會員系統">
+    </div>
+    <div class="form-group">
+      <label>公司名稱</label>
+      <input type="text" id="companyName" placeholder="例如：美味餐廳">
+    </div>
+    <div class="form-group">
+      <label>點數名稱</label>
+      <input type="text" id="pointsName" placeholder="例如：美食點數、美麗積分、健康點數">
+    </div>
+    <div class="form-group">
+      <label>點數單位</label>
+      <input type="text" id="pointsUnit" value="點" placeholder="例如：點、分、元">
+    </div>
+    <div class="form-group">
+      <label>註冊贈送點數</label>
+      <input type="number" id="initialPoints" value="100">
+    </div>
+  </div>
+  
+  <!-- 步驟 3: 品牌設定 -->
+  <div class="step" data-step="3">
+    <h2>步驟 3：品牌視覺設定</h2>
+    <div class="form-group">
+      <label>主色調</label>
+      <input type="color" id="primaryColor" value="#06C755">
+      <span class="color-preview" id="primaryPreview" style="background: #06C755"></span>
+    </div>
+    <div class="form-group">
+      <label>次要顏色</label>
+      <input type="color" id="secondaryColor" value="#6c757d">
+      <span class="color-preview" id="secondaryPreview" style="background: #6c757d"></span>
+    </div>
+    <div class="form-group">
+      <label>強調色</label>
+      <input type="color" id="accentColor" value="#FFD700">
+      <span class="color-preview" id="accentPreview" style="background: #FFD700"></span>
+    </div>
+  </div>
+  
+  <!-- 步驟 4: 功能選擇 -->
+  <div class="step" data-step="4">
+    <h2>步驟 4：選擇功能模組</h2>
+    <div class="form-group">
+      <label><input type="checkbox" checked> 會員註冊</label>
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="featureTransfer" checked> 點數轉讓</label>
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="featureExchange"> 點數兌換商品</label>
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="featureCheckin"> 每日簽到</label>
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="featureInvite"> 邀請好友</label>
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="featureLevels" checked> 會員等級</label>
+    </div>
+  </div>
+  
+  <!-- 步驟 5: 完成 -->
+  <div class="step" data-step="5">
+    <h2>✅ 配置完成！</h2>
+    <p>請複製以下配置代碼，儲存為 <code>config.js</code></p>
+    <div class="output">
+      <pre id="configOutput"></pre>
+    </div>
+    <button class="btn-primary" onclick="downloadConfig()" style="margin-top: 20px">📥 下載 config.js</button>
+  </div>
+  
+  <div class="btn-group">
+    <button class="btn-secondary" id="prevBtn" onclick="prevStep()" style="display:none">上一步</button>
+    <button class="btn-primary" id="nextBtn" onclick="nextStep()">下一步</button>
+  </div>
+</div>
+
+<script>
+let currentStep = 1;
+let config = {
+  industry: 'general',
+  systemName: '',
+  companyName: '',
+  pointsName: '點數',
+  pointsUnit: '點',
+  initialPoints: 100,
+  primaryColor: '#06C755',
+  secondaryColor: '#6c757d',
+  accentColor: '#FFD700',
+  features: {}
+};
+
+function selectIndustry(industry) {
+  config.industry = industry;
+  document.querySelectorAll('.industry-card').forEach(card => card.classList.remove('selected'));
+  event.target.closest('.industry-card').classList.add('selected');
+  
+  // 自動填入產業預設值
+  const templates = {
+    restaurant: { name: '餐廳會員系統', points: '美食點數', color: '#FF6B6B', icon: '🍽️' },
+    beauty: { name: '美容會員系統', points: '美麗積分', color: '#FF69B4', icon: '💅' },
+    fitness: { name: '健身會員系統', points: '健康點數', color: '#FF9800', icon: '💪' },
+    retail: { name: '零售會員系統', points: '購物金', color: '#4CAF50', icon: '🛍️' },
+    coffee: { name: '咖啡會員系統', points: '咖啡豆', color: '#8D6E63', icon: '☕' },
+  };
+  
+  if (templates[industry]) {
+    const t = templates[industry];
+    document.getElementById('systemName').value = t.name;
+    document.getElementById('pointsName').value = t.points;
+    document.getElementById('primaryColor').value = t.color;
+    config.primaryColor = t.color;
+    document.getElementById('primaryPreview').style.background = t.color;
+  }
+}
+
+function nextStep() {
+  if (currentStep < 5) {
+    // 收集當前步驟的數據
+    if (currentStep === 2) {
+      config.systemName = document.getElementById('systemName').value;
+      config.companyName = document.getElementById('companyName').value;
+      config.pointsName = document.getElementById('pointsName').value;
+      config.pointsUnit = document.getElementById('pointsUnit').value;
+      config.initialPoints = document.getElementById('initialPoints').value;
+    } else if (currentStep === 3) {
+      config.primaryColor = document.getElementById('primaryColor').value;
+      config.secondaryColor = document.getElementById('secondaryColor').value;
+      config.accentColor = document.getElementById('accentColor').value;
+    } else if (currentStep === 4) {
+      config.features = {
+        transfer: document.getElementById('featureTransfer').checked,
+        exchange: document.getElementById('featureExchange').checked,
+        checkin: document.getElementById('featureCheckin').checked,
+        invite: document.getElementById('featureInvite').checked,
+        levels: document.getElementById('featureLevels').checked,
+      };
+      generateConfig();
+    }
+    
+    document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+    currentStep++;
+    document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
+    
+    updateProgress();
+    updateButtons();
+  }
+}
+
+function prevStep() {
+  if (currentStep > 1) {
+    document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+    currentStep--;
+    document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
+    
+    updateProgress();
+    updateButtons();
+  }
+}
+
+function updateProgress() {
+  document.getElementById('progress').style.width = (currentStep / 5 * 100) + '%';
+}
+
+function updateButtons() {
+  document.getElementById('prevBtn').style.display = currentStep > 1 ? 'block' : 'none';
+  document.getElementById('nextBtn').textContent = currentStep === 4 ? '生成配置' : (currentStep === 5 ? '完成' : '下一步');
+  if (currentStep === 5) {
+    document.getElementById('nextBtn').onclick = () => window.location.reload();
+  }
+}
+
+function generateConfig() {
+  const output = `const CONFIG = {
+  system: {
+    name: '${config.systemName}',
+    shortName: '${config.systemName}',
+    version: '1.0.0',
+    industry: '${config.industry}',
+  },
+
+  brand: {
+    companyName: '${config.companyName}',
+    logo: './assets/logo.png',
+    primaryColor: '${config.primaryColor}',
+    secondaryColor: '${config.secondaryColor}',
+    accentColor: '${config.accentColor}',
+  },
+
+  points: {
+    name: '${config.pointsName}',
+    unit: '${config.pointsUnit}',
+    icon: '💰',
+    initialPoints: ${config.initialPoints},
+    expiryDays: 365,
+    minTransfer: 1,
+    maxTransfer: 10000,
+  },
+
+  memberLevels: {
+    enabled: ${config.features.levels},
+    levels: [
+      { id: 'bronze', name: '銅級會員', minPoints: 0, icon: '🥉', discount: 0 },
+      { id: 'silver', name: '銀級會員', minPoints: 500, icon: '🥈', discount: 0.05 },
+      { id: 'gold', name: '金級會員', minPoints: 1000, icon: '🥇', discount: 0.1 },
+      { id: 'platinum', name: '白金會員', minPoints: 5000, icon: '💎', discount: 0.15 },
+    ]
+  },
+
+  features: {
+    register: true,
+    transfer: ${config.features.transfer},
+    exchange: ${config.features.exchange},
+    checkin: ${config.features.checkin},
+    invite: ${config.features.invite},
+  },
+
+  api: {
+    googleAppsScript: 'YOUR_APPS_SCRIPT_URL',
+    timeout: 30000,
+    retryCount: 3,
+  },
+
+  liff: {
+    register: 'YOUR_LIFF_ID_REGISTER',
+    profile: 'YOUR_LIFF_ID_PROFILE',
+    transfer: 'YOUR_LIFF_ID_TRANSFER',
+    edit: 'YOUR_LIFF_ID_EDIT',
+    history: 'YOUR_LIFF_ID_HISTORY',
+  },
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { CONFIG };
+}`;
+
+  document.getElementById('configOutput').textContent = output;
+}
+
+function downloadConfig() {
+  const content = document.getElementById('configOutput').textContent;
+  const blob = new Blob([content], { type: 'text/javascript' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'config.js';
+  a.click();
+}
+
+// 顏色選擇器預覽
+['primary', 'secondary', 'accent'].forEach(type => {
+  document.getElementById(type + 'Color').addEventListener('input', (e) => {
+    document.getElementById(type + 'Preview').style.background = e.target.value;
+  });
+});
+</script>
+</body>
+</html>
+
