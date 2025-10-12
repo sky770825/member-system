@@ -2,9 +2,13 @@
  * 會員註冊系統 - Google Apps Script
  * 用於 Google Sheets 作為資料庫
  * 
- * 工作表結構：
- * - Members: lineUserId, name, phone, email, birthday, lineName, linePicture, points, createdAt, updatedAt
- * - Transactions: id, type, senderUserId, receiverUserId, senderName, receiverName, points, message, createdAt
+ * 工作表結構（標準版）：
+ * - Members: lineUserId, name, phone, email, birthday, lineName, linePicture, points, memberLevel, totalEarned, totalSpent, referralCode, status, lastLoginAt, createdAt, updatedAt
+ * - Transactions: id, type, senderUserId, receiverUserId, senderName, receiverName, points, message, balanceAfter, status, createdAt
+ * - MemberLevels: id, levelCode, levelName, minPoints, discount, icon, color, isActive, createdAt
+ * - Activities: id, lineUserId, activityType, points, metadata, completedAt, createdAt
+ * - Settings: key, value, type, description, category, updatedBy, updatedAt
+ * - DailyStats: date, newMembers, activeMembers, totalTransactions, pointsIssued, pointsRedeemed, createdAt
  */
 
 // ==================== 設定區 ====================
@@ -286,8 +290,11 @@ function registerMember(data) {
     }
     
     const now = new Date().toISOString();
+    const initialPoints = getSetting('initialPoints', INITIAL_POINTS);
+    const memberLevel = calculateMemberLevel(initialPoints);
+    const referralCode = generateReferralCode(data.lineUserId);
     
-    // 新增會員資料
+    // 新增會員資料（包含新欄位）
     sheet.appendRow([
       data.lineUserId,
       data.name,
@@ -296,9 +303,15 @@ function registerMember(data) {
       data.birthday || '',
       data.lineName || '',
       data.linePicture || '',
-      INITIAL_POINTS,
-      now,
-      now
+      initialPoints,
+      memberLevel,
+      initialPoints,  // totalEarned
+      0,              // totalSpent
+      referralCode,
+      'active',       // status
+      now,            // lastLoginAt
+      now,            // createdAt
+      now             // updatedAt
     ]);
     
     // 記錄註冊交易
@@ -306,14 +319,23 @@ function registerMember(data) {
       type: 'register',
       receiverUserId: data.lineUserId,
       receiverName: data.name,
-      points: INITIAL_POINTS,
+      points: initialPoints,
       message: '新會員註冊贈送'
+    });
+    
+    // 記錄註冊活動
+    logActivity(data.lineUserId, 'register', initialPoints, {
+      name: data.name,
+      phone: data.phone,
+      referralCode: referralCode
     });
     
     return {
       success: true,
       message: '註冊成功',
-      points: INITIAL_POINTS
+      points: initialPoints,
+      memberLevel: memberLevel,
+      referralCode: referralCode
     };
     
   } catch (error) {
@@ -730,12 +752,18 @@ function initializeSheet(sheet, sheetName) {
       'lineName',
       'linePicture',
       'points',
+      'memberLevel',
+      'totalEarned',
+      'totalSpent',
+      'referralCode',
+      'status',
+      'lastLoginAt',
       'createdAt',
       'updatedAt'
     ]);
     
     // 設定標題列樣式
-    const headerRange = sheet.getRange(1, 1, 1, 10);
+    const headerRange = sheet.getRange(1, 1, 1, 16);
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#4285f4');
     headerRange.setFontColor('#ffffff');
@@ -750,13 +778,100 @@ function initializeSheet(sheet, sheetName) {
       'receiverName',
       'points',
       'message',
+      'balanceAfter',
+      'status',
+      'createdAt'
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 11);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#34a853');
+    headerRange.setFontColor('#ffffff');
+    
+  } else if (sheetName === MEMBER_LEVELS_SHEET) {
+    sheet.appendRow([
+      'id',
+      'levelCode',
+      'levelName',
+      'minPoints',
+      'discount',
+      'icon',
+      'color',
+      'isActive',
       'createdAt'
     ]);
     
     // 設定標題列樣式
     const headerRange = sheet.getRange(1, 1, 1, 9);
     headerRange.setFontWeight('bold');
-    headerRange.setBackground('#34a853');
+    headerRange.setBackground('#FF9800');
+    headerRange.setFontColor('#ffffff');
+    
+    // 插入預設等級資料
+    const now = new Date().toISOString();
+    sheet.appendRow(['1', 'BRONZE', '銅級會員', 0, 0, '🥉', '#CD7F32', true, now]);
+    sheet.appendRow(['2', 'SILVER', '銀級會員', 500, 0.05, '🥈', '#C0C0C0', true, now]);
+    sheet.appendRow(['3', 'GOLD', '金級會員', 1000, 0.1, '🥇', '#FFD700', true, now]);
+    sheet.appendRow(['4', 'PLATINUM', '白金會員', 5000, 0.15, '💎', '#E5E4E2', true, now]);
+    
+  } else if (sheetName === ACTIVITIES_SHEET) {
+    sheet.appendRow([
+      'id',
+      'lineUserId',
+      'activityType',
+      'points',
+      'metadata',
+      'completedAt',
+      'createdAt'
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 7);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#9C27B0');
+    headerRange.setFontColor('#ffffff');
+    
+  } else if (sheetName === SETTINGS_SHEET) {
+    sheet.appendRow([
+      'key',
+      'value',
+      'type',
+      'description',
+      'category',
+      'updatedBy',
+      'updatedAt'
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 7);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#607D8B');
+    headerRange.setFontColor('#ffffff');
+    
+    // 插入預設設定
+    const now = new Date().toISOString();
+    sheet.appendRow(['initialPoints', '100', 'number', '註冊贈送點數', 'points', 'system', now]);
+    sheet.appendRow(['pointsExpiryDays', '365', 'number', '點數有效天數（0=永久）', 'points', 'system', now]);
+    sheet.appendRow(['minTransferPoints', '1', 'number', '最小轉點數量', 'points', 'system', now]);
+    sheet.appendRow(['maxTransferPoints', '10000', 'number', '最大轉點數量', 'points', 'system', now]);
+    sheet.appendRow(['maintenanceMode', 'false', 'boolean', '維護模式', 'general', 'system', now]);
+    
+  } else if (sheetName === DAILY_STATS_SHEET) {
+    sheet.appendRow([
+      'date',
+      'newMembers',
+      'activeMembers',
+      'totalTransactions',
+      'pointsIssued',
+      'pointsRedeemed',
+      'createdAt'
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 7);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#00BCD4');
     headerRange.setFontColor('#ffffff');
   }
 }
@@ -800,5 +915,190 @@ function clearAllData() {
   }
   
   Logger.log('所有資料已清除');
+}
+
+// ==================== 新增功能函數 ====================
+
+/**
+ * 根據點數計算會員等級
+ */
+function calculateMemberLevel(points) {
+  if (points >= 5000) return 'PLATINUM';
+  if (points >= 1000) return 'GOLD';
+  if (points >= 500) return 'SILVER';
+  return 'BRONZE';
+}
+
+/**
+ * 生成推薦碼
+ */
+function generateReferralCode(lineUserId) {
+  // 使用 userId 的最後 6 碼 + 隨機 2 碼
+  const userPart = lineUserId.slice(-6).toUpperCase();
+  const randomPart = Math.random().toString(36).substring(2, 4).toUpperCase();
+  return userPart + randomPart;
+}
+
+/**
+ * 記錄活動
+ */
+function logActivity(lineUserId, activityType, points = 0, metadata = {}) {
+  try {
+    const sheet = getSheet(ACTIVITIES_SHEET);
+    const id = Utilities.getUuid();
+    const now = new Date().toISOString();
+    
+    sheet.appendRow([
+      id,
+      lineUserId,
+      activityType,
+      points,
+      JSON.stringify(metadata),
+      now,
+      now
+    ]);
+    
+    return true;
+  } catch (error) {
+    Logger.log('logActivity Error: ' + error.toString());
+    return false;
+  }
+}
+
+/**
+ * 取得設定值
+ */
+function getSetting(key, defaultValue = null) {
+  try {
+    const sheet = getSheet(SETTINGS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === key) {
+        const value = data[i][1];
+        const type = data[i][2];
+        
+        // 根據類型轉換
+        if (type === 'number') return Number(value);
+        if (type === 'boolean') return value === 'true';
+        if (type === 'json') return JSON.parse(value);
+        return value;
+      }
+    }
+    
+    return defaultValue;
+  } catch (error) {
+    Logger.log('getSetting Error: ' + error.toString());
+    return defaultValue;
+  }
+}
+
+/**
+ * 更新設定值
+ */
+function updateSetting(key, value, updatedBy = 'system') {
+  try {
+    const sheet = getSheet(SETTINGS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === key) {
+        const row = i + 1;
+        sheet.getRange(row, 2).setValue(value);
+        sheet.getRange(row, 6).setValue(updatedBy);
+        sheet.getRange(row, 7).setValue(new Date().toISOString());
+        return { success: true };
+      }
+    }
+    
+    return { success: false, message: '找不到設定項目' };
+  } catch (error) {
+    Logger.log('updateSetting Error: ' + error.toString());
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * 每日統計（可用觸發器每日執行）
+ */
+function runDailyStats() {
+  try {
+    const membersSheet = getSheet(MEMBERS_SHEET);
+    const transactionsSheet = getSheet(TRANSACTIONS_SHEET);
+    const statsSheet = getSheet(DAILY_STATS_SHEET);
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = Utilities.formatDate(today, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    
+    const membersData = membersSheet.getDataRange().getValues();
+    const transactionsData = transactionsSheet.getDataRange().getValues();
+    
+    let newMembers = 0;
+    let activeMembers = 0;
+    let totalTransactions = 0;
+    let pointsIssued = 0;
+    let pointsRedeemed = 0;
+    
+    // 統計新會員
+    for (let i = 1; i < membersData.length; i++) {
+      const createdDate = new Date(membersData[i][14]); // createdAt
+      if (createdDate >= today && createdDate < new Date(today.getTime() + 86400000)) {
+        newMembers++;
+      }
+    }
+    
+    // 統計交易
+    for (let i = 1; i < transactionsData.length; i++) {
+      const transDate = new Date(transactionsData[i][10]); // createdAt (新的索引)
+      if (transDate >= today && transDate < new Date(today.getTime() + 86400000)) {
+        totalTransactions++;
+        const points = Number(transactionsData[i][6]);
+        if (points > 0) {
+          pointsIssued += points;
+        } else {
+          pointsRedeemed += Math.abs(points);
+        }
+      }
+    }
+    
+    // 記錄統計
+    statsSheet.appendRow([
+      todayStr,
+      newMembers,
+      activeMembers,
+      totalTransactions,
+      pointsIssued,
+      pointsRedeemed,
+      new Date().toISOString()
+    ]);
+    
+    Logger.log('每日統計完成');
+    return { success: true };
+  } catch (error) {
+    Logger.log('runDailyStats Error: ' + error.toString());
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * 初始化所有新工作表（一次性執行）
+ */
+function initializeAllSheets() {
+  try {
+    // 初始化所有工作表
+    getSheet(MEMBERS_SHEET);
+    getSheet(TRANSACTIONS_SHEET);
+    getSheet(MEMBER_LEVELS_SHEET);
+    getSheet(ACTIVITIES_SHEET);
+    getSheet(SETTINGS_SHEET);
+    getSheet(DAILY_STATS_SHEET);
+    
+    Logger.log('所有工作表初始化完成！');
+    return { success: true, message: '所有工作表已創建' };
+  } catch (error) {
+    Logger.log('initializeAllSheets Error: ' + error.toString());
+    return { success: false, message: error.toString() };
+  }
 }
 
