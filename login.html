@@ -310,7 +310,8 @@ function switchTab(type) {
 async function handleLogin(event) {
   event.preventDefault();
   
-  const username = document.getElementById('username').value.trim();
+  // 🔐 清理輸入
+  const username = SecurityUtils.sanitize.trim(document.getElementById('username').value);
   const password = document.getElementById('password').value;
   
   if (!username || !password) {
@@ -323,25 +324,12 @@ async function handleLogin(event) {
   btn.textContent = '登入中...';
   
   try {
-    // 🔐 使用安全的 POST 方式傳送敏感資料
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        action: 'login',
-        username: username,
-        password: password
-      })
-    });
-    const data = await res.json();
+    // 🔐 使用 API 工具（自動處理 POST 請求和重試）
+    const data = await API.login(username, password);
     
     if (data.success) {
-      // 儲存 Session
-      localStorage.setItem('sessionToken', data.sessionToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('loginType', 'password');
+      // 🔐 使用 SessionManager 儲存 Session
+      SessionManager.set(data.sessionToken, data.user, 'password');
       
       showMessage('登入成功！正在跳轉...', 'success');
       
@@ -355,7 +343,9 @@ async function handleLogin(event) {
     }
   } catch (error) {
     console.error('登入錯誤:', error);
-    showMessage('系統錯誤，請稍後再試', 'error');
+    // 🔐 使用統一的錯誤處理
+    const errorMessage = SecurityUtils.handleError(error, '登入');
+    showMessage(errorMessage, 'error');
     btn.disabled = false;
     btn.textContent = '登入';
   }
@@ -392,11 +382,8 @@ function showMessage(msg, type) {
 
 // 頁面載入時檢查是否已登入
 window.addEventListener('load', async () => {
-  // 檢查是否有 Session
-  const sessionToken = localStorage.getItem('sessionToken');
-  const user = localStorage.getItem('user');
-  
-  if (sessionToken && user) {
+  // 🔐 使用 SessionManager 檢查登入狀態
+  if (SessionManager.isLoggedIn()) {
     // 已經登入，直接跳轉
     window.location.href = 'profile.html';
     return;

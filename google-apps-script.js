@@ -3539,7 +3539,13 @@ function getMallProducts(filter = {}) {
         sortOrder: Number(data[i][12]) || 0,
         tags: data[i][13],
         createdAt: data[i][14],
-        updatedAt: data[i][15]
+        updatedAt: data[i][15],
+        // 販售者資訊（新增）
+        sellerUserId: data[i][16] || '',
+        sellerName: data[i][17] || '',
+        sellerReferralCode: data[i][18] || '',
+        sellerPhone: data[i][19] || '',
+        sellerEmail: data[i][20] || ''
       });
     }
     
@@ -3594,7 +3600,13 @@ function getMallProductDetail(productId) {
             sortOrder: Number(data[i][12]) || 0,
             tags: data[i][13],
             createdAt: data[i][14],
-            updatedAt: data[i][15]
+            updatedAt: data[i][15],
+            // 販售者資訊（新增）
+            sellerUserId: data[i][16] || '',
+            sellerName: data[i][17] || '',
+            sellerReferralCode: data[i][18] || '',
+            sellerPhone: data[i][19] || '',
+            sellerEmail: data[i][20] || ''
           }
         };
       }
@@ -3683,20 +3695,36 @@ function purchaseMallProduct(lineUserId, productId) {
       };
     }
     
-    // 4. 扣除點數
+    // 4. 扣除買家點數
     const newPoints = currentPoints - product.points;
     membersSheet.getRange(memberRow, 8).setValue(newPoints);
     membersSheet.getRange(memberRow, 17).setValue(new Date().toISOString());
     
-    Logger.log(`✅ 點數扣除成功: ${currentPoints} → ${newPoints}`);
+    Logger.log(`✅ 買家點數扣除成功: ${currentPoints} → ${newPoints}`);
     
-    // 5. 記錄交易
+    // 5. 轉點數給販售者（如果有設定販售者）
+    let sellerReward = null;
+    if (product.sellerUserId) {
+      const transferResult = transferPointsToSeller(product.sellerUserId, product.points, product.productName, memberName);
+      if (transferResult.success) {
+        sellerReward = {
+          sellerUserId: product.sellerUserId,
+          sellerName: product.sellerName,
+          points: product.points
+        };
+        Logger.log(`✅ 點數已轉給販售者: ${product.sellerName}`);
+      }
+    }
+    
+    // 6. 記錄買家交易
     addTransaction({
       type: 'mall_purchase',
       senderUserId: lineUserId,
       senderName: memberName,
+      receiverUserId: product.sellerUserId || '',
+      receiverName: product.sellerName || '系統',
       points: -product.points,
-      message: `購買商城商品：${product.productName}`,
+      message: `購買商城商品：${product.productName}${product.sellerName ? ` (販售者：${product.sellerName})` : ''}`,
       balanceAfter: newPoints,
       status: 'completed'
     });
@@ -3755,6 +3783,11 @@ function purchaseMallProduct(lineUserId, productId) {
     
     Logger.log('========== purchaseMallProduct 結束 ==========');
     
+    let message = serialNumber ? `購買成功！序號：${serialNumber}` : `購買成功！`;
+    if (sellerReward) {
+      message += `\n\n販售者 ${sellerReward.sellerName} 已收到 ${sellerReward.points} 點`;
+    }
+    
     return {
       success: true,
       orderNumber: orderNumber,
@@ -3762,7 +3795,8 @@ function purchaseMallProduct(lineUserId, productId) {
       productName: product.productName,
       serialNumber: serialNumber,
       newPoints: newPoints,
-      message: serialNumber ? `購買成功！序號：${serialNumber}` : `購買成功！商品代碼：${product.productCode}`
+      sellerReward: sellerReward,
+      message: message
     };
     
   } catch (error) {
@@ -3866,5 +3900,68 @@ function generateSerialNumber(productCode) {
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
   const code = (productCode || 'ITEM').substring(0, 4).toUpperCase();
   return `${code}-${timestamp}-${random}`;
+}
+
+/**
+ * 轉點數給販售者
+ * @param {string} sellerUserId - 販售者ID
+ * @param {number} points - 點數
+ * @param {string} productName - 商品名稱
+ * @param {string} buyerName - 買家名稱
+ * @returns {object} 轉點結果
+ */
+function transferPointsToSeller(sellerUserId, points, productName, buyerName) {
+  try {
+    const membersSheet = getSheet(MEMBERS_SHEET);
+    const data = membersSheet.getDataRange().getValues();
+    
+    // 找到販售者
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === sellerUserId) {
+        const sellerRow = i + 1;
+        const sellerName = data[i][1];
+        const sellerPoints = Number(data[i][7]) || 0;
+        const newSellerPoints = sellerPoints + points;
+        
+        // 增加販售者點數
+        membersSheet.getRange(sellerRow, 8).setValue(newSellerPoints);
+        membersSheet.getRange(sellerRow, 17).setValue(new Date().toISOString());
+        
+        // 記錄販售者收到點數的交易
+        addTransaction({
+          type: 'mall_sale',
+          senderUserId: buyerName, // 買家名稱
+          senderName: buyerName,
+          receiverUserId: sellerUserId,
+          receiverName: sellerName,
+          points: points,
+          message: `商品售出：${productName}`,
+          balanceAfter: newSellerPoints,
+          status: 'completed'
+        });
+        
+        Logger.log(`✅ 販售者 ${sellerName} 收到 ${points} 點`);
+        
+        return {
+          success: true,
+          sellerName: sellerName,
+          points: points,
+          newBalance: newSellerPoints
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      message: '找不到販售者'
+    };
+    
+  } catch (error) {
+    Logger.log('transferPointsToSeller Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
 }
 

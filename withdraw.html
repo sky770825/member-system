@@ -6,6 +6,10 @@
 <title>提領兌現 - 公益點數系統</title>
 <link rel="stylesheet" href="./assets/style.css">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<!-- 🔐 安全工具庫 -->
+<script src="./assets/security-utils.js"></script>
+<script src="./assets/api-config.js"></script>
+<script src="./assets/session-manager.js"></script>
 </head>
 <body>
 <div class="container">
@@ -125,7 +129,8 @@
 
 <script src="./assets/auth.js"></script>
 <script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec';
+// 使用統一的 API 配置
+// const API_URL 已由 api-config.js 提供
 
 let currentUserId = '';
 let currentUserName = '';
@@ -296,23 +301,15 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
   submitBtn.innerHTML = '<span class="btn-icon">⏳</span> 處理中...';
   
   try {
-    // 🔐 使用安全的 POST 方式傳送敏感資料（銀行帳號）
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        action: 'withdraw',
-        lineUserId: currentUserId,
-        points: points,
-        bankName: bankName,
-        bankAccount: bankAccount,
-        accountName: accountName,
-        notes: notes
-      })
+    // 🔐 使用 API 工具（自動處理 POST 請求和重試）
+    const data = await API.withdraw({
+      lineUserId: currentUserId,
+      points: points,
+      bankName: SecurityUtils.sanitize.trim(bankName),
+      bankAccount: SecurityUtils.sanitize.trim(bankAccount),
+      accountName: SecurityUtils.sanitize.trim(accountName),
+      notes: SecurityUtils.sanitize.trim(notes)
     });
-    const data = await res.json();
     
     if (data.success) {
       let successMsg = `🎉 提領申請成功！\n\n` +
@@ -350,7 +347,9 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
     }
   } catch (error) {
     console.error('提領錯誤:', error);
-    showMessage('❌ 系統錯誤: ' + error.message, 'error');
+    // 🔐 使用統一的錯誤處理
+    const errorMessage = SecurityUtils.handleError(error, '提領');
+    showMessage('❌ ' + errorMessage, 'error');
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<span class="btn-icon">💵</span> 確認提領';
   }

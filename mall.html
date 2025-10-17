@@ -349,6 +349,14 @@ function renderProducts(products) {
           
           ${tags ? `<div class="product-tags">${tags}</div>` : ''}
           
+          ${product.sellerName ? `
+          <div style="background: linear-gradient(135deg, #E8EAF6, #C5CAE9); padding: 10px; border-radius: 8px; margin: 10px 0; border: 2px solid #667eea;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">👤 販售者</div>
+            <div style="font-weight: 700; color: #667eea; font-size: 15px;">${product.sellerName}</div>
+            <div style="font-size: 12px; color: #999; margin-top: 2px;">推薦碼：${product.sellerReferralCode || '無'}</div>
+          </div>
+          ` : ''}
+          
           <div class="product-points">
             <div>
               <div class="points-price">${product.points} <span>點</span></div>
