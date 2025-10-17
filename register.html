@@ -12,7 +12,7 @@
   <div class="register-card">
     <div class="register-header">
       <h1>會員註冊</h1>
-      <p>完成註冊即贈送 100 點</p>
+      <p style="color: #FF6B9D;">❤️ 完成註冊即贈送 100 愛心點數</p>
     </div>
     
     <form id="registerForm">
@@ -237,7 +237,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     console.log('API 回應資料:', data);
     
     if (data.success) {
-      showMessage('🎉 註冊成功！已贈送 100 點，正在跳轉...', 'success');
+      showMessage('🎉 註冊成功！已贈送 100 愛心點數 ❤️，正在跳轉...', 'success');
       setTimeout(() => {
         window.location.href = "profile.html";
       }, 2000);
