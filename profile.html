@@ -94,16 +94,10 @@ function startAutoRefresh(lineUserId, pictureUrl, displayName) {
   
   console.log('🔄 啟動自動刷新（每 5 秒檢查一次）');
   
-  // 添加自動刷新指示器
-  addRefreshIndicator();
-  
   // 每 5 秒檢查一次
   autoRefreshInterval = setInterval(async () => {
     try {
       console.log('🔍 檢查點數更新中...', new Date().toLocaleTimeString());
-      
-      // 更新指示器
-      updateRefreshIndicator();
       
       const res = await fetch("https://script.google.com/macros/s/AKfycbx2TRenhHm1LWkCtLB1BwQtUO6XQM1aNopS6HKOgTmGziu2GYX8ZwgDPv64cRRt6XU4/exec?action=profile&lineUserId=" + lineUserId);
       const data = await res.json();
