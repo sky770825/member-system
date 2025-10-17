@@ -1,0 +1,76 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 核心文件資料夾使用說明
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 目的：
+分離「公開文件」和「私密文件」，方便上傳到 GitHub
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 方式 A：手動複製（最簡單）
+
+1. 選擇以下文件：
+   ☐ index.html
+   ☐ register.html
+   ☐ profile.html
+   ☐ transfer.html
+   ☐ edit.html
+   ☐ history.html
+   ☐ admin.html
+   ☐ google-apps-script.js
+
+2. 複製到「核心文件」資料夾
+
+3. 複製 assets 整個資料夾
+
+4. 複製 README.md 和 .gitignore
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 方式 B：執行批次腳本
+
+1. 雙擊執行：_更新核心文件.bat
+
+2. 會自動複製所有核心文件
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 方式 C：直接在主資料夾操作（推薦）⭐
+
+其實不需要「核心文件」資料夾！
+
+因為已經設定好 .gitignore，直接在主資料夾操作：
+
+```bash
+cd C:\Users\User\Desktop\會員註冊系統
+
+# 只添加核心文件
+git add *.html
+git add google-apps-script.js
+git add assets/
+git add README.md
+git add .gitignore
+
+# 提交推送
+git commit -m "更新功能"
+git push
+```
+
+.gitignore 會自動排除：
+❌ 所有 .md 說明文件（除了 README.md）
+❌ tools/ 資料夾
+❌ templates/ 資料夾
+❌ config 文件
+
+所以說明文件不會被上傳！
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 建議：
+
+使用方式 C（最方便）
+
+直接在主資料夾操作，.gitignore 會幫您過濾
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+

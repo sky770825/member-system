@@ -1,0 +1,96 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 立即上傳 - 最簡單方法
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+推薦使用 VS Code（您正在用的編輯器）⭐⭐⭐
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ 使用 VS Code 上傳（5 步驟）
+
+1️⃣ 點擊左側欄的「Source Control」圖示
+   （或按 Ctrl + Shift + G）
+
+2️⃣ 在「Changes」區域，勾選以下文件：
+   ☑ index.html
+   ☑ register.html
+   ☑ profile.html
+   ☑ transfer.html
+   ☑ edit.html
+   ☑ history.html
+   ☑ admin.html
+   ☑ google-apps-script.js
+   ☑ assets/style.css
+   ☑ README.md
+   ☑ .gitignore
+
+   ⚠️ 不要勾選：
+   ☐ 任何 .md 文件（除了 README.md）
+   ☐ tools/ 資料夾
+   ☐ templates/ 資料夾
+   ☐ config.js
+
+3️⃣ 在上方「Message」框輸入：
+   更新核心功能
+
+4️⃣ 點擊「✓ Commit」按鈕
+
+5️⃣ 點擊「↑ Sync Changes」或「Push」按鈕
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ 確認上傳成功：
+
+1. 訪問：https://github.com/sky770825/member-system
+
+2. 應該看到：
+   ✅ 7 個 HTML 文件
+   ✅ google-apps-script.js（1711 行）
+   ✅ assets 資料夾
+   ✅ README.md（簡潔版）
+
+3. 確認看不到：
+   ❌ 詳細說明文件
+   ❌ 工具腳本
+   ❌ 產業模板
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 如果還是不行：
+
+直接在 GitHub 網頁上傳：
+
+1. 前往 https://github.com/sky770825/member-system
+
+2. 點擊「Add file」→「Upload files」
+
+3. 拖曳這些文件上去：
+   - index.html
+   - register.html
+   - profile.html
+   - transfer.html
+   - edit.html
+   - history.html
+   - admin.html
+   - google-apps-script.js
+   - assets 資料夾
+
+4. 點擊「Commit changes」
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 .gitignore 已設定好
+
+只要不手動勾選說明文件，它們就不會上傳！
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✨ 最新 API URL（已更新）：
+https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec
+
+所有 HTML 文件中的 API URL 都已更新 ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+現在就用 VS Code 試試看！👆
+
