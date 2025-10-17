@@ -107,13 +107,13 @@ async function verifyReferralCode(code) {
     const data = await res.json();
     
     if (data.success && data.referrer) {
-      // 🔧 只顯示推薦人，不顯示額外獎勵
+      // 🔧 顯示推薦人（公益慈善版文案）
       document.getElementById('referralInfo').innerHTML = 
-        `👤 推薦人：<strong>${data.referrer.name}</strong>`;
+        `❤️ 由 <strong style="color: #667eea;">${data.referrer.name}</strong> 推薦加入公益行列`;
     } else {
       document.getElementById('referralStatus').innerHTML = '⚠️ 無效';
       document.getElementById('referralStatus').style.color = '#FF6B6B';
-      document.getElementById('referralInfo').innerHTML = '推薦碼無效，將以一般會員註冊';
+      document.getElementById('referralInfo').innerHTML = '推薦碼無效，將以一般會員身分加入';
     }
   } catch (error) {
     console.error('驗證推薦碼失敗:', error);
