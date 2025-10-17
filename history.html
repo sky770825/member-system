@@ -169,7 +169,17 @@ async function initLiff() {
     }
 
     list.innerHTML = data.transactions.map(item => {
-      const isPositive = ['transfer_in', 'register', 'admin_add'].includes(item.type);
+      // 🔧 更新：包含所有增加點數的交易類型
+      const isPositive = [
+        'transfer_in',           // 收到轉點
+        'register',              // 註冊贈送
+        'admin_add',             // 管理員新增
+        'purchase',              // 購買點數 🔧 新增
+        'referral_purchase_reward',  // 推薦購買獎勵 🔧 新增
+        'referral_withdraw_reward',  // 推薦提領獎勵 🔧 新增
+        'referral_bonus'         // 推薦註冊獎勵（舊版）
+      ].includes(item.type);
+      
       const displayPoints = Math.abs(item.points);
       
       return `
@@ -204,6 +214,12 @@ function translateType(type) {
     'register': '🎁 註冊贈點',
     'transfer_in': '📥 轉入點數',
     'transfer_out': '📤 轉出點數',
+    'purchase': '💰 購買點數',
+    'withdraw': '💵 提領兌現',
+    'referral_purchase_reward': '🎁 推薦購買獎勵',
+    'referral_withdraw_reward': '🎁 推薦提領獎勵',
+    'referral_bonus': '🎁 推薦註冊獎勵',
+    'referral_reward': '🎁 推薦獎勵',
     'admin_add': '➕ 管理員加點',
     'admin_deduct': '➖ 管理員扣點'
   };
@@ -215,6 +231,12 @@ function getTransactionDetail(item) {
     return `<span class="transaction-detail">來自：${item.senderName}</span>`;
   } else if (item.type === 'transfer_out' && item.receiverName) {
     return `<span class="transaction-detail">轉給：${item.receiverName}</span>`;
+  } else if (item.type === 'purchase') {
+    return `<span class="transaction-detail">購買公益點數</span>`;
+  } else if (item.type === 'withdraw') {
+    return `<span class="transaction-detail">提領兌現 NT$ ${Math.abs(item.points).toLocaleString()}</span>`;
+  } else if (item.type === 'referral_purchase_reward' || item.type === 'referral_withdraw_reward') {
+    return `<span class="transaction-detail">${item.message || '推薦獎勵'}</span>`;
   } else if (item.message) {
     return `<span class="transaction-detail">${item.message}</span>`;
   }
