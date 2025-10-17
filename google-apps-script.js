@@ -24,7 +24,7 @@ const MEMBER_LEVELS_SHEET = 'MemberLevels';
 const ACTIVITIES_SHEET = 'Activities';
 const SETTINGS_SHEET = 'Settings';
 const DAILY_STATS_SHEET = 'DailyStats';
-const INITIAL_POINTS = 100; // 新會員註冊贈送點數
+const INITIAL_POINTS = 0; // 新會員註冊贈送點數
 
 // 會員等級定義
 const MEMBER_LEVELS = {
