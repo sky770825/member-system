@@ -113,10 +113,9 @@
     </div>
     
     <!-- 推薦人資訊 -->
-    <div id="referrerInfo" style="display: none; background: linear-gradient(135deg, #E8EAF6, #C5CAE9); padding: 16px; border-radius: 12px; border: 2px solid #667eea; margin: 20px 0;">
-      <h3 style="margin: 0 0 8px 0; color: #667eea; font-size: 14px; font-weight: 600;">💡 推薦人獎勵</h3>
-      <p style="margin: 0; color: #333; font-size: 13px;">
-        您的推薦人 <strong id="referrerName" style="color: #667eea;">--</strong> 將獲得本次購買的 <strong style="color: #667eea;">20%</strong> 獎勵點數！
+    <div id="referrerInfo" style="display: none; background: linear-gradient(135deg, #E8EAF6, #C5CAE9); padding: 14px 18px; border-radius: 12px; border: 2px solid #667eea; margin: 20px 0;">
+      <p style="margin: 0; color: #333; font-size: 14px; font-weight: 600;">
+        👤 推薦人：<strong id="referrerName" style="color: #667eea; font-size: 16px;">--</strong> (<span id="referrerCode" style="color: #999; font-size: 13px;">--</span>)
       </p>
     </div>
     
@@ -275,9 +274,21 @@ async function checkReferrer() {
     const data = await res.json();
     
     if (data.referredBy) {
-      // 有推薦人，顯示獎勵資訊
-      document.getElementById('referrerInfo').style.display = 'block';
-      // 這裡可以進一步查詢推薦人詳細資訊
+      // 有推薦人，查詢推薦人詳細資訊
+      const verifyRes = await fetch(`${API_URL}?action=verify-referral&referralCode=${data.referredBy}`);
+      const verifyData = await verifyRes.json();
+      
+      if (verifyData.success && verifyData.referrer) {
+        document.getElementById('referrerInfo').style.display = 'block';
+        document.getElementById('referrerName').textContent = verifyData.referrer.name;
+        document.getElementById('referrerCode').textContent = data.referredBy;
+        
+        // 儲存推薦人資訊供後續使用
+        referrerInfo = {
+          name: verifyData.referrer.name,
+          code: data.referredBy
+        };
+      }
     }
   } catch (error) {
     console.error('檢查推薦人失敗:', error);
@@ -337,14 +348,6 @@ function updatePurchaseDetail() {
     document.getElementById('detailPayment').textContent = getPaymentMethodName(paymentMethod);
     
     document.getElementById('purchaseBtn').disabled = false;
-    
-    // 如果有推薦人，計算推薦人獎勵
-    if (referrerInfo) {
-      const reward = Math.floor(points * 0.2);
-      document.getElementById('referrerInfo').style.display = 'block';
-      document.getElementById('referrerInfo').querySelector('p').innerHTML = 
-        `您的推薦人 <strong style="color: #667eea;">${referrerInfo.name}</strong> 將獲得本次購買的 <strong style="color: #667eea;">20% (${reward.toLocaleString()} 點)</strong> 獎勵！`;
-    }
   } else {
     document.getElementById('purchaseDetail').style.display = 'none';
     document.getElementById('purchaseBtn').disabled = true;

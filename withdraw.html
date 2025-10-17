@@ -110,11 +110,10 @@
         </div>
       </div>
       
-      <!-- 推薦人獎勵提示 -->
-      <div id="referrerReward" style="display: none; background: linear-gradient(135deg, #E8EAF6, #C5CAE9); padding: 16px; border-radius: 12px; border: 2px solid #667eea; margin: 20px 0;">
-        <h3 style="margin: 0 0 8px 0; color: #667eea; font-size: 14px; font-weight: 600;">💡 推薦人獎勵</h3>
-        <p style="margin: 0; color: #333; font-size: 13px;" id="referrerRewardText">
-          您的推薦人將獲得本次提領的 <strong style="color: #667eea;">20%</strong> 獎勵點數！
+      <!-- 推薦人資訊 -->
+      <div id="referrerReward" style="display: none; background: linear-gradient(135deg, #E8EAF6, #C5CAE9); padding: 14px 18px; border-radius: 12px; border: 2px solid #667eea; margin: 20px 0;">
+        <p style="margin: 0; color: #333; font-size: 14px; font-weight: 600;" id="referrerRewardText">
+          👤 推薦人：<strong style="color: #667eea; font-size: 16px;">--</strong> (<span style="color: #999; font-size: 13px;">--</span>)
         </p>
       </div>
       
@@ -172,13 +171,30 @@ async function init() {
       
       // 檢查是否有推薦人（從 profile 資料判斷）
       if (data.referredBy) {
-        document.getElementById('referrerReward').style.display = 'block';
+        // 查詢推薦人詳細資訊
+        checkReferrer(data.referredBy);
       }
     }
     
   } catch (error) {
     console.error('初始化錯誤:', error);
     showMessage('❌ 載入失敗，請重新整理頁面', 'error');
+  }
+}
+
+// 檢查推薦人
+async function checkReferrer(referralCode) {
+  try {
+    const res = await fetch(`${API_URL}?action=verify-referral&referralCode=${referralCode}`);
+    const data = await res.json();
+    
+    if (data.success && data.referrer) {
+      document.getElementById('referrerReward').style.display = 'block';
+      document.getElementById('referrerRewardText').innerHTML = 
+        `👤 推薦人：<strong style="color: #667eea; font-size: 16px;">${data.referrer.name}</strong> (<span style="color: #999; font-size: 13px;">${referralCode}</span>)`;
+    }
+  } catch (error) {
+    console.error('檢查推薦人失敗:', error);
   }
 }
 
@@ -227,13 +243,6 @@ function updateWithdrawDetail() {
       document.getElementById('detailAccount').textContent = '****' + lastFour;
     } else {
       document.getElementById('detailAccount').textContent = bankAccount;
-    }
-    
-    // 如果有推薦人，計算推薦人獎勵
-    if (document.getElementById('referrerReward').style.display !== 'none') {
-      const reward = Math.floor(points * 0.2);
-      document.getElementById('referrerRewardText').innerHTML = 
-        `您的推薦人將獲得本次提領的 <strong style="color: #667eea;">20% (${reward.toLocaleString()} 點)</strong> 獎勵！`;
     }
   } else {
     document.getElementById('withdrawDetail').style.display = 'none';
