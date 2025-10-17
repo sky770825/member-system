@@ -3671,6 +3671,12 @@ function purchaseMallProduct(lineUserId, productId) {
     const orderNumber = 'MO' + now.getTime();
     const ordersSheet = getSheet(MALL_ORDERS_SHEET);
     
+    // 生成虛擬商品序號（如果是虛擬商品）
+    let serialNumber = '';
+    if (product.category === 'virtual') {
+      serialNumber = generateSerialNumber(product.productCode);
+    }
+    
     ordersSheet.appendRow([
       now.getTime(),              // 訂單ID
       orderNumber,                // 訂單編號
@@ -3683,7 +3689,7 @@ function purchaseMallProduct(lineUserId, productId) {
       product.points,             // 購買點數
       currentPoints,              // 購買前點數
       newPoints,                  // 購買後點數
-      product.productCode,        // 序號/代碼（顯示商品代碼）
+      serialNumber || product.productCode,  // 序號/代碼
       'completed',                // 訂單狀態
       now.toISOString(),          // 付款時間
       now.toISOString(),          // 完成時間
@@ -3719,8 +3725,9 @@ function purchaseMallProduct(lineUserId, productId) {
       orderNumber: orderNumber,
       productCode: product.productCode,
       productName: product.productName,
-      points: newPoints,
-      message: `購買成功！商品代碼：${product.productCode}`
+      serialNumber: serialNumber,
+      newPoints: newPoints,
+      message: serialNumber ? `購買成功！序號：${serialNumber}` : `購買成功！商品代碼：${product.productCode}`
     };
     
   } catch (error) {
@@ -3758,6 +3765,17 @@ function getMallOrders(lineUserId, limit = 50) {
     // 從最新的記錄開始讀取
     for (let i = data.length - 1; i > 0; i--) {
       if (data[i][2] === lineUserId) {
+        // 查詢商品分類（用於判斷是否為虛擬商品）
+        let productCategory = '';
+        const productsSheet = getSheet(PRODUCTS_SHEET);
+        const productsData = productsSheet.getDataRange().getValues();
+        for (let j = 1; j < productsData.length; j++) {
+          if (productsData[j][0] === data[i][4]) {
+            productCategory = productsData[j][8];
+            break;
+          }
+        }
+        
         orders.push({
           orderId: data[i][0],
           orderNumber: data[i][1],
@@ -3766,15 +3784,17 @@ function getMallOrders(lineUserId, limit = 50) {
           productCode: data[i][5],
           productName: data[i][6],
           productImage: data[i][7],
-          points: Number(data[i][8]) || 0,
+          pointsUsed: Number(data[i][8]) || 0,
           pointsBefore: Number(data[i][9]) || 0,
           pointsAfter: Number(data[i][10]) || 0,
-          serialCode: data[i][11],
+          serialNumber: data[i][11],
           status: data[i][12],
-          paidAt: data[i][13],
+          orderDate: data[i][13],
           completedAt: data[i][14],
           notes: data[i][15],
-          createdAt: data[i][16]
+          createdAt: data[i][16],
+          productCategory: productCategory,
+          quantity: 1
         });
         
         if (orders.length >= limit) {
@@ -3799,5 +3819,17 @@ function getMallOrders(lineUserId, limit = 50) {
       message: error.toString()
     };
   }
+}
+
+/**
+ * 生成虛擬商品序號
+ * @param {string} productCode - 商品代碼
+ * @returns {string} 序號
+ */
+function generateSerialNumber(productCode) {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const code = (productCode || 'ITEM').substring(0, 4).toUpperCase();
+  return `${code}-${timestamp}-${random}`;
 }
 

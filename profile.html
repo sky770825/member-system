@@ -323,9 +323,17 @@ function renderProfile(data, pictureUrl, displayName) {
       </div>
       
       <div class="action-buttons">
+        <button class="btn btn-primary" onclick="goMall()" style="background: linear-gradient(135deg, #667eea, #764ba2); border-color: #667eea;">
+          <span class="btn-icon">🛒</span>
+          公益商城
+        </button>
         <button class="btn btn-primary" onclick="goPurchase()" style="background: linear-gradient(135deg, #FFB800, #E69500); border-color: #FFB800;">
           <span class="btn-icon">💰</span>
           購買公益點數
+        </button>
+        <button class="btn btn-secondary" onclick="goMyOrders()" style="background: linear-gradient(135deg, #667eea, #764ba2); border-color: #667eea; color: white;">
+          <span class="btn-icon">📦</span>
+          我的訂單
         </button>
         <button class="btn btn-primary" onclick="goWithdraw()" style="background: linear-gradient(135deg, #FF6B00, #E65100); border-color: #FF6B00;">
           <span class="btn-icon">💵</span>
@@ -382,8 +390,16 @@ function getCache(key) {
   }
 }
 
+function goMall() {
+  window.location.href = "mall.html";
+}
+
 function goPurchase() {
   window.location.href = "purchase.html";
+}
+
+function goMyOrders() {
+  window.location.href = "my-orders.html";
 }
 
 function goWithdraw() {
