@@ -12,7 +12,7 @@
   <div class="register-card">
     <div class="register-header">
       <h1>會員註冊</h1>
-      <p style="color: #FF6B9D;">❤️ 完成註冊即贈送 100 愛心點數</p>
+      <p style="color: #FF6B9D;">❤️ 完成註冊即贈送 100 公益點數</p>
     </div>
     
     <form id="registerForm">
@@ -107,8 +107,9 @@ async function verifyReferralCode(code) {
     const data = await res.json();
     
     if (data.success && data.referrer) {
+      // 🔧 只顯示推薦人，不顯示額外獎勵
       document.getElementById('referralInfo').innerHTML = 
-        `👤 推薦人：<strong>${data.referrer.name}</strong> | 註冊成功後雙方各獲得 <strong style="color: #FF6B6B;">50 點</strong> 獎勵！`;
+        `👤 推薦人：<strong>${data.referrer.name}</strong>`;
     } else {
       document.getElementById('referralStatus').innerHTML = '⚠️ 無效';
       document.getElementById('referralStatus').style.color = '#FF6B6B';
@@ -160,11 +161,8 @@ async function initLiff() {
         window.location.href = "profile.html";
       }, 2000);
     } else {
-      if (referralCode) {
-        showMessage(`🎁 透過推薦連結註冊，完成後可獲得額外獎勵！`, 'info');
-      } else {
-        showMessage('歡迎註冊！請填寫資料', 'info');
-      }
+      // 🔧 移除推薦獎勵提示
+      showMessage('歡迎註冊！請填寫資料', 'info');
     }
   } catch (error) {
     console.error('LIFF 初始化錯誤:', error);
@@ -237,7 +235,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     console.log('API 回應資料:', data);
     
     if (data.success) {
-      showMessage('🎉 註冊成功！已贈送 100 愛心點數 ❤️，正在跳轉...', 'success');
+      showMessage('🎉 註冊成功！已贈送 100 公益點數 ❤️，正在跳轉...', 'success');
       setTimeout(() => {
         window.location.href = "profile.html";
       }, 2000);

@@ -12,11 +12,11 @@
   <div class="transfer-card">
     <div class="page-header">
       <button class="btn-back" onclick="goBack()">← 返回</button>
-      <h1>❤️ 分享愛心給好友</h1>
+      <h1>❤️ 分享公益點數</h1>
     </div>
     
     <div class="current-points" id="currentPoints" style="border-color: #FF6B9D;">
-      <p class="points-label">❤️ 可用愛心點數</p>
+      <p class="points-label">❤️ 可用公益點數</p>
       <p class="points-value" style="color: #FF6B9D;">-- <span>點</span></p>
     </div>
     
@@ -29,9 +29,9 @@
         </div>
         
         <div class="form-group">
-          <label for="points">❤️ 轉贈愛心數量 *</label>
-          <input type="number" id="points" name="points" required placeholder="請輸入愛心數量" min="1">
-          <small>每次最少轉 1 點愛心</small>
+          <label for="points">❤️ 轉贈公益點數 *</label>
+          <input type="number" id="points" name="points" required placeholder="請輸入公益點數" min="1">
+          <small>每次最少轉 1 點</small>
         </div>
         
         <div class="quick-amount">
@@ -53,7 +53,7 @@
       
       <button type="submit" class="btn btn-primary btn-large" id="submitBtn">
         <span class="btn-icon">❤️</span>
-        確認轉愛心
+        確認轉贈
       </button>
     </form>
     
@@ -63,10 +63,10 @@
 
 <div id="confirmModal" class="modal">
   <div class="modal-content">
-    <h3>❤️ 確認轉贈愛心</h3>
+    <h3>❤️ 確認轉贈公益點數</h3>
     <div class="confirm-details">
       <p><strong>收款人：</strong><span id="confirmReceiver"></span></p>
-      <p><strong>❤️ 愛心數量：</strong><span id="confirmPoints" style="color: #FF6B9D; font-weight: bold;"></span> 點</p>
+      <p><strong>❤️ 公益點數：</strong><span id="confirmPoints" style="color: #FF6B9D; font-weight: bold;"></span> 點</p>
       <p><strong>留言：</strong><span id="confirmMessage"></span></p>
     </div>
     <div class="modal-buttons">
@@ -140,7 +140,7 @@ async function initLiff() {
     
     currentPoints = data.points || 0;
     document.getElementById('currentPoints').innerHTML = `
-      <p class="points-label">❤️ 可用愛心點數</p>
+      <p class="points-label">❤️ 可用公益點數</p>
       <p class="points-value" style="color: #FF6B9D;">${currentPoints} <span>點</span></p>
     `;
     
@@ -213,7 +213,7 @@ document.getElementById('message').addEventListener('input', function() {
 // 快速選擇金額
 function setAmount(amount) {
   if (amount > currentPoints) {
-    showMessage('❤️ 愛心點數不足', 'error');
+    showMessage('❤️ 公益點數不足', 'error');
     return;
   }
   document.getElementById('points').value = amount;
@@ -230,12 +230,12 @@ document.getElementById('transferForm').addEventListener('submit', function(e) {
   
   const points = parseInt(document.getElementById('points').value);
   if (points > currentPoints) {
-    showMessage('❤️ 愛心點數不足', 'error');
+    showMessage('❤️ 公益點數不足', 'error');
     return;
   }
   
   if (points < 1) {
-    showMessage('最少轉贈 1 點愛心', 'error');
+    showMessage('最少轉贈 1 點', 'error');
     return;
   }
   
@@ -285,14 +285,14 @@ async function confirmTransfer() {
     const data = await res.json();
     
     if (data.success) {
-      showMessage('✅ 愛心轉贈成功！❤️', 'success');
+      showMessage('✅ 公益點數轉贈成功！❤️', 'success');
       setTimeout(() => {
         safeCloseWindow(); // 🔧 使用安全關閉函數
       }, 2000);
     } else {
       showMessage(data.message || '轉點失敗，請稍後再試', 'error');
       submitBtn.disabled = false;
-      submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉愛心';
+      submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉贈';
     }
   } catch (error) {
     console.error('轉點錯誤:', error);
@@ -304,7 +304,7 @@ async function confirmTransfer() {
     setTimeout(() => {
       if (submitBtn.disabled && submitBtn.innerHTML.includes('轉點中')) {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉愛心';
+        submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉贈';
         showMessage('⚠️ 操作超時，請重試', 'error');
       }
     }, 16000); // 比超時時間多1秒，作為最後保障
