@@ -239,6 +239,7 @@
 }
 </style>
 
+<script src="./assets/auth.js"></script>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec';
 
@@ -249,15 +250,14 @@ let currentCategory = 'all';
 
 async function initLiff() {
   try {
-    await liff.init({ liffId: "2008231108-2PDbO5qk" });
+    // 使用認證工具初始化
+    const authResult = await AUTH.init();
     
-    if (!liff.isLoggedIn()) {
-      liff.login({ redirectUri: window.location.href });
+    if (!authResult.success) {
       return;
     }
     
-    const profile = await liff.getProfile();
-    currentUserId = profile.userId;
+    currentUserId = authResult.user.userId;
     
     // 取得會員資料
     const res = await fetch(`${API_URL}?action=profile&lineUserId=${currentUserId}`);
