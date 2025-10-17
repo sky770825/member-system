@@ -285,10 +285,32 @@ async function confirmTransfer() {
     const data = await res.json();
     
     if (data.success) {
-      showMessage('✅ 公益點數轉贈成功！❤️', 'success');
-      setTimeout(() => {
-        safeCloseWindow(); // 🔧 使用安全關閉函數
-      }, 2000);
+      // 🔧 立即更新本地點數（不等 API，速度更快）
+      const transferredPoints = transferData.points;
+      currentPoints -= transferredPoints;
+      
+      // 立即更新顯示
+      document.getElementById('currentPoints').innerHTML = `
+        <p class="points-label">❤️ 可用公益點數</p>
+        <p class="points-value" style="color: #FF6B9D;">${currentPoints} <span>點</span></p>
+      `;
+      
+      // 更新最大值
+      document.getElementById('points').max = currentPoints;
+      
+      // 顯示成功訊息
+      showMessage(`✅ 成功轉贈 ${transferredPoints} 點給 ${receiverData.name}！❤️`, 'success');
+      
+      // 🔧 重置表單，讓用戶可以繼續轉點
+      document.getElementById('receiverPhone').value = '';
+      document.getElementById('points').value = '';
+      document.getElementById('message').value = '';
+      document.getElementById('receiverInfo').style.display = 'none';
+      receiverData = null;
+      
+      // 恢復按鈕
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉贈';
     } else {
       showMessage(data.message || '轉點失敗，請稍後再試', 'error');
       submitBtn.disabled = false;
@@ -298,7 +320,7 @@ async function confirmTransfer() {
     console.error('轉點錯誤:', error);
     showMessage('❌ ' + error.message, 'error');
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<span class="btn-icon">💸</span> 確認轉點';
+    submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉贈';
   } finally {
     // 🔧 確保按鈕一定會恢復
     setTimeout(() => {
