@@ -82,6 +82,41 @@ let currentPoints = 0;
 let receiverData = null;
 let transferData = null;
 
+// 🔧 添加超時保護函數（放在最前面）
+function fetchWithTimeout(url, options = {}, timeout = 15000) {
+  return Promise.race([
+    fetch(url, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('請求超時，請檢查網路連線')), timeout)
+    )
+  ]);
+}
+
+// 🔧 安全關閉視窗函數（檢查是否在 LIFF 環境）
+function safeCloseWindow() {
+  try {
+    // 檢查是否在 LIFF 環境且已初始化
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      // 不在 LINE 中，返回上一頁或顯示提示
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        showMessage('✅ 操作完成！請關閉此頁面', 'success');
+      }
+    }
+  } catch (error) {
+    console.warn('關閉視窗失敗:', error);
+    // 降級處理：嘗試返回上一頁
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      showMessage('✅ 操作完成！請關閉此頁面', 'success');
+    }
+  }
+}
+
 async function initLiff() {
   try {
     await liff.init({ liffId: "2008231108-8dwdPJ26" });
@@ -94,8 +129,12 @@ async function initLiff() {
     const profile = await liff.getProfile();
     lineUserId = profile.userId;
     
-    // 取得當前點數
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?action=profile&lineUserId=${lineUserId}`);
+    // 取得當前點數 - 🔧 使用超時保護
+    const res = await fetchWithTimeout(
+      `https://script.google.com/macros/s/AKfycbzwx7FSDBc3XUjpmNel6scjhZf-UV9UpNi_9ADWWvzyHwJQOoraO_0EgA0xR4LntmxA/exec?action=profile&lineUserId=${lineUserId}`,
+      {},
+      10000 // 10秒超時
+    );
     const data = await res.json();
     
     currentPoints = data.points || 0;
@@ -109,7 +148,7 @@ async function initLiff() {
     
   } catch (error) {
     console.error('LIFF 初始化錯誤:', error);
-    showMessage('系統錯誤，請稍後再試', 'error');
+    showMessage('❌ ' + error.message, 'error');
   }
 }
 
@@ -118,11 +157,19 @@ document.getElementById('receiverPhone').addEventListener('blur', async function
   const phone = this.value;
   if (!phone) return;
   
+  const infoDiv = document.getElementById('receiverInfo');
+  infoDiv.innerHTML = `<span class="receiver-searching">🔍 查詢中...</span>`;
+  infoDiv.style.display = 'block';
+  
   try {
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?action=check-user&phone=${phone}`);
+    // 🔧 使用超時保護
+    const res = await fetchWithTimeout(
+      `https://script.google.com/macros/s/AKfycbzwx7FSDBc3XUjpmNel6scjhZf-UV9UpNi_9ADWWvzyHwJQOoraO_0EgA0xR4LntmxA/exec?action=check-user&phone=${phone}`,
+      {},
+      10000 // 10秒超時
+    );
     const data = await res.json();
     
-    const infoDiv = document.getElementById('receiverInfo');
     if (data.exists) {
       receiverData = data;
       infoDiv.innerHTML = `<span class="receiver-found">✓ ${data.name}</span>`;
@@ -134,6 +181,9 @@ document.getElementById('receiverPhone').addEventListener('blur', async function
     }
   } catch (error) {
     console.error('查詢錯誤:', error);
+    receiverData = null;
+    infoDiv.innerHTML = `<span class="receiver-error">❌ 查詢失敗，請重試</span>`;
+    infoDiv.style.display = 'block';
   }
 });
 
@@ -221,17 +271,22 @@ async function confirmTransfer() {
       message: transferData.message
     });
     
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?${params.toString()}`, {
-      method: 'GET',
-      redirect: 'follow'
-    });
+    // 🔧 使用超時保護（15秒）
+    const res = await fetchWithTimeout(
+      `https://script.google.com/macros/s/AKfycbzwx7FSDBc3XUjpmNel6scjhZf-UV9UpNi_9ADWWvzyHwJQOoraO_0EgA0xR4LntmxA/exec?${params.toString()}`,
+      {
+        method: 'GET',
+        redirect: 'follow'
+      },
+      15000 // 15秒超時
+    );
     
     const data = await res.json();
     
     if (data.success) {
       showMessage('✅ 轉點成功！', 'success');
       setTimeout(() => {
-        liff.closeWindow();
+        safeCloseWindow(); // 🔧 使用安全關閉函數
       }, 2000);
     } else {
       showMessage(data.message || '轉點失敗，請稍後再試', 'error');
@@ -240,9 +295,18 @@ async function confirmTransfer() {
     }
   } catch (error) {
     console.error('轉點錯誤:', error);
-    showMessage('系統錯誤，請稍後再試', 'error');
+    showMessage('❌ ' + error.message, 'error');
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<span class="btn-icon">💸</span> 確認轉點';
+  } finally {
+    // 🔧 確保按鈕一定會恢復
+    setTimeout(() => {
+      if (submitBtn.disabled && submitBtn.innerHTML.includes('轉點中')) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span class="btn-icon">💸</span> 確認轉點';
+        showMessage('⚠️ 操作超時，請重試', 'error');
+      }
+    }, 16000); // 比超時時間多1秒，作為最後保障
   }
 }
 
@@ -262,7 +326,7 @@ function showMessage(msg, type) {
 }
 
 function goBack() {
-  liff.closeWindow();
+  safeCloseWindow(); // 🔧 使用安全關閉函數
 }
 
 initLiff();

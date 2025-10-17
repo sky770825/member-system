@@ -44,7 +44,7 @@ async function initLiff() {
     }
     
     // 同時發送 API 請求更新最新資料
-    const res = await fetch("https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?action=profile&lineUserId=" + lineUserId);
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzwx7FSDBc3XUjpmNel6scjhZf-UV9UpNi_9ADWWvzyHwJQOoraO_0EgA0xR4LntmxA/exec?action=profile&lineUserId=" + lineUserId);
     const data = await res.json();
     
     // 記錄載入時間

@@ -114,7 +114,27 @@
 
 <script>
 const LIFF_ID = "2008231108-vDmD4yRa"; // 點數交易記錄頁面
-const API_URL = "https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzwx7FSDBc3XUjpmNel6scjhZf-UV9UpNi_9ADWWvzyHwJQOoraO_0EgA0xR4LntmxA/exec";
+
+// 🔧 安全關閉視窗函數
+function safeCloseWindow() {
+  try {
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        alert('請關閉此頁面');
+      }
+    }
+  } catch (error) {
+    console.warn('關閉視窗失敗:', error);
+    if (window.history.length > 1) {
+      window.history.back();
+    }
+  }
+}
 
 async function initLiff() {
   try {
@@ -211,7 +231,7 @@ function formatDate(ts) {
 }
 
 function goBack() {
-  liff.closeWindow();
+  safeCloseWindow(); // 🔧 使用安全關閉函數
 }
 
 initLiff();

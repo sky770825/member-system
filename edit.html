@@ -50,9 +50,31 @@
 
 <script>
 const LIFF_ID = "2008231108-dmPJ4BrZ"; // 編輯會員資料頁面
-const API_URL = "https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzwx7FSDBc3XUjpmNel6scjhZf-UV9UpNi_9ADWWvzyHwJQOoraO_0EgA0xR4LntmxA/exec";
 
 let lineUserId = '';
+
+// 🔧 安全關閉視窗函數
+function safeCloseWindow() {
+  try {
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        showMessage('✅ 操作完成！請關閉此頁面', 'success');
+      }
+    }
+  } catch (error) {
+    console.warn('關閉視窗失敗:', error);
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      showMessage('✅ 操作完成！請關閉此頁面', 'success');
+    }
+  }
+}
 
 async function initLiff() {
   try {
@@ -121,7 +143,7 @@ document.getElementById('editForm').addEventListener('submit', async (e) => {
     if (data.success) {
       showMessage('✅ 修改成功！即將返回...', 'success');
       setTimeout(() => {
-        liff.closeWindow();
+        safeCloseWindow(); // 🔧 使用安全關閉函數
       }, 2000);
     } else {
       showMessage('修改失敗：' + (data.message || '請稍後再試'), 'error');
@@ -150,7 +172,7 @@ function showMessage(msg, type) {
 }
 
 function goBack() {
-  liff.closeWindow();
+  safeCloseWindow(); // 🔧 使用安全關閉函數
 }
 
 initLiff();
