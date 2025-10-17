@@ -1491,7 +1491,7 @@ function bindReferralRelation(newMemberUserId, newMemberName, referralCode) {
     Logger.log('✅ 找到推薦人: ' + referrer.name + ' (ID: ' + referrer.lineUserId + ')');
     
     // 🎯 只記錄推薦關係，不贈送點數
-    recordReferralRelation({
+    const relationData = {
       referralCode: referralCode,
       referrerUserId: referrer.lineUserId,
       referrerName: referrer.name,
@@ -1502,7 +1502,13 @@ function bindReferralRelation(newMemberUserId, newMemberName, referralCode) {
       referrerReward: 0,  // 不贈送
       newMemberReward: 0,  // 不贈送
       totalReward: 0  // 不贈送
-    });
+    };
+    
+    Logger.log('準備調用 recordReferralRelation，參數: ' + JSON.stringify(relationData));
+    
+    const recordResult = recordReferralRelation(relationData);
+    
+    Logger.log('recordReferralRelation 返回結果: ' + recordResult);
     
     Logger.log(`✅ 推薦關係綁定完成：${referrer.name} → ${newMemberName}（不贈送點數）`);
     
