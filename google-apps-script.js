@@ -438,17 +438,18 @@ function registerMember(data) {
       referredBy: data.referralCode || null
     });
     
-    const successMessage = referralBonus > 0 
-      ? `註冊成功！獲得 ${initialPoints} 點 + 推薦獎勵 ${referralBonus} 點（推薦人：${referrerName}）` 
+    // 🔧 新版：不再贈送推薦獎勵，只綁定關係
+    const successMessage = referrerName 
+      ? `註冊成功！已綁定推薦人：${referrerName}` 
       : '註冊成功';
     
     return {
       success: true,
       message: successMessage,
-      points: initialPoints + referralBonus,
+      points: initialPoints,  // 只有初始點數
       memberLevel: memberLevel,
       referralCode: referralCode,
-      referralBonus: referralBonus
+      referrerName: referrerName || null
     };
     
   } catch (error) {
