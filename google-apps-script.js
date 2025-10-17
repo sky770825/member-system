@@ -2037,16 +2037,18 @@ function getMyReferrals(lineUserId) {
                 }
               }
               
-              // 找到對應的推薦獎勵交易
+              // 🔧 新版：找到對應的推薦獎勵交易（購買+提領獎勵）
               let rewardPoints = 0;
               for (let k = 1; k < transactionsData.length; k++) {
-                if (transactionsData[k][1] === 'referral_reward' && 
-                    transactionsData[k][3] === lineUserId) { // receiverUserId
-                  const message = transactionsData[k][7];
-                  if (message.includes(referredName)) {
-                    rewardPoints = Number(transactionsData[k][6]) || 0;
-                    break;
-                  }
+                const txType = transactionsData[k][1];
+                const txReceiver = transactionsData[k][3];
+                const txMessage = transactionsData[k][7];
+                
+                // 檢查購買獎勵和提領獎勵
+                if ((txType === 'referral_purchase_reward' || txType === 'referral_withdraw_reward') && 
+                    txReceiver === lineUserId &&
+                    txMessage.includes(referredName)) {
+                  rewardPoints += Number(transactionsData[k][6]) || 0;
                 }
               }
               
