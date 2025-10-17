@@ -222,11 +222,14 @@ function updateWithdrawDetail() {
   const bankAccount = document.getElementById('bankAccount').value.trim();
   
   if (points >= 100 && bankName && bankAccount) {
-    const amount = points; // 1:1 兌換
+    // 計算實際提領金額（0.7 換算 - 15 元手續費）
+    const amountBeforeFee = Math.floor(points * 0.7);
+    const fee = 15;
+    const actualAmount = amountBeforeFee - fee;
     
     document.getElementById('withdrawDetail').style.display = 'block';
     document.getElementById('detailPoints').textContent = points.toLocaleString() + ' 點';
-    document.getElementById('detailAmount').textContent = 'NT$ ' + amount.toLocaleString();
+    document.getElementById('detailAmount').textContent = 'NT$ ' + actualAmount.toLocaleString() + ' (已扣手續費)';
     document.getElementById('detailBank').textContent = bankName;
     
     // 顯示帳號後4碼
@@ -267,10 +270,17 @@ document.getElementById('withdrawForm').addEventListener('submit', async functio
     return;
   }
   
+  // 計算實際提領金額（0.7 換算 - 15 元手續費）
+  const amountBeforeFee = Math.floor(points * 0.7);
+  const fee = 15;
+  const actualAmount = amountBeforeFee - fee;
+  
   // 確認對話框
   const confirmMsg = `確認提領資訊：\n\n` +
                      `提領點數：${points.toLocaleString()} 點\n` +
-                     `提領金額：NT$ ${points.toLocaleString()}\n` +
+                     `換算金額：NT$ ${amountBeforeFee.toLocaleString()}\n` +
+                     `手續費：NT$ ${fee}\n` +
+                     `實際到帳：NT$ ${actualAmount.toLocaleString()}\n\n` +
                      `匯款銀行：${bankName}\n` +
                      `銀行帳號：${bankAccount}\n` +
                      `戶名：${accountName}\n\n` +
@@ -347,12 +357,10 @@ function showMessage(msg, type) {
   messageDiv.className = `message ${type}`;
   messageDiv.style.display = 'block';
   
-  // 自動隱藏成功訊息
-  if (type === 'success') {
-    setTimeout(() => {
-      messageDiv.style.display = 'none';
-    }, 5000);
-  }
+  // 自動隱藏訊息
+  setTimeout(() => {
+    messageDiv.style.display = 'none';
+  }, type === 'success' ? 5000 : 3000); // 成功5秒，錯誤3秒
 }
 
 function goBack() {
