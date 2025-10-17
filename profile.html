@@ -53,7 +53,7 @@ async function initLiff() {
     }
     
     // 同時發送 API 請求更新最新資料
-    const res = await fetch("https://script.google.com/macros/s/AKfycbyqCRT7gki4fVY85jkHzNv1OkDojgzq81erVHfpzQPeqvWUFi2IQmStlNxDlUcRr4U/exec?action=profile&lineUserId=" + lineUserId);
+    const res = await fetch("https://script.google.com/macros/s/AKfycbxgLuDU9wCmzz81SwqMgyI5yLAqwh2y4cpYgXb3JcbZ5qVGjqWTn7axIm3qbHw1FrOx/exec?action=profile&lineUserId=" + lineUserId);
     const data = await res.json();
     
     // 記錄載入時間
@@ -99,7 +99,7 @@ function startAutoRefresh(lineUserId, pictureUrl, displayName) {
     try {
       console.log('🔍 檢查點數更新中...', new Date().toLocaleTimeString());
       
-      const res = await fetch("https://script.google.com/macros/s/AKfycbyqCRT7gki4fVY85jkHzNv1OkDojgzq81erVHfpzQPeqvWUFi2IQmStlNxDlUcRr4U/exec?action=profile&lineUserId=" + lineUserId);
+      const res = await fetch("https://script.google.com/macros/s/AKfycbxgLuDU9wCmzz81SwqMgyI5yLAqwh2y4cpYgXb3JcbZ5qVGjqWTn7axIm3qbHw1FrOx/exec?action=profile&lineUserId=" + lineUserId);
       const data = await res.json();
       
       const newPoints = data.points || 0;
@@ -142,7 +142,7 @@ document.addEventListener('visibilitychange', async () => {
     console.log('👁️ 頁面重新可見，立即檢查點數');
     try {
       const profile = await liff.getProfile();
-      const res = await fetch("https://script.google.com/macros/s/AKfycbyqCRT7gki4fVY85jkHzNv1OkDojgzq81erVHfpzQPeqvWUFi2IQmStlNxDlUcRr4U/exec?action=profile&lineUserId=" + currentUserId);
+      const res = await fetch("https://script.google.com/macros/s/AKfycbxgLuDU9wCmzz81SwqMgyI5yLAqwh2y4cpYgXb3JcbZ5qVGjqWTn7axIm3qbHw1FrOx/exec?action=profile&lineUserId=" + currentUserId);
       const data = await res.json();
       
       const newPoints = data.points || 0;
@@ -165,7 +165,7 @@ document.addEventListener('visibilitychange', async () => {
 async function showReceivedPointsNotification(lineUserId, pointsDiff) {
   try {
     // 獲取最新的交易記錄
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbyqCRT7gki4fVY85jkHzNv1OkDojgzq81erVHfpzQPeqvWUFi2IQmStlNxDlUcRr4U/exec?action=transactions&lineUserId=${lineUserId}&limit=5`);
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbxgLuDU9wCmzz81SwqMgyI5yLAqwh2y4cpYgXb3JcbZ5qVGjqWTn7axIm3qbHw1FrOx/exec?action=transactions&lineUserId=${lineUserId}&limit=5`);
     const data = await res.json();
     
     if (data.success && data.transactions && data.transactions.length > 0) {
