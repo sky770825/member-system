@@ -103,7 +103,7 @@ function getReferralCodeFromURL() {
 // 🔍 驗證推薦碼並獲取推薦人資訊
 async function verifyReferralCode(code) {
   try {
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbyCMi57kJcJdatuDm7JXJXAf5e3xq1KRu3mN9XbXewVcESh5pFgAWsJ86nNiYZvY9XJ/exec?action=verify-referral&referralCode=${code}`);
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbykdqE9yr_7ObkhOUTvQvjW0G1QtB9rOGKw4U2EzfN5Vw5Fn7FreFTf_4xlXbUbz3Q/exec?action=verify-referral&referralCode=${code}`);
     const data = await res.json();
     
     if (data.success && data.referrer) {
@@ -147,7 +147,7 @@ async function initLiff() {
     
     // 檢查是否已註冊 - 🔧 使用超時保護
     const checkRes = await fetchWithTimeout(
-      `https://script.google.com/macros/s/AKfycbyCMi57kJcJdatuDm7JXJXAf5e3xq1KRu3mN9XbXewVcESh5pFgAWsJ86nNiYZvY9XJ/exec?action=check&lineUserId=${lineUserId}`,
+      `https://script.google.com/macros/s/AKfycbykdqE9yr_7ObkhOUTvQvjW0G1QtB9rOGKw4U2EzfN5Vw5Fn7FreFTf_4xlXbUbz3Q/exec?action=check&lineUserId=${lineUserId}`,
       {},
       10000
     );
@@ -208,7 +208,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   console.log('提交註冊資料:', formData);
   
   try {
-    const url = 'https://script.google.com/macros/s/AKfycbyCMi57kJcJdatuDm7JXJXAf5e3xq1KRu3mN9XbXewVcESh5pFgAWsJ86nNiYZvY9XJ/exec?action=register';
+    const url = 'https://script.google.com/macros/s/AKfycbykdqE9yr_7ObkhOUTvQvjW0G1QtB9rOGKw4U2EzfN5Vw5Fn7FreFTf_4xlXbUbz3Q/exec?action=register';
     console.log('發送請求到:', url);
     
     // 使用 URL 參數方式避免 CORS 預檢請求
@@ -224,7 +224,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
       referralCode: formData.referralCode || '' // 🎯 傳送推薦碼
     });
     
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbyCMi57kJcJdatuDm7JXJXAf5e3xq1KRu3mN9XbXewVcESh5pFgAWsJ86nNiYZvY9XJ/exec?${params.toString()}`, {
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbykdqE9yr_7ObkhOUTvQvjW0G1QtB9rOGKw4U2EzfN5Vw5Fn7FreFTf_4xlXbUbz3Q/exec?${params.toString()}`, {
       method: 'GET',
       redirect: 'follow'
     });

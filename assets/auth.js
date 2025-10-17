@@ -5,7 +5,7 @@
 const AUTH = {
   // 配置
   LIFF_ID: "2008231108-2PDbO5qk",
-  API_URL: 'https://script.google.com/macros/s/AKfycbyCMi57kJcJdatuDm7JXJXAf5e3xq1KRu3mN9XbXewVcESh5pFgAWsJ86nNiYZvY9XJ/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbykdqE9yr_7ObkhOUTvQvjW0G1QtB9rOGKw4U2EzfN5Vw5Fn7FreFTf_4xlXbUbz3Q/exec',
   
   // 初始化認證（自動檢測登入方式）
   async init(options = {}) {
