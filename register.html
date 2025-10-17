@@ -93,7 +93,7 @@ function getReferralCodeFromURL() {
 // 🔍 驗證推薦碼並獲取推薦人資訊
 async function verifyReferralCode(code) {
   try {
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbzwx7FSDBc3XUjpmNel6scjhZf-UV9UpNi_9ADWWvzyHwJQOoraO_0EgA0xR4LntmxA/exec?action=verify-referral&referralCode=${code}`);
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbxJl7rgw5aPx_YRpZAHnDGexJw9PeaQdi47Y1OQLPiJrIA9TZvxFzMKkpiEN7warYc/exec?action=verify-referral&referralCode=${code}`);
     const data = await res.json();
     
     if (data.success && data.referrer) {
@@ -130,7 +130,7 @@ async function initLiff() {
     document.getElementById('name').value = lineProfile.displayName || '';
     
     // 檢查是否已註冊
-    const checkRes = await fetch(`https://script.google.com/macros/s/AKfycbzwx7FSDBc3XUjpmNel6scjhZf-UV9UpNi_9ADWWvzyHwJQOoraO_0EgA0xR4LntmxA/exec?action=check&lineUserId=${lineUserId}`);
+    const checkRes = await fetch(`https://script.google.com/macros/s/AKfycbxJl7rgw5aPx_YRpZAHnDGexJw9PeaQdi47Y1OQLPiJrIA9TZvxFzMKkpiEN7warYc/exec?action=check&lineUserId=${lineUserId}`);
     const checkData = await checkRes.json();
     
     console.log('註冊檢查結果:', checkData);
@@ -191,7 +191,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   console.log('提交註冊資料:', formData);
   
   try {
-    const url = 'https://script.google.com/macros/s/AKfycbzwx7FSDBc3XUjpmNel6scjhZf-UV9UpNi_9ADWWvzyHwJQOoraO_0EgA0xR4LntmxA/exec?action=register';
+    const url = 'https://script.google.com/macros/s/AKfycbxJl7rgw5aPx_YRpZAHnDGexJw9PeaQdi47Y1OQLPiJrIA9TZvxFzMKkpiEN7warYc/exec?action=register';
     console.log('發送請求到:', url);
     
     // 使用 URL 參數方式避免 CORS 預檢請求
@@ -207,7 +207,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
       referralCode: formData.referralCode || '' // 🎯 傳送推薦碼
     });
     
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbzwx7FSDBc3XUjpmNel6scjhZf-UV9UpNi_9ADWWvzyHwJQOoraO_0EgA0xR4LntmxA/exec?${params.toString()}`, {
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbxJl7rgw5aPx_YRpZAHnDGexJw9PeaQdi47Y1OQLPiJrIA9TZvxFzMKkpiEN7warYc/exec?${params.toString()}`, {
       method: 'GET',
       redirect: 'follow'
     });
