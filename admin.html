@@ -10,76 +10,41 @@
   .admin-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 40px 30px;
-    border-radius: 16px;
+    padding: 30px;
+    border-radius: 12px;
     margin-bottom: 30px;
     text-align: center;
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
-    position: relative;
-    overflow: hidden;
-  }
-  .admin-header::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    animation: pulse 10s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% {
-      transform: translate(0, 0) scale(1);
-    }
-    50% {
-      transform: translate(-10%, -10%) scale(1.1);
-    }
   }
   .admin-header h1 {
     margin: 0;
-    font-size: 32px;
-    font-weight: 700;
-    position: relative;
-    z-index: 1;
+    font-size: 28px;
   }
   .admin-header p {
-    margin: 8px 0 0 0;
-    opacity: 0.95;
-    font-size: 15px;
-    position: relative;
-    z-index: 1;
+    margin: 5px 0 0 0;
+    opacity: 0.9;
   }
   .admin-tabs {
     display: flex;
-    gap: 8px;
-    margin-bottom: 24px;
+    gap: 10px;
+    margin-bottom: 20px;
     overflow-x: auto;
-    padding: 4px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    -webkit-overflow-scrolling: touch;
   }
   .tab {
-    padding: 12px 20px;
-    background: transparent;
+    padding: 12px 24px;
+    background: #f5f5f5;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 14px;
-    transition: all 0.3s ease;
+    transition: all 0.3s;
     white-space: nowrap;
-    position: relative;
   }
-  .tab:hover:not(.active) {
-    background: #f5f5f5;
+  .tab:hover {
+    background: #e0e0e0;
   }
   .tab.active {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
   .tab-content {
     display: none;
@@ -94,39 +59,16 @@
   }
   .stat-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 15px;
     margin-bottom: 30px;
   }
-  
-  /* 桌面版：3欄佈局 */
-  @media (min-width: 1200px) {
-    .stat-cards {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
   .stat-card {
     background: white;
-    padding: 24px;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     text-align: center;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-  }
-  .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 4px;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-  }
-  .stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
   }
   .stat-icon {
     font-size: 36px;
@@ -144,68 +86,46 @@
   }
   .member-table {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
+    border-collapse: collapse;
     background: white;
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
   .member-table thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #667eea;
     color: white;
   }
-  .member-table th {
-    padding: 16px 12px;
-    text-align: left;
-    font-weight: 600;
-    font-size: 14px;
-    letter-spacing: 0.5px;
-  }
+  .member-table th,
   .member-table td {
     padding: 12px;
     text-align: left;
     border-bottom: 1px solid #f0f0f0;
   }
-  .member-table tbody tr {
-    transition: all 0.2s ease;
-  }
   .member-table tbody tr:hover {
-    background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%);
-    transform: scale(1.005);
-  }
-  .member-table tbody tr:last-child td {
-    border-bottom: none;
+    background: #f8f9fa;
   }
   .level-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 14px;
-    border-radius: 20px;
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    transition: all 0.3s ease;
-  }
-  .level-badge:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
   .level-BRONZE {
-    background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
+    background: #CD7F32;
     color: white;
   }
   .level-SILVER {
-    background: linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%);
+    background: #C0C0C0;
     color: #333;
   }
   .level-GOLD {
-    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    background: #FFD700;
     color: #333;
   }
   .level-PLATINUM {
-    background: linear-gradient(135deg, #E5E4E2 0%, #B4B4B4 100%);
+    background: #E5E4E2;
     color: #333;
   }
   .action-btns {
@@ -213,80 +133,34 @@
     gap: 5px;
   }
   .btn-small {
-    padding: 8px 16px;
+    padding: 6px 12px;
     font-size: 12px;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 600;
-    position: relative;
-    overflow: hidden;
-  }
-  .btn-small:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none !important;
-  }
-  .btn-small::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.3);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s, height 0.6s;
-  }
-  .btn-small:hover::before {
-    width: 300px;
-    height: 300px;
+    transition: all 0.3s;
   }
   .btn-add {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: #4CAF50;
     color: white;
-    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
-  }
-  .btn-add:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
   }
   .btn-deduct {
-    background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);
+    background: #f44336;
     color: white;
-    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
   }
-  .btn-deduct:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+  .btn-small:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   }
   .search-box {
     margin-bottom: 20px;
-    position: relative;
-  }
-  .search-box::before {
-    content: '🔍';
-    position: absolute;
-    left: 16px;
-    top: 28px;
-    font-size: 18px;
-    pointer-events: none;
-    z-index: 1;
   }
   .search-box input {
     width: 100%;
-    padding: 14px 16px 14px 48px;
+    padding: 12px;
     border: 2px solid #e0e0e0;
-    border-radius: 12px;
+    border-radius: 8px;
     font-size: 14px;
-    transition: all 0.3s ease;
-  }
-  .search-box input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-    outline: none;
   }
   .modal {
     display: none;
@@ -338,165 +212,13 @@
     gap: 10px;
     margin-top: 20px;
   }
-  
-  /* 桌面版佈局優化 */
-  @media (min-width: 1400px) {
-    .container {
-      max-width: 1400px;
-    }
-    
-    /* 儀表板：橫向佈局 */
-    .dashboard-layout {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 24px;
-      margin-top: 20px;
-    }
-    
-    /* 會員管理：側邊欄佈局 */
-    .members-layout {
-      display: grid;
-      grid-template-columns: 300px 1fr;
-      gap: 24px;
-    }
-  }
-  
-  @media (min-width: 1200px) {
-    .container {
-      max-width: 1200px;
-    }
-    
-    /* 表格優化寬度 */
-    .member-table {
-      min-width: 1000px;
-    }
-  }
-  
-  /* 平板版 */
-  @media (min-width: 769px) and (max-width: 1199px) {
-    .container {
-      max-width: 95%;
-    }
-    
-    .stat-cards {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-  
-  /* 手機版優化 */
-  @media (max-width: 768px) {
-    .admin-header {
-      padding: 30px 20px;
-    }
-    .admin-header h1 {
-      font-size: 26px;
-    }
-    .admin-header > div {
-      flex-direction: column;
-      gap: 15px;
-    }
-    .admin-header > div > div {
-      flex: none !important;
-      width: 100%;
-      text-align: center !important;
-    }
-    .admin-tabs {
-      gap: 6px;
-      padding: 8px;
-    }
-    .tab {
-      padding: 10px 16px;
-      font-size: 13px;
-    }
-    .stat-cards {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-    .stat-card {
-      padding: 16px;
-    }
-    .stat-icon {
-      font-size: 28px;
-    }
-    .stat-value {
-      font-size: 24px;
-    }
-    .search-box input {
-      font-size: 16px; /* 防止iOS自動縮放 */
-    }
-    .member-table {
-      font-size: 13px;
-    }
-    .member-table th,
-    .member-table td {
-      padding: 10px 8px;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .container {
-      padding: 15px;
-    }
-    .admin-header {
-      padding: 24px 16px;
-      margin-bottom: 20px;
-    }
-    .admin-header h1 {
-      font-size: 22px;
-    }
-    .stat-cards {
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-  }
-  
-  /* 載入動畫優化 */
-  @keyframes skeletonPulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
-  }
-  
-  .skeleton-loading {
-    animation: skeletonPulse 1.5s ease-in-out infinite;
-    background: linear-gradient(
-      90deg,
-      #f0f0f0 25%,
-      #e0e0e0 50%,
-      #f0f0f0 75%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-  }
-  
-  @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
-    }
-    100% {
-      background-position: 200% 0;
-    }
-  }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="admin-header">
-    <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2;">
-      <div style="flex: 1;"></div>
-      <div style="text-align: center; flex: 2;">
-        <h1>🛠️ 管理後台</h1>
-        <p>會員系統管理中心</p>
-      </div>
-      <div style="flex: 1; text-align: right;">
-        <button onclick="logout()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s;">
-          🚪 登出
-        </button>
-      </div>
-    </div>
+    <h1>🛠️ 管理後台</h1>
+    <p>會員系統管理中心</p>
   </div>
   
   <!-- 管理員驗證 -->
@@ -591,9 +313,6 @@
           </tbody>
         </table>
       </div>
-      
-      <!-- 分頁控制 -->
-      <div id="pagination" style="display: none; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; flex-wrap: wrap;"></div>
       
       <button class="btn btn-primary" onclick="loadMembers()" style="margin-top: 20px;">🔄 重新載入</button>
     </div>
@@ -852,119 +571,9 @@ let allMembers = [];
 let targetMember = null;
 let adjustData = null;
 
-// ==================== 快取管理 ====================
-const CACHE_KEY = 'admin_session';
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24小時
-
-// 儲存管理員資訊到快取
-function saveAdminCache(profile) {
-  const cacheData = {
-    profile: profile,
-    timestamp: Date.now()
-  };
-  localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-  console.log('✅ 已儲存管理員快取');
-}
-
-// 取得快取的管理員資訊
-function getAdminCache() {
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (!cached) return null;
-    
-    const cacheData = JSON.parse(cached);
-    const age = Date.now() - cacheData.timestamp;
-    
-    // 檢查快取是否過期
-    if (age > CACHE_DURATION) {
-      console.log('⏰ 快取已過期，需要重新登入');
-      clearAdminCache();
-      return null;
-    }
-    
-    console.log('✅ 使用快取的管理員資訊');
-    return cacheData.profile;
-  } catch (error) {
-    console.error('讀取快取錯誤:', error);
-    return null;
-  }
-}
-
-// 清除快取
-function clearAdminCache() {
-  localStorage.removeItem(CACHE_KEY);
-  console.log('🗑️ 已清除管理員快取');
-}
-
-// 顯示快取資訊（開發用）
-function showCacheInfo() {
-  const cached = localStorage.getItem(CACHE_KEY);
-  if (cached) {
-    const data = JSON.parse(cached);
-    const age = Date.now() - data.timestamp;
-    const remaining = CACHE_DURATION - age;
-    console.log('📦 快取資訊:', {
-      管理員: data.profile.displayName,
-      建立時間: new Date(data.timestamp).toLocaleString(),
-      剩餘時間: Math.floor(remaining / 1000 / 60) + ' 分鐘'
-    });
-  } else {
-    console.log('❌ 無快取資料');
-  }
-}
-
-// 登出功能
-function logout() {
-  if (confirm('確定要登出嗎？登出後需要重新驗證身分。')) {
-    clearAdminCache();
-    alert('✅ 已成功登出！');
-    location.reload();
-  }
-}
-
 async function initLiff() {
   try {
-    // 🔥 優先檢查快取
-    const cachedProfile = getAdminCache();
-    
-    if (cachedProfile) {
-      // 使用快取的管理員資訊
-      currentAdmin = cachedProfile;
-      
-      // 檢查是否為管理員
-      if (!ADMIN_USERS.includes(cachedProfile.userId)) {
-        document.getElementById('authCheck').innerHTML = `
-          <div class="error-card">
-            <div class="error-icon">🚫</div>
-            <h3>無權限訪問</h3>
-            <p>您不是系統管理員</p>
-            <button class="btn btn-primary" onclick="clearAdminCache(); location.reload();">重新登入</button>
-          </div>
-        `;
-        return;
-      }
-      
-      // 管理員驗證通過（使用快取）
-      document.getElementById('authCheck').innerHTML = `
-        <div style="text-align: center; padding: 40px; color: #28a745;">
-          <div style="font-size: 48px; margin-bottom: 15px;">✅</div>
-          <p style="font-size: 16px; margin-top: 10px;">歡迎回來，${cachedProfile.displayName}！</p>
-          <p style="font-size: 14px; color: #666; margin-top: 5px;">（使用快取登入）</p>
-        </div>
-      `;
-      
-      setTimeout(() => {
-        document.getElementById('authCheck').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'block';
-        loadDashboard();
-      }, 1000);
-      
-      return;
-    }
-    
-    // 🔥 無快取，進行 LIFF 登入
-    console.log('🔐 無快取，開始 LIFF 登入...');
-    await liff.init({ liffId: "2008231108-2PDbO5qk" });
+    await liff.init({ liffId: "2008231108-2PDbO5qk" }); // 暫時使用會員中心的 LIFF ID
     
     if (!liff.isLoggedIn()) {
       liff.login();
@@ -987,23 +596,12 @@ async function initLiff() {
       return;
     }
     
-    // 🔥 管理員驗證通過，儲存快取
-    saveAdminCache(profile);
+    // 管理員驗證通過
+    document.getElementById('authCheck').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
     
-    // 顯示成功訊息
-    document.getElementById('authCheck').innerHTML = `
-      <div style="text-align: center; padding: 40px; color: #28a745;">
-        <div style="font-size: 48px; margin-bottom: 15px;">✅</div>
-        <p style="font-size: 16px; margin-top: 10px;">歡迎，${profile.displayName}！</p>
-        <p style="font-size: 14px; color: #666; margin-top: 5px;">（已建立快取）</p>
-      </div>
-    `;
-    
-    setTimeout(() => {
-      document.getElementById('authCheck').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'block';
-      loadDashboard();
-    }, 1000);
+    // 載入儀表板
+    loadDashboard();
     
   } catch (error) {
     console.error('LIFF 初始化錯誤:', error);
@@ -1012,7 +610,6 @@ async function initLiff() {
         <div class="error-icon">❌</div>
         <h3>載入失敗</h3>
         <p>${error.message}</p>
-        <button class="btn btn-secondary" onclick="clearAdminCache(); location.reload();">清除快取並重試</button>
       </div>
     `;
   }
@@ -1081,117 +678,42 @@ async function loadMembers() {
   }
 }
 
-// ==================== 分頁管理 ====================
-let currentPage = 1;
-const itemsPerPage = 20; // 每頁顯示 20 筆
-let filteredMembers = [];
-
-// 渲染會員列表（分頁優化版）
+// 渲染會員列表（優化版）
 function renderMembers(members) {
   const tbody = document.getElementById('membersList');
   
   if (!members || members.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">暫無會員資料</td></tr>';
-    hidePagination();
     return;
   }
   
-  filteredMembers = members;
-  const totalPages = Math.ceil(members.length / itemsPerPage);
+  // 使用 DocumentFragment 減少重排次數
+  const fragment = document.createDocumentFragment();
+  const tempDiv = document.createElement('div');
   
-  // 確保當前頁面在有效範圍內
-  if (currentPage > totalPages) currentPage = totalPages;
-  if (currentPage < 1) currentPage = 1;
-  
-  // 計算當前頁面要顯示的資料
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const pageMembers = members.slice(startIndex, endIndex);
-  
-  // 批量生成 HTML（只生成當前頁）
-  const html = pageMembers.map(m => `
+  // 批量生成 HTML
+  tempDiv.innerHTML = members.map(m => `
     <tr>
-      <td>${escapeHtml(m.name)}</td>
-      <td>${escapeHtml(m.phone)}</td>
+      <td>${m.name}</td>
+      <td>${m.phone}</td>
       <td><strong>${m.points}</strong></td>
       <td><span class="level-badge level-${m.memberLevel || 'BRONZE'}">${getLevelIcon(m.memberLevel)} ${getLevelName(m.memberLevel)}</span></td>
       <td><code style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${m.referralCode || 'N/A'}</code></td>
-      <td>${m.referredBy ? `<code style="background: #fff3cd; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #856404;">🎁 ${escapeHtml(m.referredBy)}</code>` : '<span style="color: #999;">-</span>'}</td>
+      <td>${m.referredBy ? `<code style="background: #fff3cd; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #856404;">🎁 ${m.referredBy}</code>` : '<span style="color: #999;">-</span>'}</td>
       <td><strong style="color: #667eea;">${m.referralCount || 0}</strong> 人</td>
       <td>${m.status === 'active' ? '✅ 正常' : '⚠️ 停用'}</td>
       <td class="action-btns">
-        <button class="btn-small btn-add" onclick='adjustMemberPoints("${escapeHtml(m.lineUserId)}", "${escapeHtml(m.name)}", ${m.points}, "add")'>➕</button>
-        <button class="btn-small btn-deduct" onclick='adjustMemberPoints("${escapeHtml(m.lineUserId)}", "${escapeHtml(m.name)}", ${m.points}, "deduct")'>➖</button>
+        <button class="btn-small btn-add" onclick='adjustMemberPoints("${m.lineUserId}", "${m.name}", ${m.points}, "add")'>➕</button>
+        <button class="btn-small btn-deduct" onclick='adjustMemberPoints("${m.lineUserId}", "${m.name}", ${m.points}, "deduct")'>➖</button>
       </td>
     </tr>
   `).join('');
   
-  // 一次性替換
-  tbody.innerHTML = html;
+  // 一次性替換，減少重繪
+  tbody.innerHTML = tempDiv.innerHTML;
   
-  // 更新分頁資訊
-  updateMemberCount(members.length, startIndex + 1, Math.min(endIndex, members.length));
-  updatePagination(currentPage, totalPages);
-}
-
-// HTML 跳脫函數（防止 XSS）
-function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// 更新會員數量顯示（含分頁資訊）
-function updateMemberCount(total, start, end) {
-  const countDiv = document.getElementById('memberCount');
-  if (countDiv) {
-    const totalAll = allMembers ? allMembers.length : 0;
-    if (total === totalAll) {
-      countDiv.innerHTML = `📋 共 <strong>${total}</strong> 位會員 | 顯示第 <strong>${start}-${end}</strong> 位`;
-    } else {
-      countDiv.innerHTML = `🔍 搜尋到 <strong>${total}</strong> 位會員（共 ${totalAll} 位）| 顯示第 <strong>${start}-${end}</strong> 位`;
-    }
-  }
-}
-
-// 更新分頁按鈕
-function updatePagination(current, total) {
-  const paginationDiv = document.getElementById('pagination');
-  if (!paginationDiv) return;
-  
-  if (total <= 1) {
-    paginationDiv.style.display = 'none';
-    return;
-  }
-  
-  paginationDiv.style.display = 'flex';
-  
-  let html = `
-    <button class="btn-small" ${current === 1 ? 'disabled' : ''} onclick="goToPage(1)">⏮️ 首頁</button>
-    <button class="btn-small" ${current === 1 ? 'disabled' : ''} onclick="goToPage(${current - 1})">◀️ 上一頁</button>
-    <span style="padding: 0 15px; font-weight: 600; color: #667eea;">第 ${current} / ${total} 頁</span>
-    <button class="btn-small" ${current === total ? 'disabled' : ''} onclick="goToPage(${current + 1})">下一頁 ▶️</button>
-    <button class="btn-small" ${current === total ? 'disabled' : ''} onclick="goToPage(${total})">末頁 ⏭️</button>
-  `;
-  
-  paginationDiv.innerHTML = html;
-}
-
-// 跳轉到指定頁面
-function goToPage(page) {
-  currentPage = page;
-  renderMembers(filteredMembers);
-  // 滾動到表格頂部
-  document.getElementById('members').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-// 隱藏分頁
-function hidePagination() {
-  const paginationDiv = document.getElementById('pagination');
-  if (paginationDiv) {
-    paginationDiv.style.display = 'none';
-  }
+  // 顯示會員數量
+  updateMemberCount(members.length);
 }
 
 // 防抖函數 - 避免頻繁觸發
@@ -1212,9 +734,6 @@ function doFilterMembers() {
   const tbody = document.getElementById('membersList');
   const keyword = document.getElementById('searchInput').value.toLowerCase();
   
-  // 重置到第一頁
-  currentPage = 1;
-  
   // 顯示載入狀態
   if (keyword) {
     tbody.style.opacity = '0.6';
@@ -1233,6 +752,19 @@ function doFilterMembers() {
 
 // 防抖版本的篩選函數（300ms 延遲）
 const filterMembers = debounce(doFilterMembers, 300);
+
+// 更新會員數量顯示
+function updateMemberCount(count) {
+  const countDiv = document.getElementById('memberCount');
+  if (countDiv) {
+    const total = allMembers ? allMembers.length : 0;
+    if (count === total) {
+      countDiv.innerHTML = `📋 共 <strong>${total}</strong> 位會員`;
+    } else {
+      countDiv.innerHTML = `🔍 顯示 <strong>${count}</strong> 位會員（共 ${total} 位）`;
+    }
+  }
+}
 
 // 調整會員點數
 function adjustMemberPoints(lineUserId, name, currentPoints, type) {

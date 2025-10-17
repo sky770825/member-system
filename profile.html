@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>會員中心</title>
+<title>會員中心 - 我的點數與資料</title>
 <link rel="stylesheet" href="./assets/style.css">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<meta name="description" content="查看您的會員資料、點數餘額、推薦獎勵等資訊">
 </head>
 <body>
 <div class="container" id="profile">
@@ -15,56 +16,83 @@
   </div>
 </div>
 
+<script src="./assets/utils.js?v=20251017"></script>
+<script src="./assets/security.js?v=20251017"></script>
 <script>
+let lineUserId = '';
+let memberData = null;
+
+// 初始化 LIFF
 async function initLiff() {
   try {
-    // 記錄開始時間
     const startTime = Date.now();
+    console.log('🔐 初始化 LIFF...');
     
-    await liff.init({ liffId: "2008231108-2PDbO5qk" });
+    // 使用統一的 LIFF Helper
+    const profile = await LiffHelper.init(LIFF_CONFIG.profile, {
+      redirectOnError: true
+    });
     
-    if (!liff.isLoggedIn()) {
-      liff.login();
-      return;
-    }
+    if (!profile) return;
     
-    const profile = await liff.getProfile();
-    const lineUserId = profile.userId;
-    const displayName = profile.displayName;
-    const pictureUrl = profile.pictureUrl;
+    lineUserId = profile.userId;
+    console.log('✅ LINE 登入成功:', profile.displayName);
     
-    // 檢查本地快取
+    // 檢查快取
     const cacheKey = `profile_${lineUserId}`;
-    const cached = getCache(cacheKey);
+    const cached = CacheManager.get(cacheKey);
     
     // 如果有快取，先顯示快取資料
-    if (cached) {
-      console.log('使用快取資料');
-      renderProfile(cached, pictureUrl, displayName);
+    if (cached && cached.success) {
+      console.log('📦 使用快取資料');
+      renderProfile(cached, profile.pictureUrl, profile.displayName);
     }
     
-    // 同時發送 API 請求更新最新資料
-    const res = await fetch("https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?action=profile&lineUserId=" + lineUserId);
-    const data = await res.json();
-    
-    // 記錄載入時間
-    const loadTime = Date.now() - startTime;
-    console.log(`載入時間: ${loadTime}ms`);
-    
-    // 更新快取（5 分鐘有效）
-    setCache(cacheKey, data, 5 * 60 * 1000);
-    
-    // 渲染最新資料
-    renderProfile(data, pictureUrl, displayName);
+    // 載入最新資料
+    try {
+      console.log('🔄 載入最新資料...');
+      const data = await apiCall('profile', { lineUserId }, { retryCount: 2 });
+      
+      if (!data.success) {
+        throw new Error(data.message || '載入失敗');
+      }
+      
+      // 更新快取（5 分鐘）
+      CacheManager.set(cacheKey, data, APP_CONFIG?.cache?.profile || 5 * 60 * 1000);
+      
+      // 渲染最新資料
+      renderProfile(data, profile.pictureUrl, profile.displayName);
+      
+      const loadTime = Date.now() - startTime;
+      console.log(`⏱️ 載入時間: ${loadTime}ms`);
+      
+    } catch (error) {
+      // 如果有快取，繼續使用快取資料
+      if (cached) {
+        console.warn('⚠️ 載入最新資料失敗，使用快取資料');
+        UIHelper.showMessage('⚠️ 使用快取資料，可能不是最新', 'warning', 3000);
+      } else {
+        throw error;
+      }
+    }
     
   } catch (error) {
-    console.error('LIFF 初始化錯誤:', error);
+    logError('initLiff', error);
+    console.error('❌ LIFF 初始化錯誤:', error);
+    
     document.getElementById("profile").innerHTML = `
       <div class="error-card">
         <div class="error-icon">❌</div>
         <h3>載入失敗</h3>
-        <p>請稍後再試或聯繫客服</p>
-        <button class="btn btn-primary" onclick="initLiff()">重新載入</button>
+        <p>${error.message || '請稍後再試或聯繫客服'}</p>
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+          <button class="btn btn-primary" onclick="initLiff()">
+            🔄 重新載入
+          </button>
+          <button class="btn btn-outline" onclick="window.location.href='index.html'">
+            🏠 返回首頁
+          </button>
+        </div>
       </div>
     `;
   }
@@ -72,22 +100,51 @@ async function initLiff() {
 
 // 渲染會員資料
 function renderProfile(data, pictureUrl, displayName) {
+  memberData = data;
+  
+  // 計算會員等級進度
+  const levelInfo = MemberLevelHelper.getProgress(data.points || 0);
+  
   document.getElementById("profile").innerHTML = `
     <div class="profile-card">
+      <!-- 會員資訊頂部 -->
       <div class="profile-header">
         <img src="${pictureUrl}" alt="頭像" class="profile-avatar">
         <div class="profile-header-center">
           <h2 style="text-align:left;margin:0;">${data.name || displayName || '會員'}</h2>
+          <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
+            ${levelInfo.current.icon} ${levelInfo.current.name}
+          </p>
         </div>
         <div class="points-card">
           <div class="points-icon">💰</div>
           <div class="points-info">
             <p class="points-label">目前點數</p>
-            <p class="points-value">${data.points || 0} <span>點</span></p>
+            <p class="points-value">${Formatter.points(data.points || 0)} <span>點</span></p>
           </div>
         </div>
       </div>
       
+      <!-- 會員等級進度 -->
+      ${!levelInfo.isMax ? `
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin: 20px 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 14px; color: #666;">升級進度</span>
+            <span style="font-size: 14px; font-weight: bold; color: #667eea;">
+              還需 ${levelInfo.pointsNeeded} 點升級到 ${levelInfo.next.icon} ${levelInfo.next.name}
+            </span>
+          </div>
+          <div style="background: #e0e0e0; border-radius: 10px; height: 10px; overflow: hidden;">
+            <div style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); height: 100%; width: ${levelInfo.progress}%; transition: width 0.5s ease;"></div>
+          </div>
+        </div>
+      ` : `
+        <div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); padding: 15px; border-radius: 10px; margin: 20px 0; text-align: center; color: white;">
+          <strong>🎉 恭喜！您已是最高等級會員</strong>
+        </div>
+      `}
+      
+      <!-- 基本資訊 -->
       <div class="profile-info">
         <div class="info-item">
           <span class="info-label">📱 電話</span>
@@ -96,6 +153,36 @@ function renderProfile(data, pictureUrl, displayName) {
         <div class="info-item">
           <span class="info-label">📧 Email</span>
           <span class="info-value">${data.email || '未登錄'}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">🎂 生日</span>
+          <span class="info-value">${data.birthday ? Formatter.date(data.birthday, 'date') : '未登錄'}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">📅 註冊時間</span>
+          <span class="info-value">${data.createdAt ? Formatter.date(data.createdAt) : '-'}</span>
+        </div>
+      </div>
+      
+      <!-- 點數統計 -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0;">
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center;">
+          <div style="color: #666; font-size: 13px; margin-bottom: 5px;">累計獲得</div>
+          <div style="font-size: 20px; font-weight: bold; color: #4CAF50;">
+            ${Formatter.points(data.totalEarned || 0)}
+          </div>
+        </div>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center;">
+          <div style="color: #666; font-size: 13px; margin-bottom: 5px;">累計消費</div>
+          <div style="font-size: 20px; font-weight: bold; color: #FF6B6B;">
+            ${Formatter.points(data.totalSpent || 0)}
+          </div>
+        </div>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center;">
+          <div style="color: #666; font-size: 13px; margin-bottom: 5px;">推薦人數</div>
+          <div style="font-size: 20px; font-weight: bold; color: #667eea;">
+            ${data.referralCount || 0}
+          </div>
         </div>
       </div>
       
@@ -115,28 +202,31 @@ function renderProfile(data, pictureUrl, displayName) {
             <input type="text" id="referralCodeDisplay" value="${data.referralCode || '載入中...'}" readonly 
                    style="flex: 1; background: rgba(255,255,255,0.9); border: none; border-radius: 6px; padding: 10px 12px; font-size: 18px; font-weight: bold; letter-spacing: 2px; text-align: center; color: #333;">
             <button onclick="copyReferralCode('${data.referralCode}')" 
+                    class="btn-icon-copy"
                     style="background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.5); border-radius: 6px; padding: 10px 16px; color: white; font-weight: bold; cursor: pointer; transition: all 0.3s;">
-              📋 複製
+              📋
             </button>
           </div>
         </div>
         
         <div style="display: flex; gap: 8px;">
-          <button onclick="shareReferralLink('${data.referralCode}')" class="btn" 
+          <button onclick="shareReferralLink('${data.referralCode}', '${data.name}')" class="btn" 
                   style="flex: 1; background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.5); color: white; font-weight: bold; padding: 12px;">
             <span style="font-size: 18px;">📤</span> 分享連結
           </button>
-          <button onclick="viewReferralStats()" class="btn" 
+          <button onclick="viewReferralLink('${data.referralCode}')" class="btn" 
                   style="flex: 1; background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.5); color: white; font-weight: bold; padding: 12px;">
-            <span style="font-size: 18px;">📊</span> 推薦統計
+            <span style="font-size: 18px;">🔗</span> 查看連結
           </button>
         </div>
         
         <p style="margin: 12px 0 0 0; font-size: 12px; opacity: 0.8; text-align: center;">
           已成功推薦 <strong style="font-size: 16px; color: #FFD700;">${data.referralCount || 0}</strong> 人
+          ${data.referredBy ? ` | 由 <strong>${data.referredBy}</strong> 推薦` : ''}
         </p>
       </div>
       
+      <!-- 操作按鈕 -->
       <div class="action-buttons">
         <button class="btn btn-primary" onclick="goTransfer()">
           <span class="btn-icon">💸</span>
@@ -151,40 +241,120 @@ function renderProfile(data, pictureUrl, displayName) {
           編輯資料
         </button>
       </div>
+      
+      <!-- 快速操作 -->
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px;">
+        <button class="btn btn-outline" onclick="refreshData()" style="padding: 12px;">
+          🔄 重新整理
+        </button>
+        <button class="btn btn-outline" onclick="clearCache()" style="padding: 12px;">
+          🗑️ 清除快取
+        </button>
+      </div>
+      
+      <!-- 登出按鈕 -->
+      <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
+        <button class="btn btn-outline" onclick="handleLogout()" style="width: 100%; padding: 12px; color: #dc3545; border-color: #dc3545;">
+          🚪 登出帳號
+        </button>
+      </div>
     </div>
   `;
 }
 
-// 簡單的本地快取
-function setCache(key, data, ttl = 5 * 60 * 1000) {
-  const item = {
-    data: data,
-    expiry: Date.now() + ttl
-  };
-  try {
-    localStorage.setItem(key, JSON.stringify(item));
-  } catch (e) {
-    console.warn('快取儲存失敗:', e);
+// 📋 複製推薦碼
+async function copyReferralCode(code) {
+  if (!code || code === '載入中...') {
+    UIHelper.showMessage('推薦碼尚未載入，請稍後再試', 'warning');
+    return;
+  }
+  
+  const success = await ReferralHelper.copyCode(code);
+  if (success) {
+    console.log('✅ 推薦碼已複製:', code);
   }
 }
 
-function getCache(key) {
-  try {
-    const item = localStorage.getItem(key);
-    if (!item) return null;
-    
-    const parsed = JSON.parse(item);
-    if (Date.now() > parsed.expiry) {
-      localStorage.removeItem(key);
-      return null;
-    }
-    
-    return parsed.data;
-  } catch (e) {
-    return null;
+// 📤 分享推薦連結
+async function shareReferralLink(code, name = '') {
+  if (!code || code === '載入中...') {
+    UIHelper.showMessage('推薦碼尚未載入，請稍後再試', 'warning');
+    return;
+  }
+  
+  const success = await ReferralHelper.share(code, name);
+  console.log(success ? '✅ 分享成功' : '⚠️ 分享取消');
+}
+
+// 🔗 查看推薦連結
+async function viewReferralLink(code) {
+  if (!code || code === '載入中...') {
+    UIHelper.showMessage('推薦碼尚未載入，請稍後再試', 'warning');
+    return;
+  }
+  
+  const link = ReferralHelper.getLink(code);
+  
+  const confirmed = await UIHelper.confirm(
+    '您的推薦連結',
+    `將此連結分享給好友，註冊成功後雙方各得 50 點！\n\n${link}`,
+    { type: 'info', confirmText: '📋 複製連結', cancelText: '關閉' }
+  );
+  
+  if (confirmed) {
+    await ReferralHelper.copyCode(link);
   }
 }
 
+// 🔄 重新整理資料
+async function refreshData() {
+  UIHelper.showMessage('🔄 正在重新載入...', 'info', 1000);
+  
+  // 清除當前用戶的快取
+  CacheManager.remove(`profile_${lineUserId}`);
+  
+  // 重新載入頁面
+  setTimeout(() => {
+    window.location.reload();
+  }, 500);
+}
+
+// 🗑️ 清除快取
+async function clearCache() {
+  const confirmed = await UIHelper.confirm(
+    '清除快取',
+    '確定要清除所有快取資料嗎？\n下次載入時會重新從服務器獲取。',
+    { type: 'warning', confirmText: '確定清除', cancelText: '取消' }
+  );
+  
+  if (confirmed) {
+    CacheManager.clear();
+    UIHelper.showMessage('✅ 快取已清除', 'success');
+    
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  }
+}
+
+// 🚪 登出功能
+async function handleLogout() {
+  const confirmed = await UIHelper.confirm(
+    '確認登出',
+    '確定要登出帳號嗎？\n登出後需要重新登入才能使用系統。',
+    { type: 'warning', confirmText: '確定登出', cancelText: '取消' }
+  );
+  
+  if (confirmed) {
+    UIHelper.showMessage('👋 正在登出...', 'info', 2000);
+    
+    setTimeout(() => {
+      LiffHelper.logout();
+    }, 1000);
+  }
+}
+
+// 導航函數
 function goTransfer() {
   window.location.href = "transfer.html";
 }
@@ -197,116 +367,58 @@ function editProfile() {
   window.location.href = "edit.html";
 }
 
-// 🎁 複製推薦碼
-function copyReferralCode(code) {
-  if (!code || code === '載入中...') {
-    alert('推薦碼尚未載入，請稍後再試');
-    return;
-  }
-  
-  // 複製到剪貼簿
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(code).then(() => {
-      alert('✅ 推薦碼已複製！\n\n' + code);
-    }).catch(() => {
-      // 降級方案
-      fallbackCopyTextToClipboard(code);
-    });
-  } else {
-    fallbackCopyTextToClipboard(code);
-  }
-}
+// 頁面載入完成
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('📄 會員中心頁面載入完成');
+});
 
-// 降級複製方案
-function fallbackCopyTextToClipboard(text) {
-  const textArea = document.createElement("textarea");
-  textArea.value = text;
-  textArea.style.position = "fixed";
-  textArea.style.top = "-999999px";
-  document.body.appendChild(textArea);
-  textArea.focus();
-  textArea.select();
-  
-  try {
-    document.execCommand('copy');
-    alert('✅ 推薦碼已複製！\n\n' + text);
-  } catch (err) {
-    alert('❌ 複製失敗，請手動複製：\n\n' + text);
-  }
-  
-  document.body.removeChild(textArea);
-}
-
-// 📤 分享推薦連結
-function shareReferralLink(code) {
-  if (!code || code === '載入中...') {
-    alert('推薦碼尚未載入，請稍後再試');
-    return;
-  }
-  
-  // 🔗 生成推薦連結（請替換為你的實際網址）
-  const baseUrl = window.location.origin + window.location.pathname.replace('profile.html', '');
-  const referralLink = `${baseUrl}register.html?ref=${code}`;
-  
-  // 分享訊息
-  const shareMessage = `🎁 邀請你加入會員！\n\n` +
-                      `註冊即送 100 點，使用我的推薦碼再送 50 點！\n\n` +
-                      `👉 立即註冊：${referralLink}\n\n` +
-                      `推薦碼：${code}`;
-  
-  // 如果在 LINE LIFF 環境中，使用 LINE 分享
-  if (typeof liff !== 'undefined' && liff.isInClient()) {
-    liff.shareTargetPicker([
-      {
-        type: 'text',
-        text: shareMessage
-      }
-    ]).then(() => {
-      console.log('分享成功');
-    }).catch((err) => {
-      console.error('分享失敗', err);
-      // 降級使用複製連結
-      fallbackShare(referralLink, shareMessage);
-    });
-  } else {
-    // 使用 Web Share API 或降級方案
-    if (navigator.share) {
-      navigator.share({
-        title: '邀請好友加入會員',
-        text: shareMessage
-      }).catch(() => {
-        fallbackShare(referralLink, shareMessage);
-      });
-    } else {
-      fallbackShare(referralLink, shareMessage);
-    }
-  }
-}
-
-// 降級分享方案
-function fallbackShare(link, message) {
-  if (confirm('📋 是否複製推薦連結到剪貼簿？\n\n你可以貼到任何地方分享給好友！')) {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(link).then(() => {
-        alert('✅ 推薦連結已複製！\n\n' + link + '\n\n快去分享給好友吧！');
-      });
-    } else {
-      fallbackCopyTextToClipboard(link);
-    }
-  }
-}
-
-// 📊 查看推薦統計
-function viewReferralStats() {
-  alert('📊 推薦統計功能開發中...\n\n' +
-        '即將顯示：\n' +
-        '• 推薦人數\n' +
-        '• 獲得獎勵\n' +
-        '• 推薦明細');
-}
-
+// 初始化
 initLiff();
 </script>
+
+<style>
+/* 會員中心額外樣式 */
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 4px solid white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.btn-icon-copy {
+  transition: all 0.3s ease;
+}
+
+.btn-icon-copy:hover {
+  background: rgba(255,255,255,0.4) !important;
+  transform: scale(1.05);
+}
+
+.btn-icon-copy:active {
+  transform: scale(0.95);
+}
+
+.error-card {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.error-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.error-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.error-card p {
+  color: #666;
+  margin: 0 0 20px 0;
+}
+</style>
 </body>
 </html>
-

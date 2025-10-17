@@ -3,75 +3,331 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>會員註冊系統</title>
+<title>會員註冊系統 - 首頁</title>
 <link rel="stylesheet" href="./assets/style.css">
+<meta name="description" content="加入我們的會員系統，註冊即送100點，邀請好友再送50點！">
+<style>
+  /* 首頁特殊樣式 */
+  .hero-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 40px 20px;
+    border-radius: 16px;
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .hero-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.3; }
+  }
+  
+  .hero-content {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .hero-title {
+    font-size: 32px;
+    margin: 0 0 10px 0;
+    font-weight: 700;
+  }
+  
+  .hero-subtitle {
+    font-size: 18px;
+    opacity: 0.95;
+    margin: 0 0 25px 0;
+  }
+  
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 20px;
+  }
+  
+  .stat-item {
+    text-align: center;
+  }
+  
+  .stat-value {
+    font-size: 28px;
+    font-weight: bold;
+    display: block;
+  }
+  
+  .stat-label {
+    font-size: 13px;
+    opacity: 0.9;
+  }
+  
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin: 25px 0;
+  }
+  
+  .benefit-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  .benefit-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  }
+  
+  .benefit-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+  
+  .benefit-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 5px 0;
+  }
+  
+  .benefit-desc {
+    font-size: 13px;
+    color: #666;
+    margin: 0;
+  }
+  
+  .cta-section {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    margin: 25px 0;
+  }
+  
+  .quick-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 25px;
+  }
+  
+  .quick-link-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s;
+  }
+  
+  .quick-link-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+  
+  .quick-link-icon {
+    font-size: 32px;
+  }
+  
+  .quick-link-text h4 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+  }
+  
+  .quick-link-text p {
+    margin: 0;
+    font-size: 13px;
+    color: #666;
+  }
+</style>
 </head>
 <body>
 <div class="container">
+  <!-- 英雄區塊 -->
+  <div class="hero-section">
+    <div class="hero-content">
+      <div class="logo" style="font-size: 60px; margin-bottom: 15px;">🎯</div>
+      <h1 class="hero-title">會員點數系統</h1>
+      <p class="hero-subtitle">註冊即送 100 點，邀請好友再送 50 點！</p>
+      
+      <div style="display: flex; gap: 15px; justify-content: center; margin-top: 25px;">
+        <a href="register.html" class="btn btn-large" style="background: white; color: #667eea; font-weight: bold;">
+          <span class="btn-icon">🎁</span>
+          立即註冊領取
+        </a>
+        <a href="profile.html" class="btn btn-large" style="background: rgba(255,255,255,0.2); color: white; border: 2px solid white;">
+          <span class="btn-icon">👤</span>
+          會員登入
+        </a>
+      </div>
+      
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-value" id="totalMembers">--</span>
+          <span class="stat-label">會員數</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="todayNewMembers">--</span>
+          <span class="stat-label">今日新增</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="totalPoints">--</span>
+          <span class="stat-label">總點數</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 特色功能 -->
   <div class="welcome-card">
-    <div class="welcome-header">
-      <div class="logo">🎯</div>
-      <div class="welcome-header-text">
-        <h1>會員註冊系統</h1>
-        <p>歡迎使用我們的點數會員系統</p>
+    <h2 style="text-align: center; margin-bottom: 20px;">✨ 系統特色</h2>
+    
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <div class="benefit-icon">🎁</div>
+        <h3 class="benefit-title">註冊獎勵</h3>
+        <p class="benefit-desc">新會員即送 100 點</p>
+      </div>
+      
+      <div class="benefit-card">
+        <div class="benefit-icon">💰</div>
+        <h3 class="benefit-title">點數管理</h3>
+        <p class="benefit-desc">隨時查看點數變動</p>
+      </div>
+      
+      <div class="benefit-card">
+        <div class="benefit-icon">💸</div>
+        <h3 class="benefit-title">轉點功能</h3>
+        <p class="benefit-desc">輕鬆轉點給好友</p>
+      </div>
+      
+      <div class="benefit-card">
+        <div class="benefit-icon">🎉</div>
+        <h3 class="benefit-title">推薦獎勵</h3>
+        <p class="benefit-desc">推薦好友各送 50 點</p>
+      </div>
+      
+      <div class="benefit-card">
+        <div class="benefit-icon">⭐</div>
+        <h3 class="benefit-title">會員等級</h3>
+        <p class="benefit-desc">升級享更多優惠</p>
+      </div>
+      
+      <div class="benefit-card">
+        <div class="benefit-icon">📱</div>
+        <h3 class="benefit-title">LINE 整合</h3>
+        <p class="benefit-desc">一鍵快速登入</p>
       </div>
     </div>
     
-    <div class="feature-list">
-      <div class="feature-item">
-        <span class="feature-icon">✨</span>
-        <div class="feature-content">
-          <h3>註冊送好禮</h3>
-          <p>新會員註冊即贈送 100 點</p>
-        </div>
-      </div>
-      
-      <div class="feature-item">
-        <span class="feature-icon">💰</span>
-        <div class="feature-content">
-          <h3>點數管理</h3>
-          <p>輕鬆查看和管理您的點數</p>
-        </div>
-      </div>
-      
-      <div class="feature-item">
-        <span class="feature-icon">💸</span>
-        <div class="feature-content">
-          <h3>轉點功能</h3>
-          <p>可以將點數轉給好友使用</p>
-        </div>
-      </div>
-      
-      <div class="feature-item">
-        <span class="feature-icon">📱</span>
-        <div class="feature-content">
-          <h3>LINE 整合</h3>
-          <p>透過 LINE LIFF 快速登入</p>
-        </div>
-      </div>
-    </div>
-    
-    <div class="action-links">
+    <!-- 推薦獎勵說明 -->
+    <div class="cta-section">
+      <h3 style="margin: 0 0 15px 0; color: #667eea;">🎁 推薦好友，雙方都有獎</h3>
+      <p style="color: #666; margin: 0 0 20px 0;">
+        分享您的專屬推薦碼給好友，<br>
+        好友註冊成功後，您和好友各獲得 <strong style="color: #FF6B6B; font-size: 18px;">50 點</strong> 獎勵！
+      </p>
       <a href="register.html" class="btn btn-primary btn-large">
-        <span class="btn-icon">📝</span>
-        立即註冊
-      </a>
-      <a href="profile.html" class="btn btn-outline btn-large">
-        <span class="btn-icon">👤</span>
-        會員中心
+        <span class="btn-icon">🚀</span>
+        立即加入開始推薦
       </a>
     </div>
     
-    <div class="info-section">
-      <h3>系統頁面</h3>
-      <ul class="page-list">
-        <li><a href="register.html">📝 註冊頁面</a> - 新會員註冊</li>
-        <li><a href="profile.html">👤 會員中心</a> - 查看個人資料和點數</li>
-        <li><a href="transfer.html">💸 轉點頁面</a> - 轉點給好友</li>
-        <li><a href="admin.html" style="color: #FF9800;">🛠️ 管理後台</a> - 管理員專用</li>
-      </ul>
+    <!-- 快速連結 -->
+    <h3 style="margin: 30px 0 15px 0; text-align: center;">🔗 快速導航</h3>
+    <div class="quick-links">
+      <a href="register.html" class="quick-link-card">
+        <div class="quick-link-icon">📝</div>
+        <div class="quick-link-text">
+          <h4>註冊頁面</h4>
+          <p>成為新會員</p>
+        </div>
+      </a>
+      
+      <a href="profile.html" class="quick-link-card">
+        <div class="quick-link-icon">👤</div>
+        <div class="quick-link-text">
+          <h4>會員中心</h4>
+          <p>查看個人資料</p>
+        </div>
+      </a>
+      
+      <a href="transfer.html" class="quick-link-card">
+        <div class="quick-link-icon">💸</div>
+        <div class="quick-link-text">
+          <h4>轉點頁面</h4>
+          <p>轉點給好友</p>
+        </div>
+      </a>
+      
+      <a href="admin.html" class="quick-link-card" style="border: 2px solid #FF9800;">
+        <div class="quick-link-icon">🛠️</div>
+        <div class="quick-link-text">
+          <h4>管理後台</h4>
+          <p>管理員專用</p>
+        </div>
+      </a>
+    </div>
+    
+    <!-- 系統版本資訊 -->
+    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 12px;">
+      <p style="margin: 0;">會員註冊系統 v2.0 | 由 AI 強化優化</p>
+      <p style="margin: 5px 0 0 0;">© 2025 All Rights Reserved</p>
     </div>
   </div>
 </div>
+
+<script src="./assets/utils.js?v=20251017"></script>
+<script src="./assets/security.js?v=20251017"></script>
+<script>
+// 載入系統統計資料
+async function loadSystemStats() {
+  try {
+    const data = await apiCall('admin-stats');
+    
+    if (data.success && data.stats) {
+      // 更新統計數據
+      document.getElementById('totalMembers').textContent = 
+        Formatter.points(data.stats.totalMembers || 0);
+      document.getElementById('todayNewMembers').textContent = 
+        data.stats.todayNewMembers || 0;
+      document.getElementById('totalPoints').textContent = 
+        Formatter.points(data.stats.totalPoints || 0);
+    }
+  } catch (error) {
+    console.error('載入統計失敗:', error);
+    // 使用預設值
+    document.getElementById('totalMembers').textContent = '---';
+    document.getElementById('todayNewMembers').textContent = '--';
+    document.getElementById('totalPoints').textContent = '---';
+  }
+}
+
+// 頁面載入完成後執行
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('✅ 首頁載入完成');
+  loadSystemStats();
+});
+</script>
 </body>
 </html>
