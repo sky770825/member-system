@@ -3,17 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>會員註冊 - 立即加入送100點</title>
+<title>會員註冊</title>
 <link rel="stylesheet" href="./assets/style.css">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<meta name="description" content="立即註冊成為會員，贈送100點！透過推薦碼再送50點獎勵！">
 </head>
 <body>
 <div class="container">
   <div class="register-card">
     <div class="register-header">
-      <h1>🎁 會員註冊</h1>
-      <p>完成註冊即贈送 <strong style="color: #FF6B6B;">100 點</strong></p>
+      <h1>會員註冊</h1>
+      <p>完成註冊即贈送 100 點</p>
     </div>
     
     <form id="registerForm">
@@ -41,7 +40,7 @@
         
         <!-- 推薦碼區域（連結自動綁定） -->
         <div class="form-group" id="referralGroup" style="display: none;">
-          <label for="referralCode">🎁 推薦碼</label>
+          <label for="referralCode">推薦碼</label>
           <div style="display: flex; align-items: center; gap: 10px;">
             <input type="text" id="referralCode" name="referralCode" readonly 
                    style="background: #f0f0f0; cursor: not-allowed;">
@@ -65,22 +64,9 @@
     </form>
     
     <div id="message" class="message"></div>
-    
-    <!-- 註冊說明 -->
-    <div style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
-      <h4 style="margin: 0 0 10px 0;">📌 註冊須知</h4>
-      <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #666;">
-        <li>使用 LINE 帳號進行註冊</li>
-        <li>手機號碼僅用於會員識別</li>
-        <li>推薦好友註冊，雙方各得 50 點</li>
-        <li>點數可用於消費抵扣</li>
-      </ul>
-    </div>
   </div>
 </div>
 
-<script src="./assets/utils.js?v=20251017"></script>
-<script src="./assets/security.js?v=20251017"></script>
 <script>
 let lineUserId = '';
 let lineProfile = null;
@@ -92,286 +78,201 @@ function getReferralCodeFromURL() {
   const ref = urlParams.get('ref');
   
   if (ref) {
-    console.log('✅ 檢測到推薦碼:', ref);
-    referralCode = ref.trim().toUpperCase();
-    
-    // 驗證推薦碼格式
-    if (!Validator.referralCode(referralCode)) {
-      console.warn('⚠️ 推薦碼格式不正確:', referralCode);
-      UIHelper.showMessage('推薦碼格式不正確', 'warning');
-      return;
-    }
+    console.log('檢測到推薦碼:', ref);
+    referralCode = ref;
     
     // 顯示推薦碼區域
     document.getElementById('referralGroup').style.display = 'block';
-    document.getElementById('referralCode').value = referralCode;
+    document.getElementById('referralCode').value = ref;
     
     // 驗證推薦碼並顯示推薦人資訊
-    verifyReferralCode(referralCode);
+    verifyReferralCode(ref);
   }
 }
 
 // 🔍 驗證推薦碼並獲取推薦人資訊
 async function verifyReferralCode(code) {
   try {
-    console.log('🔍 驗證推薦碼:', code);
-    
-    const data = await apiCall('verify-referral', { referralCode: code });
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?action=verify-referral&referralCode=${code}`);
+    const data = await res.json();
     
     if (data.success && data.referrer) {
-      console.log('✅ 推薦碼有效，推薦人:', data.referrer.name);
-      
       document.getElementById('referralInfo').innerHTML = 
         `👤 推薦人：<strong>${data.referrer.name}</strong> | 註冊成功後雙方各獲得 <strong style="color: #FF6B6B;">50 點</strong> 獎勵！`;
-      
-      document.getElementById('referralStatus').innerHTML = '✓ 有效';
-      document.getElementById('referralStatus').style.color = '#4CAF50';
     } else {
-      console.warn('⚠️ 推薦碼無效');
-      
       document.getElementById('referralStatus').innerHTML = '⚠️ 無效';
       document.getElementById('referralStatus').style.color = '#FF6B6B';
       document.getElementById('referralInfo').innerHTML = '推薦碼無效，將以一般會員註冊';
-      
-      // 清空無效的推薦碼
-      referralCode = '';
     }
   } catch (error) {
-    logError('verifyReferralCode', error, { code });
-    console.warn('⚠️ 驗證推薦碼時發生錯誤，將繼續註冊流程');
-    
-    document.getElementById('referralInfo').innerHTML = '推薦碼驗證失敗，將以一般會員註冊';
+    console.error('驗證推薦碼失敗:', error);
   }
 }
 
-// 初始化 LIFF
 async function initLiff() {
-  const loading = UIHelper.showLoading('初始化中...');
-  
   try {
     // 先讀取推薦碼
     getReferralCodeFromURL();
     
-    console.log('🔐 開始初始化 LIFF...');
+    await liff.init({ liffId: "2008231108-rZQKp3mn" });
     
-    // 使用統一的 LIFF Helper
-    lineProfile = await LiffHelper.init(LIFF_CONFIG.register, {
-      redirectOnError: false,
-      onSuccess: (profile) => {
-        console.log('✅ LINE 登入成功:', profile.displayName);
-      }
-    });
-    
-    if (!lineProfile) {
-      return; // LIFF 會自動處理登入
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
     }
     
+    lineProfile = await liff.getProfile();
     lineUserId = lineProfile.userId;
+    
+    console.log('LINE 登入成功:', lineProfile);
     
     // 預填 LINE 資料
     document.getElementById('name').value = lineProfile.displayName || '';
     
     // 檢查是否已註冊
-    console.log('🔍 檢查會員是否已註冊...');
-    const checkData = await apiCall('check', { lineUserId });
+    const checkRes = await fetch(`https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?action=check&lineUserId=${lineUserId}`);
+    const checkData = await checkRes.json();
+    
+    console.log('註冊檢查結果:', checkData);
     
     if (checkData.registered) {
-      console.log('ℹ️ 會員已註冊，導向會員中心');
-      
-      UIHelper.hideLoading();
-      UIHelper.showMessage('您已經是會員了！正在跳轉...', 'success');
-      
+      showMessage('您已經是會員了！正在跳轉到會員中心...', 'success');
       setTimeout(() => {
         window.location.href = "profile.html";
-      }, 1500);
-      
-      return;
-    }
-    
-    // 顯示歡迎訊息
-    if (referralCode) {
-      UIHelper.showMessage('🎁 透過推薦連結註冊，完成後可獲得額外獎勵！', 'success', 5000);
+      }, 2000);
     } else {
-      UIHelper.showMessage('歡迎註冊！請填寫資料', 'info', 3000);
-    }
-    
-  } catch (error) {
-    logError('initLiff', error);
-    UIHelper.showMessage('❌ 系統初始化失敗: ' + error.message, 'error', 5000);
-    
-    // 提供重試選項
-    setTimeout(() => {
-      if (confirm('系統初始化失敗，是否重新載入？')) {
-        window.location.reload();
+      if (referralCode) {
+        showMessage(`🎁 透過推薦連結註冊，完成後可獲得額外獎勵！`, 'info');
+      } else {
+        showMessage('歡迎註冊！請填寫資料', 'info');
       }
-    }, 2000);
-    
-  } finally {
-    UIHelper.hideLoading();
+    }
+  } catch (error) {
+    console.error('LIFF 初始化錯誤:', error);
+    showMessage('❌ LIFF 初始化失敗: ' + error.message, 'error');
   }
 }
 
-// 表單提交
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   
   // 檢查是否已登入 LINE
   if (!lineUserId) {
-    UIHelper.showMessage('❌ 請先透過 LINE 登入', 'error');
+    showMessage('❌ 請先透過 LINE 登入', 'error');
     return;
   }
   
   const submitBtn = document.getElementById('submitBtn');
-  const originalBtnText = submitBtn.innerHTML;
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<span class="spinner-small"></span> 註冊中...';
   
+  const phone = document.getElementById('phone').value;
+  const name = document.getElementById('name').value;
+  
+  // 驗證手機號碼格式
+  if (!phone.match(/^[0-9]{4}-[0-9]{3}-[0-9]{3}$/)) {
+    showMessage('❌ 請輸入正確的手機號碼格式 (0912-345-678)', 'error');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="btn-icon">✨</span> 完成註冊';
+    return;
+  }
+  
+  const formData = {
+    lineUserId: lineUserId,
+    name: name,
+    phone: phone,
+    email: document.getElementById('email').value,
+    birthday: document.getElementById('birthday').value,
+    lineName: lineProfile?.displayName || '',
+    linePicture: lineProfile?.pictureUrl || '',
+    referralCode: referralCode // 🎯 加入推薦碼
+  };
+  
+  console.log('提交註冊資料:', formData);
+  
   try {
-    const phone = document.getElementById('phone').value;
-    const name = document.getElementById('name').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const birthday = document.getElementById('birthday').value;
+    const url = 'https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?action=register';
+    console.log('發送請求到:', url);
     
-    // 前端驗證
-    if (!name) {
-      throw new Error('請輸入姓名');
-    }
+    // 使用 URL 參數方式避免 CORS 預檢請求
+    const params = new URLSearchParams({
+      action: 'register',
+      lineUserId: formData.lineUserId,
+      name: formData.name,
+      phone: formData.phone,
+      email: formData.email,
+      birthday: formData.birthday,
+      lineName: formData.lineName,
+      linePicture: formData.linePicture,
+      referralCode: formData.referralCode || '' // 🎯 傳送推薦碼
+    });
     
-    if (!Validator.phone(phone)) {
-      throw new Error('請輸入正確的手機號碼格式 (0912-345-678)');
-    }
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?${params.toString()}`, {
+      method: 'GET',
+      redirect: 'follow'
+    });
     
-    if (email && !Validator.email(email)) {
-      throw new Error('請輸入正確的電子郵件格式');
-    }
+    console.log('API 回應狀態:', res.status);
     
-    console.log('📝 提交註冊資料...');
-    
-    const formData = {
-      lineUserId: lineUserId,
-      name: name,
-      phone: phone,
-      email: email,
-      birthday: birthday,
-      lineName: lineProfile?.displayName || '',
-      linePicture: lineProfile?.pictureUrl || '',
-      referralCode: referralCode || ''
-    };
-    
-    // 🛡️ 使用安全的 API 呼叫（含頻率限制和輸入清理）
-    const data = await secureApiCall('register', formData, { retryCount: 2 });
+    const data = await res.json();
+    console.log('API 回應資料:', data);
     
     if (data.success) {
-      console.log('✅ 註冊成功！');
-      
-      // 成功訊息
-      let successMsg = '🎉 註冊成功！已贈送 100 點';
-      if (data.referralBonus > 0) {
-        successMsg += `，推薦獎勵 ${data.referralBonus} 點`;
-      }
-      successMsg += '，正在跳轉...';
-      
-      UIHelper.showMessage(successMsg, 'success', 3000);
-      
-      // 清除快取
-      CacheManager.clear();
-      
-      // 跳轉到會員中心
+      showMessage('🎉 註冊成功！已贈送 100 點，正在跳轉...', 'success');
       setTimeout(() => {
         window.location.href = "profile.html";
       }, 2000);
-      
     } else {
-      throw new Error(data.message || '註冊失敗，請稍後再試');
+      showMessage('❌ ' + (data.message || '註冊失敗，請稍後再試'), 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="btn-icon">✨</span> 完成註冊';
     }
-    
   } catch (error) {
-    logError('registerSubmit', error, { lineUserId });
-    UIHelper.showMessage('❌ ' + error.message, 'error', 5000);
-    
-    // 恢復按鈕
+    console.error('註冊錯誤:', error);
+    showMessage('❌ 系統錯誤: ' + error.message, 'error');
     submitBtn.disabled = false;
-    submitBtn.innerHTML = originalBtnText;
+    submitBtn.innerHTML = '<span class="btn-icon">✨</span> 完成註冊';
   }
 });
 
-// 手機號碼自動格式化
-document.getElementById('phone').addEventListener('input', function(e) {
-  e.target.value = Formatter.phone(e.target.value);
-});
-
-// Email 即時驗證
-document.getElementById('email').addEventListener('blur', function(e) {
-  const email = e.target.value.trim();
-  if (email && !Validator.email(email)) {
-    e.target.style.borderColor = '#dc3545';
-    UIHelper.showMessage('請輸入正確的電子郵件格式', 'warning', 2000);
-  } else {
-    e.target.style.borderColor = '';
+function showMessage(msg, type) {
+  const messageDiv = document.getElementById('message');
+  messageDiv.textContent = msg;
+  messageDiv.className = `message ${type}`;
+  messageDiv.style.display = 'block';
+  
+  // 自動隱藏 info 訊息
+  if (type === 'info') {
+    setTimeout(() => {
+      messageDiv.style.display = 'none';
+    }, 3000);
   }
-});
+}
 
-// 會員條款
 function showTerms() {
-  UIHelper.confirm(
-    '會員條款',
-    '請仔細閱讀會員條款內容...\n\n（此處應替換為實際的會員條款內容）',
-    { type: 'info', confirmText: '我已閱讀', cancelText: '關閉' }
-  );
+  alert('會員條款內容（請替換為實際條款）');
 }
 
-// 隱私政策
 function showPrivacy() {
-  UIHelper.confirm(
-    '隱私政策',
-    '我們重視您的隱私權...\n\n（此處應替換為實際的隱私政策內容）',
-    { type: 'info', confirmText: '我已閱讀', cancelText: '關閉' }
-  );
+  alert('隱私政策內容（請替換為實際政策）');
 }
 
-// 頁面載入完成
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('📄 註冊頁面載入完成');
+// 手機號碼格式化
+document.getElementById('phone').addEventListener('input', function(e) {
+  let value = e.target.value.replace(/\D/g, '');
+  if (value.length > 10) value = value.slice(0, 10);
+  
+  if (value.length >= 4) {
+    value = value.slice(0, 4) + '-' + value.slice(4);
+  }
+  if (value.length >= 8) {
+    value = value.slice(0, 8) + '-' + value.slice(8);
+  }
+  
+  e.target.value = value;
 });
 
-// 初始化
 initLiff();
 </script>
-
-<style>
-/* 註冊頁面額外樣式 */
-.register-header {
-  text-align: center;
-  margin-bottom: 25px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid #f0f0f0;
-}
-
-.register-header h1 {
-  margin: 0 0 10px 0;
-  color: #333;
-  font-size: 28px;
-}
-
-.register-header p {
-  margin: 0;
-  color: #666;
-  font-size: 16px;
-}
-
-.spinner-small {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid #ffffff;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-</style>
 </body>
 </html>

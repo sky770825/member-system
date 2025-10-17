@@ -3,17 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>轉點給好友 - 點數轉帳</title>
+<title>轉點給好友</title>
 <link rel="stylesheet" href="./assets/style.css">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<meta name="description" content="將您的點數轉給好友使用">
 </head>
 <body>
 <div class="container">
   <div class="transfer-card">
     <div class="page-header">
       <button class="btn-back" onclick="goBack()">← 返回</button>
-      <h1>💸 轉點給好友</h1>
+      <h1>轉點給好友</h1>
     </div>
     
     <div class="current-points" id="currentPoints">
@@ -59,456 +58,278 @@
     </form>
     
     <div id="message" class="message"></div>
-    
-    <!-- 轉點說明 -->
-    <div style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
-      <h4 style="margin: 0 0 10px 0; color: #667eea;">📌 轉點須知</h4>
-      <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #666;">
-        <li>最少轉點數量：1 點</li>
-        <li>確認後無法取消，請仔細檢查</li>
-        <li>收款人必須是已註冊會員</li>
-        <li>轉點後會即時生效</li>
-      </ul>
+  </div>
+</div>
+
+<div id="confirmModal" class="modal">
+  <div class="modal-content">
+    <h3>確認轉點</h3>
+    <div class="confirm-details">
+      <p><strong>收款人：</strong><span id="confirmReceiver"></span></p>
+      <p><strong>轉點數量：</strong><span id="confirmPoints"></span> 點</p>
+      <p><strong>留言：</strong><span id="confirmMessage"></span></p>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="confirmTransfer()">確認轉出</button>
     </div>
   </div>
 </div>
 
-<script src="./assets/utils.js?v=20251017"></script>
-<script src="./assets/security.js?v=20251017"></script>
 <script>
 let lineUserId = '';
 let currentPoints = 0;
 let receiverData = null;
 let transferData = null;
-let senderName = '';
 
-// 初始化 LIFF
-async function initLiff() {
-  const loading = UIHelper.showLoading('載入中...');
-  
+// 🔧 添加超時保護函數（放在最前面）
+function fetchWithTimeout(url, options = {}, timeout = 15000) {
+  return Promise.race([
+    fetch(url, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('請求超時，請檢查網路連線')), timeout)
+    )
+  ]);
+}
+
+// 🔧 安全關閉視窗函數（檢查是否在 LIFF 環境）
+function safeCloseWindow() {
   try {
-    console.log('🔐 初始化 LIFF...');
+    // 檢查是否在 LIFF 環境且已初始化
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      // 不在 LINE 中，返回上一頁或顯示提示
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        showMessage('✅ 操作完成！請關閉此頁面', 'success');
+      }
+    }
+  } catch (error) {
+    console.warn('關閉視窗失敗:', error);
+    // 降級處理：嘗試返回上一頁
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      showMessage('✅ 操作完成！請關閉此頁面', 'success');
+    }
+  }
+}
+
+async function initLiff() {
+  try {
+    await liff.init({ liffId: "2008231108-8dwdPJ26" });
     
-    const profile = await LiffHelper.init(LIFF_CONFIG.transfer, {
-      redirectOnError: true
-    });
-    
-    if (!profile) return;
-    
-    lineUserId = profile.userId;
-    console.log('✅ LINE 登入成功:', profile.displayName);
-    
-    // 取得當前點數
-    const data = await apiCall('profile', { lineUserId }, { retryCount: 2 });
-    
-    if (!data.success) {
-      throw new Error('無法取得會員資料');
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
     }
     
-    currentPoints = data.points || 0;
-    senderName = data.name || profile.displayName;
+    const profile = await liff.getProfile();
+    lineUserId = profile.userId;
     
-    // 顯示可用點數
+    // 取得當前點數 - 🔧 使用超時保護
+    const res = await fetchWithTimeout(
+      `https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?action=profile&lineUserId=${lineUserId}`,
+      {},
+      10000 // 10秒超時
+    );
+    const data = await res.json();
+    
+    currentPoints = data.points || 0;
     document.getElementById('currentPoints').innerHTML = `
       <p class="points-label">可用點數</p>
-      <p class="points-value">${Formatter.points(currentPoints)} <span>點</span></p>
+      <p class="points-value">${currentPoints} <span>點</span></p>
     `;
     
     // 設定最大點數
     document.getElementById('points').max = currentPoints;
     
-    console.log(`✅ 當前點數: ${currentPoints} 點`);
-    
-    if (currentPoints === 0) {
-      UIHelper.showMessage('⚠️ 您的點數餘額不足', 'warning', 5000);
-    }
-    
   } catch (error) {
-    logError('initLiff', error);
-    UIHelper.showMessage('❌ 系統錯誤: ' + error.message, 'error');
-    
-    // 提供返回選項
-    setTimeout(() => {
-      if (confirm('載入失敗，是否返回會員中心？')) {
-        window.location.href = 'profile.html';
-      }
-    }, 2000);
-    
-  } finally {
-    UIHelper.hideLoading();
+    console.error('LIFF 初始化錯誤:', error);
+    showMessage('❌ ' + error.message, 'error');
   }
 }
 
-// 檢查收款人（使用防抖）
-const checkReceiver = debounce(async function(phone) {
-  if (!phone || !Validator.phone(phone)) {
-    return;
-  }
+// 檢查收款人
+document.getElementById('receiverPhone').addEventListener('blur', async function() {
+  const phone = this.value;
+  if (!phone) return;
   
   const infoDiv = document.getElementById('receiverInfo');
-  infoDiv.innerHTML = '<span style="color: #999;">🔍 查詢中...</span>';
+  infoDiv.innerHTML = `<span class="receiver-searching">🔍 查詢中...</span>`;
   infoDiv.style.display = 'block';
   
   try {
-    console.log('🔍 查詢收款人:', phone);
-    
-    const data = await apiCall('check-user', { phone });
+    // 🔧 使用超時保護
+    const res = await fetchWithTimeout(
+      `https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?action=check-user&phone=${phone}`,
+      {},
+      10000 // 10秒超時
+    );
+    const data = await res.json();
     
     if (data.exists) {
-      // 防止自己轉給自己
-      if (data.lineUserId === lineUserId) {
-        receiverData = null;
-        infoDiv.innerHTML = '<span class="receiver-notfound">⚠️ 不能轉點給自己</span>';
-        console.warn('⚠️ 嘗試轉點給自己');
-        return;
-      }
-      
       receiverData = data;
       infoDiv.innerHTML = `<span class="receiver-found">✓ ${data.name}</span>`;
-      console.log('✅ 找到收款人:', data.name);
-      
+      infoDiv.style.display = 'block';
     } else {
       receiverData = null;
-      infoDiv.innerHTML = '<span class="receiver-notfound">✗ 查無此會員</span>';
-      console.log('⚠️ 查無此會員');
+      infoDiv.innerHTML = `<span class="receiver-notfound">✗ 查無此會員</span>`;
+      infoDiv.style.display = 'block';
     }
-    
   } catch (error) {
-    logError('checkReceiver', error, { phone });
+    console.error('查詢錯誤:', error);
     receiverData = null;
-    infoDiv.innerHTML = '<span class="receiver-notfound">✗ 查詢失敗，請重試</span>';
+    infoDiv.innerHTML = `<span class="receiver-error">❌ 查詢失敗，請重試</span>`;
+    infoDiv.style.display = 'block';
   }
-}, 500); // 500ms 防抖
-
-// 手機號碼輸入處理
-document.getElementById('receiverPhone').addEventListener('input', function(e) {
-  e.target.value = Formatter.phone(e.target.value);
-  document.getElementById('receiverInfo').style.display = 'none';
 });
 
-// 手機號碼失焦時檢查
-document.getElementById('receiverPhone').addEventListener('blur', function(e) {
-  const phone = e.target.value;
-  if (phone) {
-    checkReceiver(phone);
+// 手機號碼格式化
+document.getElementById('receiverPhone').addEventListener('input', function(e) {
+  let value = e.target.value.replace(/\D/g, '');
+  if (value.length > 10) value = value.slice(0, 10);
+  
+  if (value.length >= 4) {
+    value = value.slice(0, 4) + '-' + value.slice(4);
   }
+  if (value.length >= 8) {
+    value = value.slice(0, 8) + '-' + value.slice(8);
+  }
+  
+  e.target.value = value;
+  document.getElementById('receiverInfo').style.display = 'none';
 });
 
 // 留言字數統計
 document.getElementById('message').addEventListener('input', function() {
   const count = this.value.length;
   document.getElementById('charCount').textContent = `${count}/100`;
-  
-  if (count > 80) {
-    document.getElementById('charCount').style.color = '#FF6B6B';
-  } else {
-    document.getElementById('charCount').style.color = '#666';
-  }
 });
 
 // 快速選擇金額
 function setAmount(amount) {
   if (amount > currentPoints) {
-    UIHelper.showMessage(`點數不足，您目前有 ${currentPoints} 點`, 'error', 3000);
+    showMessage('點數不足', 'error');
     return;
   }
   document.getElementById('points').value = amount;
 }
 
-// 點數輸入即時驗證
-document.getElementById('points').addEventListener('input', function(e) {
-  const value = parseInt(e.target.value);
-  
-  if (value > currentPoints) {
-    e.target.style.borderColor = '#dc3545';
-    UIHelper.showMessage(`點數不足，您目前有 ${currentPoints} 點`, 'warning', 2000);
-  } else {
-    e.target.style.borderColor = '';
-  }
-});
-
 // 表單提交
-document.getElementById('transferForm').addEventListener('submit', async function(e) {
+document.getElementById('transferForm').addEventListener('submit', function(e) {
   e.preventDefault();
   
-  // 驗證收款人
   if (!receiverData) {
-    UIHelper.showMessage('❌ 請輸入有效的收款人手機號碼', 'error');
-    document.getElementById('receiverPhone').focus();
+    showMessage('請輸入有效的收款人手機號碼', 'error');
     return;
   }
   
   const points = parseInt(document.getElementById('points').value);
-  const message = document.getElementById('message').value.trim();
-  
-  // 驗證點數
-  if (!Validator.points(points, 1, currentPoints)) {
-    UIHelper.showMessage('❌ 請輸入有效的轉點數量', 'error');
-    document.getElementById('points').focus();
-    return;
-  }
-  
   if (points > currentPoints) {
-    UIHelper.showMessage('❌ 點數不足', 'error');
+    showMessage('點數不足', 'error');
     return;
   }
   
-  // 大額轉點警告
-  if (points >= 1000) {
-    const confirmed = await UIHelper.confirm(
-      '⚠️ 大額轉點確認',
-      `您即將轉出 ${Formatter.points(points)} 點給 ${receiverData.name}，\n這是一筆較大金額的交易，請確認！`,
-      { type: 'warning', confirmText: '確認轉出', cancelText: '取消' }
-    );
-    
-    if (!confirmed) {
-      console.log('ℹ️ 用戶取消大額轉點');
-      return;
-    }
+  if (points < 1) {
+    showMessage('最少轉點 1 點', 'error');
+    return;
   }
   
   transferData = {
     senderUserId: lineUserId,
-    senderName: senderName,
-    receiverUserId: receiverData.lineUserId,
-    receiverName: receiverData.name,
     receiverPhone: document.getElementById('receiverPhone').value,
+    receiverUserId: receiverData.lineUserId,
     points: points,
-    message: message
+    message: document.getElementById('message').value
   };
   
-  // 顯示最終確認
-  showConfirmModal();
+  // 顯示確認視窗
+  document.getElementById('confirmReceiver').textContent = receiverData.name;
+  document.getElementById('confirmPoints').textContent = points;
+  document.getElementById('confirmMessage').textContent = transferData.message || '無';
+  document.getElementById('confirmModal').style.display = 'flex';
 });
 
-// 顯示確認對話框
-function showConfirmModal() {
-  const modal = document.createElement('div');
-  modal.id = 'confirmModal';
-  modal.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-  `;
-  
-  modal.innerHTML = `
-    <div style="background: white; border-radius: 12px; padding: 30px; max-width: 400px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-      <div style="text-align: center; font-size: 48px; margin-bottom: 20px;">💸</div>
-      <h3 style="margin: 0 0 20px 0; text-align: center; font-size: 20px;">確認轉點</h3>
-      
-      <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-        <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #ddd;">
-          <div style="color: #666; font-size: 13px; margin-bottom: 5px;">收款人</div>
-          <div style="font-size: 16px; font-weight: bold;">${transferData.receiverName}</div>
-          <div style="color: #999; font-size: 13px;">${transferData.receiverPhone}</div>
-        </div>
-        <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #ddd;">
-          <div style="color: #666; font-size: 13px; margin-bottom: 5px;">轉點數量</div>
-          <div style="font-size: 24px; font-weight: bold; color: #FF6B6B;">${Formatter.points(transferData.points)} 點</div>
-        </div>
-        <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #ddd;">
-          <div style="color: #666; font-size: 13px; margin-bottom: 5px;">轉點後餘額</div>
-          <div style="font-size: 16px; font-weight: bold; color: #4CAF50;">${Formatter.points(currentPoints - transferData.points)} 點</div>
-        </div>
-        ${transferData.message ? `
-          <div>
-            <div style="color: #666; font-size: 13px; margin-bottom: 5px;">留言</div>
-            <div style="font-size: 14px; color: #333;">${transferData.message}</div>
-          </div>
-        ` : ''}
-      </div>
-      
-      <div style="background: #FFF3CD; border: 1px solid #FFC107; border-radius: 6px; padding: 12px; margin-bottom: 20px; font-size: 13px; color: #856404;">
-        ⚠️ 轉點後無法取消，請確認資訊無誤
-      </div>
-      
-      <div style="display: flex; gap: 10px;">
-        <button id="cancelBtn" class="btn btn-outline" style="flex: 1; padding: 12px;">取消</button>
-        <button id="confirmBtn" class="btn btn-primary" style="flex: 1; padding: 12px;">確認轉出</button>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
-  
-  // 確認按鈕
-  document.getElementById('confirmBtn').onclick = () => {
-    modal.remove();
-    confirmTransfer();
-  };
-  
-  // 取消按鈕
-  document.getElementById('cancelBtn').onclick = () => {
-    modal.remove();
-    console.log('ℹ️ 用戶取消轉點');
-  };
-  
-  // 點擊背景關閉
-  modal.onclick = (e) => {
-    if (e.target === modal) {
-      modal.remove();
-      console.log('ℹ️ 用戶取消轉點');
-    }
-  };
-}
-
-// 確認轉點（極簡穩定版）
+// 確認轉點
 async function confirmTransfer() {
-  const submitBtn = document.getElementById('submitBtn');
+  closeModal();
   
-  // 禁用按鈕
+  const submitBtn = document.getElementById('submitBtn');
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<span class="spinner-small"></span> 轉點中...';
   
-  console.log('💸 開始轉點...', transferData);
-  
   try {
-    // 直接使用 fetch，最簡單的方式
-    const url = new URL(API_CONFIG.baseUrl);
-    url.searchParams.set('action', 'transfer');
-    url.searchParams.set('senderUserId', transferData.senderUserId);
-    url.searchParams.set('receiverUserId', transferData.receiverUserId);
-    url.searchParams.set('points', transferData.points);
-    url.searchParams.set('message', transferData.message || '');
-    
-    console.log('📡 發送請求:', url.toString());
-    
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      redirect: 'follow'
+    // 使用 URL 參數方式避免 CORS 預檢請求
+    const params = new URLSearchParams({
+      action: 'transfer',
+      senderUserId: transferData.senderUserId,
+      receiverUserId: transferData.receiverUserId,
+      points: transferData.points,
+      message: transferData.message
     });
     
-    console.log('📥 收到回應，狀態:', response.status);
+    // 🔧 使用超時保護（15秒）
+    const res = await fetchWithTimeout(
+      `https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?${params.toString()}`,
+      {
+        method: 'GET',
+        redirect: 'follow'
+      },
+      15000 // 15秒超時
+    );
     
-    const data = await response.json();
-    console.log('📥 解析回應:', data);
+    const data = await res.json();
     
-    // 處理回應
-    if (data && data.success) {
-      console.log('✅ 轉點成功！');
-      
-      // 顯示成功訊息
-      alert(`✅ 轉點成功！\n已轉 ${transferData.points} 點給 ${transferData.receiverName}\n\n剩餘點數：${data.remainingPoints || currentPoints - transferData.points} 點`);
-      
-      // 直接返回上一頁（不使用 LIFF）
-      window.history.back();
-      
+    if (data.success) {
+      showMessage('✅ 轉點成功！', 'success');
+      setTimeout(() => {
+        safeCloseWindow(); // 🔧 使用安全關閉函數
+      }, 2000);
     } else {
-      // 顯示失敗訊息
-      alert(`❌ 轉點失敗\n${data.message || '請稍後再試'}`);
-      
-      // 恢復按鈕
+      showMessage(data.message || '轉點失敗，請稍後再試', 'error');
       submitBtn.disabled = false;
       submitBtn.innerHTML = '<span class="btn-icon">💸</span> 確認轉點';
     }
-    
   } catch (error) {
-    console.error('❌ 錯誤:', error);
-    
-    // 顯示錯誤
-    alert(`❌ 轉點失敗\n${error.message}`);
-    
-    // 恢復按鈕
+    console.error('轉點錯誤:', error);
+    showMessage('❌ ' + error.message, 'error');
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<span class="btn-icon">💸</span> 確認轉點';
+  } finally {
+    // 🔧 確保按鈕一定會恢復
+    setTimeout(() => {
+      if (submitBtn.disabled && submitBtn.innerHTML.includes('轉點中')) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span class="btn-icon">💸</span> 確認轉點';
+        showMessage('⚠️ 操作超時，請重試', 'error');
+      }
+    }, 16000); // 比超時時間多1秒，作為最後保障
   }
 }
 
-// 返回
-function goBack() {
-  window.history.back();
+function closeModal() {
+  document.getElementById('confirmModal').style.display = 'none';
 }
 
-// 頁面載入完成
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('📄 轉點頁面載入完成');
-});
+function showMessage(msg, type) {
+  const messageDiv = document.getElementById('message');
+  messageDiv.textContent = msg;
+  messageDiv.className = `message ${type}`;
+  messageDiv.style.display = 'block';
+  
+  setTimeout(() => {
+    messageDiv.style.display = 'none';
+  }, 5000);
+}
 
-// 初始化
+function goBack() {
+  safeCloseWindow(); // 🔧 使用安全關閉函數
+}
+
 initLiff();
 </script>
-
-<style>
-/* 轉點頁面額外樣式 */
-.receiver-found {
-  color: #4CAF50;
-  font-weight: bold;
-}
-
-.receiver-notfound {
-  color: #FF6B6B;
-  font-weight: bold;
-}
-
-.receiver-info {
-  margin-top: 8px;
-  font-size: 14px;
-  display: none;
-}
-
-.spinner-small {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid #ffffff;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.btn-back {
-  background: none;
-  border: none;
-  color: #667eea;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 8px 0;
-  transition: all 0.3s;
-}
-
-.btn-back:hover {
-  color: #764ba2;
-  transform: translateX(-3px);
-}
-
-.quick-btns {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-quick {
-  flex: 1;
-  padding: 10px;
-  background: #f0f0f0;
-  border: 2px solid #e0e0e0;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: all 0.3s;
-}
-
-.btn-quick:hover {
-  background: #667eea;
-  border-color: #667eea;
-  color: white;
-  transform: translateY(-2px);
-}
-
-.btn-quick:active {
-  transform: translateY(0);
-}
-</style>
 </body>
 </html>
