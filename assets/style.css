@@ -171,25 +171,33 @@ p {
 }
 
 .btn-quick {
-  padding: 10px 20px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #FFF3CD, #FFE69C);
+  border: 2px solid #FFB800;
+  border-radius: 12px;
+  color: #856404;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 184, 0, 0.2);
+  position: relative;
+  overflow: hidden;
   width: auto;
   margin: 0;
 }
 
 .btn-quick:hover {
-  background: var(--primary-color);
-  color: #fff;
-  border-color: var(--primary-color);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(135deg, #FFE69C, #FFD966);
+  border-color: #E69500;
+  color: #856404;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 184, 0, 0.4);
+}
+
+.btn-quick:active {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(255, 184, 0, 0.3);
 }
 
 /* ==================== 輸入框 ==================== */
@@ -560,19 +568,37 @@ textarea {
 .quick-amount {
   margin-bottom: 14px;
   grid-column: 1 / -1;
+  background: linear-gradient(135deg, #FFFBF0, #FFF8E1);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #FFE69C;
 }
 
 .quick-amount p {
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 10px;
+  font-weight: 600;
+  color: #856404;
+  margin-bottom: 12px;
   font-size: 14px;
 }
 
 .quick-btns {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+/* 手機版：3 列布局 */
+@media (max-width: 600px) {
+  .quick-btns {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 小手機：2 列布局 */
+@media (max-width: 400px) {
+  .quick-btns {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* ==================== Modal ==================== */
