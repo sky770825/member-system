@@ -17,7 +17,9 @@ const MEMBERS_SHEET = 'Members';
 const TRANSACTIONS_SHEET = 'Transactions';
 const REFERRALS_SHEET = 'Referrals'; // 🎯 推薦關係表
 const PURCHASES_SHEET = 'Purchases'; // 💰 購買記錄表
-const WITHDRAWALS_SHEET = 'Withdrawals'; // 💵 提領記錄表（新增）
+const WITHDRAWALS_SHEET = 'Withdrawals'; // 💵 提領記錄表
+const PRODUCTS_SHEET = 'Products'; // 🛒 商城商品表（新增）
+const MALL_ORDERS_SHEET = 'MallOrders'; // 🛍️ 商城訂單表（新增）
 const MEMBER_LEVELS_SHEET = 'MemberLevels';
 const ACTIVITIES_SHEET = 'Activities';
 const SETTINGS_SHEET = 'Settings';
@@ -210,6 +212,26 @@ function doGet(e) {
       case 'withdrawal-history':
         // 💵 查詢提領記錄
         result = getWithdrawalHistory(lineUserId);
+        break;
+        
+      case 'mall-products':
+        // 🛒 獲取商城商品列表
+        result = getMallProducts();
+        break;
+        
+      case 'mall-product-detail':
+        // 🛒 獲取商品詳情
+        result = getMallProductDetail(e.parameter.productId);
+        break;
+        
+      case 'mall-purchase':
+        // 🛒 購買商城商品
+        result = purchaseMallProduct(lineUserId, e.parameter.productId);
+        break;
+        
+      case 'mall-orders':
+        // 🛍️ 獲取我的訂單
+        result = getMallOrders(lineUserId);
         break;
         
       case 'version':
@@ -1623,6 +1645,82 @@ function initializeSheet(sheet, sheetName) {
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#F44336');
     headerRange.setFontColor('#ffffff');
+    
+  } else if (sheetName === PRODUCTS_SHEET) {
+    // 🛒 商城商品表
+    sheet.appendRow([
+      '商品ID',            // id
+      '商品代碼',          // productCode (例如: H3X9V7)
+      '商品名稱',          // productName
+      '商品描述',          // description
+      '商品圖片',          // imageUrl
+      '所需點數',          // points
+      '原價',              // originalPrice
+      '折扣',              // discount
+      '商品類型',          // category
+      '庫存數量',          // stock (-1=無限)
+      '已售出',            // soldCount
+      '是否上架',          // isActive
+      '排序',              // sortOrder
+      '標籤',              // tags
+      '建立時間',          // createdAt
+      '更新時間'           // updatedAt
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 16);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#4CAF50');
+    headerRange.setFontColor('#ffffff');
+    
+    // 新增範例商品：拍新聞
+    const now = new Date().toISOString();
+    sheet.appendRow([
+      now,                                            // 商品ID
+      'H3X9V7',                                       // 商品代碼
+      '拍新聞',                                       // 商品名稱
+      '獲得拍新聞虛擬商品序號',                     // 商品描述
+      'https://i.postimg.cc/3R5j7t6k/Pi-News-GIF2.gif', // 商品圖片
+      3600,                                           // 所需點數
+      3600,                                           // 原價
+      0,                                              // 折扣
+      'virtual',                                      // 商品類型
+      -1,                                             // 庫存數量 (-1=無限)
+      0,                                              // 已售出
+      true,                                           // 是否上架
+      1,                                              // 排序
+      '虛擬商品,序號',                               // 標籤
+      now,                                            // 建立時間
+      now                                             // 更新時間
+    ]);
+    
+  } else if (sheetName === MALL_ORDERS_SHEET) {
+    // 🛍️ 商城訂單表
+    sheet.appendRow([
+      '訂單ID',            // id
+      '訂單編號',          // orderNumber
+      '會員ID',            // lineUserId
+      '會員姓名',          // memberName
+      '商品ID',            // productId
+      '商品代碼',          // productCode
+      '商品名稱',          // productName
+      '商品圖片',          // productImage
+      '購買點數',          // points
+      '購買前點數',        // pointsBefore
+      '購買後點數',        // pointsAfter
+      '序號/代碼',         // serialCode (商品代碼，購買後顯示)
+      '訂單狀態',          // status (pending/completed/cancelled)
+      '付款時間',          // paidAt
+      '完成時間',          // completedAt
+      '備註',              // notes
+      '建立時間'           // createdAt
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 17);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#FF9800');
+    headerRange.setFontColor('#ffffff');
   }
 }
 
@@ -2458,12 +2556,14 @@ function initializeAllSheets() {
     getSheet(REFERRALS_SHEET);        // 🎯 推薦關係表
     getSheet(PURCHASES_SHEET);        // 💰 購買記錄表
     getSheet(WITHDRAWALS_SHEET);      // 💵 提領記錄表
+    getSheet(PRODUCTS_SHEET);         // 🛒 商城商品表
+    getSheet(MALL_ORDERS_SHEET);      // 🛍️ 商城訂單表
     getSheet(MEMBER_LEVELS_SHEET);
     getSheet(ACTIVITIES_SHEET);
     getSheet(SETTINGS_SHEET);
     getSheet(DAILY_STATS_SHEET);
     
-    Logger.log('所有工作表初始化完成（含 Referrals、Purchases、Withdrawals 表）！');
+    Logger.log('所有工作表初始化完成（含 Referrals、Purchases、Withdrawals、Products、MallOrders 表）！');
     return { success: true, message: '所有工作表已創建' };
   } catch (error) {
     Logger.log('initializeAllSheets Error: ' + error.toString());
@@ -3358,6 +3458,342 @@ function updateWithdrawalStatus(orderNumber, status, notes = '') {
     
   } catch (error) {
     Logger.log('updateWithdrawalStatus Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+// ==================== 商城功能 ====================
+
+/**
+ * 獲取商城商品列表
+ * @param {object} filter - 篩選條件 {category, isActive}
+ * @returns {object} 商品列表
+ */
+function getMallProducts(filter = {}) {
+  try {
+    Logger.log('========== getMallProducts 開始 ==========');
+    
+    const sheet = getSheet(PRODUCTS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const products = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      // 只顯示上架的商品
+      const isActive = data[i][11];
+      if (!isActive) continue;
+      
+      // 分類篩選
+      if (filter.category && data[i][8] !== filter.category) continue;
+      
+      products.push({
+        productId: data[i][0],
+        productCode: data[i][1],
+        productName: data[i][2],
+        description: data[i][3],
+        imageUrl: data[i][4],
+        points: Number(data[i][5]) || 0,
+        originalPrice: Number(data[i][6]) || 0,
+        discount: Number(data[i][7]) || 0,
+        category: data[i][8],
+        stock: Number(data[i][9]) || 0,
+        soldCount: Number(data[i][10]) || 0,
+        isActive: data[i][11],
+        sortOrder: Number(data[i][12]) || 0,
+        tags: data[i][13],
+        createdAt: data[i][14],
+        updatedAt: data[i][15]
+      });
+    }
+    
+    // 按排序順序排列
+    products.sort((a, b) => a.sortOrder - b.sortOrder);
+    
+    Logger.log(`找到 ${products.length} 個商品`);
+    Logger.log('========== getMallProducts 結束 ==========');
+    
+    return {
+      success: true,
+      products: products,
+      total: products.length
+    };
+    
+  } catch (error) {
+    Logger.log('getMallProducts Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 獲取商品詳情
+ * @param {string} productId - 商品ID
+ * @returns {object} 商品詳情
+ */
+function getMallProductDetail(productId) {
+  try {
+    const sheet = getSheet(PRODUCTS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === productId) {
+        return {
+          success: true,
+          product: {
+            productId: data[i][0],
+            productCode: data[i][1],
+            productName: data[i][2],
+            description: data[i][3],
+            imageUrl: data[i][4],
+            points: Number(data[i][5]) || 0,
+            originalPrice: Number(data[i][6]) || 0,
+            discount: Number(data[i][7]) || 0,
+            category: data[i][8],
+            stock: Number(data[i][9]) || 0,
+            soldCount: Number(data[i][10]) || 0,
+            isActive: data[i][11],
+            sortOrder: Number(data[i][12]) || 0,
+            tags: data[i][13],
+            createdAt: data[i][14],
+            updatedAt: data[i][15]
+          }
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      message: '找不到該商品'
+    };
+    
+  } catch (error) {
+    Logger.log('getMallProductDetail Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 購買商城商品
+ * @param {string} lineUserId - 會員ID
+ * @param {string} productId - 商品ID
+ * @returns {object} 購買結果
+ */
+function purchaseMallProduct(lineUserId, productId) {
+  try {
+    Logger.log('========== purchaseMallProduct 開始 ==========');
+    Logger.log(`會員: ${lineUserId}, 商品: ${productId}`);
+    
+    // 1. 獲取商品資訊
+    const productResult = getMallProductDetail(productId);
+    if (!productResult.success) {
+      return {
+        success: false,
+        message: '商品不存在'
+      };
+    }
+    
+    const product = productResult.product;
+    
+    // 檢查商品是否上架
+    if (!product.isActive) {
+      return {
+        success: false,
+        message: '商品已下架'
+      };
+    }
+    
+    // 檢查庫存
+    if (product.stock !== -1 && product.stock <= 0) {
+      return {
+        success: false,
+        message: '商品已售完'
+      };
+    }
+    
+    // 2. 獲取會員資訊
+    const membersSheet = getSheet(MEMBERS_SHEET);
+    const membersData = membersSheet.getDataRange().getValues();
+    let memberRow = -1;
+    let memberName = '';
+    let currentPoints = 0;
+    
+    for (let i = 1; i < membersData.length; i++) {
+      if (membersData[i][0] === lineUserId) {
+        memberRow = i + 1;
+        memberName = membersData[i][1];
+        currentPoints = Number(membersData[i][7]) || 0;
+        break;
+      }
+    }
+    
+    if (memberRow === -1) {
+      return {
+        success: false,
+        message: '會員不存在'
+      };
+    }
+    
+    // 3. 檢查點數是否足夠
+    if (currentPoints < product.points) {
+      return {
+        success: false,
+        message: `點數不足，需要 ${product.points} 點，目前只有 ${currentPoints} 點`
+      };
+    }
+    
+    // 4. 扣除點數
+    const newPoints = currentPoints - product.points;
+    membersSheet.getRange(memberRow, 8).setValue(newPoints);
+    membersSheet.getRange(memberRow, 17).setValue(new Date().toISOString());
+    
+    Logger.log(`✅ 點數扣除成功: ${currentPoints} → ${newPoints}`);
+    
+    // 5. 記錄交易
+    addTransaction({
+      type: 'mall_purchase',
+      senderUserId: lineUserId,
+      senderName: memberName,
+      points: -product.points,
+      message: `購買商城商品：${product.productName}`,
+      balanceAfter: newPoints,
+      status: 'completed'
+    });
+    
+    // 6. 創建訂單
+    const now = new Date();
+    const orderNumber = 'MO' + now.getTime();
+    const ordersSheet = getSheet(MALL_ORDERS_SHEET);
+    
+    ordersSheet.appendRow([
+      now.getTime(),              // 訂單ID
+      orderNumber,                // 訂單編號
+      lineUserId,                 // 會員ID
+      memberName,                 // 會員姓名
+      product.productId,          // 商品ID
+      product.productCode,        // 商品代碼
+      product.productName,        // 商品名稱
+      product.imageUrl,           // 商品圖片
+      product.points,             // 購買點數
+      currentPoints,              // 購買前點數
+      newPoints,                  // 購買後點數
+      product.productCode,        // 序號/代碼（顯示商品代碼）
+      'completed',                // 訂單狀態
+      now.toISOString(),          // 付款時間
+      now.toISOString(),          // 完成時間
+      '',                         // 備註
+      now.toISOString()           // 建立時間
+    ]);
+    
+    // 7. 更新商品庫存和銷售數量
+    const productsSheet = getSheet(PRODUCTS_SHEET);
+    const productsData = productsSheet.getDataRange().getValues();
+    
+    for (let i = 1; i < productsData.length; i++) {
+      if (productsData[i][0] === productId) {
+        const productRow = i + 1;
+        const currentStock = Number(productsData[i][9]) || 0;
+        const soldCount = Number(productsData[i][10]) || 0;
+        
+        // 更新庫存（如果不是無限庫存）
+        if (currentStock !== -1) {
+          productsSheet.getRange(productRow, 10).setValue(currentStock - 1);
+        }
+        
+        // 更新銷售數量
+        productsSheet.getRange(productRow, 11).setValue(soldCount + 1);
+        break;
+      }
+    }
+    
+    Logger.log('========== purchaseMallProduct 結束 ==========');
+    
+    return {
+      success: true,
+      orderNumber: orderNumber,
+      productCode: product.productCode,
+      productName: product.productName,
+      points: newPoints,
+      message: `購買成功！商品代碼：${product.productCode}`
+    };
+    
+  } catch (error) {
+    Logger.log('purchaseMallProduct Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 獲取我的商城訂單
+ * @param {string} lineUserId - 會員ID
+ * @param {number} limit - 限制筆數
+ * @returns {object} 訂單列表
+ */
+function getMallOrders(lineUserId, limit = 50) {
+  try {
+    Logger.log('========== getMallOrders 開始 ==========');
+    Logger.log('查詢會員: ' + lineUserId);
+    
+    const sheet = getSheet(MALL_ORDERS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const orders = [];
+    
+    if (data.length <= 1) {
+      return {
+        success: true,
+        orders: [],
+        total: 0
+      };
+    }
+    
+    // 從最新的記錄開始讀取
+    for (let i = data.length - 1; i > 0; i--) {
+      if (data[i][2] === lineUserId) {
+        orders.push({
+          orderId: data[i][0],
+          orderNumber: data[i][1],
+          memberName: data[i][3],
+          productId: data[i][4],
+          productCode: data[i][5],
+          productName: data[i][6],
+          productImage: data[i][7],
+          points: Number(data[i][8]) || 0,
+          pointsBefore: Number(data[i][9]) || 0,
+          pointsAfter: Number(data[i][10]) || 0,
+          serialCode: data[i][11],
+          status: data[i][12],
+          paidAt: data[i][13],
+          completedAt: data[i][14],
+          notes: data[i][15],
+          createdAt: data[i][16]
+        });
+        
+        if (orders.length >= limit) {
+          break;
+        }
+      }
+    }
+    
+    Logger.log(`找到 ${orders.length} 筆訂單`);
+    Logger.log('========== getMallOrders 結束 ==========');
+    
+    return {
+      success: true,
+      orders: orders,
+      total: orders.length
+    };
+    
+  } catch (error) {
+    Logger.log('getMallOrders Error: ' + error.toString());
     return {
       success: false,
       message: error.toString()
