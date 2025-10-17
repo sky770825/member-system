@@ -16,8 +16,8 @@
     </div>
     
     <div class="current-points" id="currentPoints" style="border-color: #FFB800;">
-      <p class="points-label" style="color: #FFB800;">❤️ 可用公益點數</p>
-      <p class="points-value" style="color: #FFB800;">-- <span>點</span></p>
+      <p class="points-label" style="color: #856404; font-weight: 600;">❤️ 可用公益點數</p>
+      <p class="points-value" style="color: #FFB800;">-- <span style="color: #856404;">點</span></p>
     </div>
     
     <form id="transferForm">
@@ -66,7 +66,7 @@
     <h3>❤️ 確認轉贈公益點數</h3>
     <div class="confirm-details">
       <p><strong>收款人：</strong><span id="confirmReceiver"></span></p>
-      <p><strong>❤️ 公益點數：</strong><span id="confirmPoints" style="color: #FFB800; font-weight: bold;"></span> 點</p>
+      <p><strong style="color: #856404;">❤️ 公益點數：</strong><span id="confirmPoints" style="color: #FFB800; font-weight: bold; font-size: 24px;"></span> <span style="color: #856404;">點</span></p>
       <p><strong>留言：</strong><span id="confirmMessage"></span></p>
     </div>
     <div class="modal-buttons">
@@ -140,8 +140,8 @@ async function initLiff() {
     
     currentPoints = data.points || 0;
     document.getElementById('currentPoints').innerHTML = `
-      <p class="points-label" style="color: #FFB800;">❤️ 可用公益點數</p>
-      <p class="points-value" style="color: #FFB800;">${currentPoints} <span>點</span></p>
+      <p class="points-label" style="color: #856404; font-weight: 600;">❤️ 可用公益點數</p>
+      <p class="points-value" style="color: #FFB800;">${currentPoints} <span style="color: #856404;">點</span></p>
     `;
     
     // 設定最大點數
@@ -291,8 +291,8 @@ async function confirmTransfer() {
       
       // 立即更新顯示
       document.getElementById('currentPoints').innerHTML = `
-        <p class="points-label" style="color: #FFB800;">❤️ 可用公益點數</p>
-        <p class="points-value" style="color: #FFB800;">${currentPoints} <span>點</span></p>
+        <p class="points-label" style="color: #856404; font-weight: 600;">❤️ 可用公益點數</p>
+        <p class="points-value" style="color: #FFB800;">${currentPoints} <span style="color: #856404;">點</span></p>
       `;
       
       // 更新最大值
