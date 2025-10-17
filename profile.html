@@ -331,6 +331,10 @@ function renderProfile(data, pictureUrl, displayName) {
           <span class="btn-icon">💵</span>
           提領兌現
         </button>
+        <button class="btn btn-secondary" onclick="goWithdrawalHistory()" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2); border-color: #9C27B0; color: white;">
+          <span class="btn-icon">📋</span>
+          提領記錄
+        </button>
         <button class="btn btn-primary" onclick="goTransfer()">
           <span class="btn-icon">❤️</span>
           分享公益點數
@@ -384,6 +388,10 @@ function goPurchase() {
 
 function goWithdraw() {
   window.location.href = "withdraw.html";
+}
+
+function goWithdrawalHistory() {
+  window.location.href = "withdrawal-history.html";
 }
 
 function goTransfer() {

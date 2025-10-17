@@ -207,6 +207,11 @@ function doGet(e) {
         });
         break;
         
+      case 'withdrawal-history':
+        // 💵 查詢提領記錄
+        result = getWithdrawalHistory(lineUserId);
+        break;
+        
       case 'version':
         // 🔧 檢查版本
         result = {
@@ -3159,6 +3164,200 @@ function getAllPurchases(filter = {}) {
     
   } catch (error) {
     Logger.log('getAllPurchases Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+// ==================== 提領記錄查詢功能 ====================
+
+/**
+ * 取得會員的提領歷史
+ * @param {string} lineUserId - LINE User ID
+ * @param {number} limit - 限制筆數
+ * @returns {object} 提領歷史
+ */
+function getWithdrawalHistory(lineUserId, limit = 50) {
+  try {
+    Logger.log('========== getWithdrawalHistory 開始 ==========');
+    Logger.log('查詢會員: ' + lineUserId);
+    
+    const sheet = getSheet(WITHDRAWALS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const withdrawals = [];
+    
+    if (data.length <= 1) {
+      Logger.log('沒有提領記錄');
+      return {
+        success: true,
+        withdrawals: [],
+        total: 0
+      };
+    }
+    
+    // 從最新的記錄開始讀取
+    for (let i = data.length - 1; i > 0; i--) {
+      if (data[i][2] === lineUserId) { // lineUserId 在第 3 欄 (index 2)
+        withdrawals.push({
+          withdrawalId: data[i][0],           // 提領ID
+          orderNumber: data[i][1],            // 訂單編號
+          memberName: data[i][3],             // 會員姓名
+          points: Number(data[i][4]) || 0,    // 提領點數
+          amountBeforeFee: Number(data[i][5]) || 0, // 換算金額
+          fee: Number(data[i][6]) || 0,       // 手續費
+          amount: Number(data[i][7]) || 0,    // 實際到帳
+          exchangeRate: Number(data[i][8]) || 0.7, // 換算比例
+          bankName: data[i][9],               // 銀行名稱
+          bankCode: data[i][10],              // 銀行代碼
+          bankAccount: data[i][11],           // 帳號
+          accountName: data[i][12],           // 戶名
+          referrerUserId: data[i][13],        // 推薦人ID
+          referrerName: data[i][14],          // 推薦人姓名
+          referrerReward: Number(data[i][15]) || 0, // 推薦獎勵
+          pointsBefore: Number(data[i][16]) || 0,   // 提領前點數
+          pointsAfter: Number(data[i][17]) || 0,    // 提領後點數
+          requestTime: data[i][18],           // 申請時間
+          completedTime: data[i][19],         // 完成時間
+          status: data[i][20] || 'pending',   // 處理狀態
+          notes: data[i][21]                  // 備註
+        });
+        
+        if (withdrawals.length >= limit) {
+          break;
+        }
+      }
+    }
+    
+    Logger.log(`找到 ${withdrawals.length} 筆提領記錄`);
+    Logger.log('========== getWithdrawalHistory 結束 ==========');
+    
+    return {
+      success: true,
+      withdrawals: withdrawals,
+      total: withdrawals.length
+    };
+    
+  } catch (error) {
+    Logger.log('getWithdrawalHistory Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 取得所有提領記錄（管理員用）
+ * @param {object} filter - 篩選條件 {status: 'pending/processing/completed/rejected'}
+ * @returns {object} 提領記錄列表
+ */
+function getAllWithdrawals(filter = {}) {
+  try {
+    const sheet = getSheet(WITHDRAWALS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const withdrawals = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      // 篩選條件
+      if (filter.status && data[i][20] !== filter.status) continue;
+      
+      withdrawals.push({
+        withdrawalId: data[i][0],
+        orderNumber: data[i][1],
+        lineUserId: data[i][2],
+        memberName: data[i][3],
+        points: Number(data[i][4]) || 0,
+        amountBeforeFee: Number(data[i][5]) || 0,
+        fee: Number(data[i][6]) || 0,
+        amount: Number(data[i][7]) || 0,
+        exchangeRate: Number(data[i][8]) || 0.7,
+        bankName: data[i][9],
+        bankCode: data[i][10],
+        bankAccount: data[i][11],
+        accountName: data[i][12],
+        referrerUserId: data[i][13],
+        referrerName: data[i][14],
+        referrerReward: Number(data[i][15]) || 0,
+        pointsBefore: Number(data[i][16]) || 0,
+        pointsAfter: Number(data[i][17]) || 0,
+        requestTime: data[i][18],
+        completedTime: data[i][19],
+        status: data[i][20] || 'pending',
+        notes: data[i][21]
+      });
+    }
+    
+    // 按申請時間降序排列
+    withdrawals.sort((a, b) => {
+      const timeA = new Date(a.requestTime).getTime();
+      const timeB = new Date(b.requestTime).getTime();
+      return timeB - timeA;
+    });
+    
+    return {
+      success: true,
+      withdrawals: withdrawals,
+      total: withdrawals.length
+    };
+    
+  } catch (error) {
+    Logger.log('getAllWithdrawals Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 更新提領狀態（管理員用）
+ * @param {string} orderNumber - 訂單編號
+ * @param {string} status - 新狀態 (processing/completed/rejected)
+ * @param {string} notes - 備註
+ * @returns {object} 更新結果
+ */
+function updateWithdrawalStatus(orderNumber, status, notes = '') {
+  try {
+    const sheet = getSheet(WITHDRAWALS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === orderNumber) { // 訂單編號在第 2 欄
+        const row = i + 1;
+        
+        // 更新狀態
+        sheet.getRange(row, 21).setValue(status); // 狀態在第 21 欄
+        
+        // 如果是完成，記錄完成時間
+        if (status === 'completed') {
+          sheet.getRange(row, 20).setValue(new Date().toISOString()); // 完成時間在第 20 欄
+        }
+        
+        // 更新備註
+        if (notes) {
+          const currentNotes = data[i][21] || '';
+          const newNotes = currentNotes ? `${currentNotes}\n${new Date().toLocaleString()}: ${notes}` : notes;
+          sheet.getRange(row, 22).setValue(newNotes); // 備註在第 22 欄
+        }
+        
+        Logger.log(`提領狀態已更新: ${orderNumber} → ${status}`);
+        
+        return {
+          success: true,
+          message: '狀態更新成功'
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      message: '找不到該提領記錄'
+    };
+    
+  } catch (error) {
+    Logger.log('updateWithdrawalStatus Error: ' + error.toString());
     return {
       success: false,
       message: error.toString()
