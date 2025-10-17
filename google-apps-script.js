@@ -314,6 +314,20 @@ function doPost(e) {
         );
         break;
         
+      case 'withdraw':
+        // 🔐 提領點數（安全的 POST 方式，保護銀行帳號）
+        result = withdrawPoints(
+          data.lineUserId,
+          parseInt(data.points),
+          {
+            bankName: data.bankName || '',
+            bankAccount: data.bankAccount || '',
+            accountName: data.accountName || '',
+            notes: data.notes || ''
+          }
+        );
+        break;
+        
       case 'transfer':
         // 轉點
         result = transferPoints(data);
