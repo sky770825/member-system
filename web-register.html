@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>註冊 - 公益慈善會員系統</title>
 <link rel="stylesheet" href="./assets/style.css">
+<!-- 🔐 安全工具庫 -->
+<script src="./assets/security-utils.js"></script>
+<script src="./assets/api-config.js"></script>
+<script src="./assets/session-manager.js"></script>
 <style>
   body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -184,7 +188,8 @@
   </div>
 
 <script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec';
+// 使用統一的 API 配置
+// const API_URL 已由 api-config.js 提供
 
 let referralCode = '';
 
@@ -223,12 +228,14 @@ window.addEventListener('load', () => {
 // 驗證推薦碼
 async function verifyReferralCode(code) {
   try {
-    const res = await fetch(`${API_URL}?action=verify-referral&referralCode=${code}`);
-    const data = await res.json();
+    // 🔐 使用 API 工具
+    const data = await API.verifyReferral(code);
     
     if (data.success && data.referrer) {
+      // 🔐 安全地設置 HTML（防止 XSS）
+      const referrerName = SecurityUtils.sanitize.html(data.referrer.name);
       document.getElementById('referralInfo').innerHTML = 
-        `❤️ 由 <strong style="color: #667eea;">${data.referrer.name}</strong> 推薦加入公益行列`;
+        `❤️ 由 <strong style="color: #667eea;">${referrerName}</strong> 推薦加入公益行列`;
     } else {
       document.getElementById('referralStatus').innerHTML = '⚠️ 無效';
       document.getElementById('referralStatus').style.color = '#FF6B6B';
@@ -236,6 +243,7 @@ async function verifyReferralCode(code) {
     }
   } catch (error) {
     console.error('驗證推薦碼失敗:', error);
+    showMessage('驗證推薦碼失敗，請稍後再試', 'error');
   }
 }
 
@@ -282,45 +290,51 @@ async function handleRegister(event) {
     return;
   }
   
-  const formData = {
-    name: document.getElementById('name').value.trim(),
-    phone: document.getElementById('phone').value.trim(),
-    email: document.getElementById('email').value.trim(),
+  // 🔐 使用 SecurityUtils 清理和驗證輸入
+  const rawData = {
+    name: SecurityUtils.sanitize.trim(document.getElementById('name').value),
+    phone: SecurityUtils.sanitize.phone(document.getElementById('phone').value),
+    email: SecurityUtils.sanitize.email(document.getElementById('email').value),
     birthday: document.getElementById('birthday').value,
-    username: document.getElementById('username').value.trim(),
+    username: SecurityUtils.sanitize.trim(document.getElementById('username').value),
     password: password,
     referralCode: referralCode
   };
+  
+  // 🔐 驗證手機號碼
+  const phoneValidation = SecurityUtils.validate.phone(rawData.phone);
+  if (!phoneValidation.valid) {
+    showMessage(phoneValidation.message, 'error');
+    return;
+  }
+  
+  // 🔐 驗證 Email
+  if (rawData.email) {
+    const emailValidation = SecurityUtils.validate.email(rawData.email);
+    if (!emailValidation.valid) {
+      showMessage(emailValidation.message, 'error');
+      return;
+    }
+  }
+  
+  // 🔐 驗證帳號
+  const usernameValidation = SecurityUtils.validate.username(rawData.username);
+  if (!usernameValidation.valid) {
+    showMessage(usernameValidation.message, 'error');
+    return;
+  }
   
   const btn = document.getElementById('registerBtn');
   btn.disabled = true;
   btn.innerHTML = '<span>⏳</span> 註冊中...';
   
   try {
-    // 🔐 使用安全的 POST 方式傳送敏感資料
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        action: 'register-password',
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email,
-        birthday: formData.birthday,
-        username: formData.username,
-        password: formData.password,
-        referralCode: formData.referralCode
-      })
-    });
-    const data = await res.json();
+    // 🔐 使用 API 工具（自動處理 POST 請求和重試）
+    const data = await API.registerWithPassword(rawData);
     
     if (data.success) {
-      // 儲存 Session
-      localStorage.setItem('sessionToken', data.sessionToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('loginType', 'password');
+      // 🔐 使用 SessionManager 儲存 Session
+      SessionManager.set(data.sessionToken, data.user, 'password');
       
       showMessage('🎉 註冊成功！已贈送 100 公益點數，正在跳轉...', 'success');
       
@@ -334,7 +348,9 @@ async function handleRegister(event) {
     }
   } catch (error) {
     console.error('註冊錯誤:', error);
-    showMessage('系統錯誤：' + error.message, 'error');
+    // 🔐 使用統一的錯誤處理
+    const errorMessage = SecurityUtils.handleError(error, '註冊');
+    showMessage(errorMessage, 'error');
     btn.disabled = false;
     btn.innerHTML = '<span>✨</span> 完成註冊';
   }

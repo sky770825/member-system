@@ -6,6 +6,10 @@
 <title>登入 - 公益慈善會員系統</title>
 <link rel="stylesheet" href="./assets/style.css">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<!-- 🔐 安全工具庫 -->
+<script src="./assets/security-utils.js"></script>
+<script src="./assets/api-config.js"></script>
+<script src="./assets/session-manager.js"></script>
 <style>
   body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -279,7 +283,8 @@
   </div>
 
 <script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec';
+// 使用統一的 API 配置
+// const API_URL 已由 api-config.js 提供
 
 // 切換登入方式
 function switchTab(type) {
