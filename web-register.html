@@ -297,18 +297,23 @@ async function handleRegister(event) {
   btn.innerHTML = '<span>⏳</span> 註冊中...';
   
   try {
-    const params = new URLSearchParams({
-      action: 'register-password',
-      name: formData.name,
-      phone: formData.phone,
-      email: formData.email,
-      birthday: formData.birthday,
-      username: formData.username,
-      password: formData.password,
-      referralCode: formData.referralCode
+    // 🔐 使用安全的 POST 方式傳送敏感資料
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'register-password',
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        birthday: formData.birthday,
+        username: formData.username,
+        password: formData.password,
+        referralCode: formData.referralCode
+      })
     });
-    
-    const res = await fetch(`${API_URL}?${params.toString()}`);
     const data = await res.json();
     
     if (data.success) {

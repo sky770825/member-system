@@ -293,6 +293,27 @@ function doPost(e) {
         result = registerMember(data);
         break;
         
+      case 'register-password':
+        // 🔐 帳號密碼註冊（安全的 POST 方式）
+        result = registerWithPassword({
+          name: data.name,
+          phone: data.phone,
+          email: data.email || '',
+          birthday: data.birthday || '',
+          username: data.username,
+          password: data.password,
+          referralCode: data.referralCode || ''
+        });
+        break;
+        
+      case 'login':
+        // 🔐 帳號密碼登入（安全的 POST 方式）
+        result = loginWithPassword(
+          data.username,
+          data.password
+        );
+        break;
+        
       case 'transfer':
         // 轉點
         result = transferPoints(data);
