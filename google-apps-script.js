@@ -2451,12 +2451,14 @@ function initializeAllSheets() {
     getSheet(MEMBERS_SHEET);
     getSheet(TRANSACTIONS_SHEET);
     getSheet(REFERRALS_SHEET);        // 🎯 推薦關係表
+    getSheet(PURCHASES_SHEET);        // 💰 購買記錄表
+    getSheet(WITHDRAWALS_SHEET);      // 💵 提領記錄表
     getSheet(MEMBER_LEVELS_SHEET);
     getSheet(ACTIVITIES_SHEET);
     getSheet(SETTINGS_SHEET);
     getSheet(DAILY_STATS_SHEET);
     
-    Logger.log('所有工作表初始化完成（含 Referrals 表）！');
+    Logger.log('所有工作表初始化完成（含 Referrals、Purchases、Withdrawals 表）！');
     return { success: true, message: '所有工作表已創建' };
   } catch (error) {
     Logger.log('initializeAllSheets Error: ' + error.toString());
