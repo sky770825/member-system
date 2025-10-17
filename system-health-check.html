@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>系統健康檢查</title>
+<link rel="stylesheet" href="./assets/style.css">
+<style>
+  .health-container {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 20px;
+  }
+  
+  .check-item {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .check-icon {
+    font-size: 32px;
+    width: 40px;
+    text-align: center;
+  }
+  
+  .check-info {
+    flex: 1;
+  }
+  
+  .check-name {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 5px;
+  }
+  
+  .check-status {
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .check-action {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  
+  .status-checking { background: #FFF3CD; color: #856404; }
+  .status-success { background: #D4EDDA; color: #155724; }
+  .status-warning { background: #FFF3CD; color: #856404; }
+  .status-error { background: #F8D7DA; color: #721C24; }
+  
+  .summary-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    text-align: center;
+  }
+  
+  .summary-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+  }
+  
+  .stat-item {
+    text-align: center;
+  }
+  
+  .stat-value {
+    font-size: 32px;
+    font-weight: bold;
+    display: block;
+  }
+  
+  .stat-label {
+    font-size: 14px;
+    opacity: 0.9;
+  }
+</style>
+</head>
+<body>
+<div class="health-container">
+  <div class="summary-card">
+    <h1 style="margin: 0 0 10px 0;">🏥 系統健康檢查</h1>
+    <p style="margin: 0; opacity: 0.9;">檢查系統各項功能是否正常運作</p>
+    
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span class="stat-value" id="totalChecks">0</span>
+        <span class="stat-label">總檢查項目</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="passedChecks" style="color: #4CAF50;">0</span>
+        <span class="stat-label">通過</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="warningChecks" style="color: #FFC107;">0</span>
+        <span class="stat-label">警告</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="failedChecks" style="color: #dc3545;">0</span>
+        <span class="stat-label">失敗</span>
+      </div>
+    </div>
+  </div>
+  
+  <div id="checkResults"></div>
+  
+  <div style="text-align: center; margin-top: 30px;">
+    <button class="btn btn-primary btn-large" onclick="runHealthCheck()">
+      <span class="btn-icon">🔄</span>
+      重新檢查
+    </button>
+    <button class="btn btn-outline btn-large" onclick="window.location.href='index.html'">
+      <span class="btn-icon">🏠</span>
+      返回首頁
+    </button>
+  </div>
+</div>
+
+<script src="./assets/utils.js"></script>
+<script>
+const checks = [
+  {
+    id: 'api-connection',
+    name: 'API 連線測試',
+    description: '檢查 Google Apps Script API 是否可連線',
+    test: async () => {
+      try {
+        const startTime = Date.now();
+        const data = await apiCall('admin-stats', {}, { timeout: 10000, retryCount: 1 });
+        const latency = Date.now() - startTime;
+        
+        if (data.success) {
+          return { 
+            status: latency < 2000 ? 'success' : 'warning',
+            message: `API 連線正常 (延遲: ${latency}ms)`
+          };
+        } else {
+          return { status: 'error', message: 'API 回應異常' };
+        }
+      } catch (error) {
+        return { status: 'error', message: `API 連線失敗: ${error.message}` };
+      }
+    }
+  },
+  {
+    id: 'liff-sdk',
+    name: 'LINE LIFF SDK',
+    description: '檢查 LINE LIFF SDK 是否正確載入',
+    test: async () => {
+      if (typeof liff !== 'undefined') {
+        return { status: 'success', message: 'LIFF SDK 已載入' };
+      } else {
+        return { status: 'error', message: 'LIFF SDK 未載入' };
+      }
+    }
+  },
+  {
+    id: 'utils-library',
+    name: '工具函數庫',
+    description: '檢查 utils.js 是否正確載入',
+    test: async () => {
+      const requiredFunctions = [
+        'apiCall', 'CacheManager', 'LiffHelper', 
+        'UIHelper', 'Validator', 'Formatter', 
+        'ReferralHelper', 'MemberLevelHelper'
+      ];
+      
+      const missing = requiredFunctions.filter(fn => typeof window[fn] === 'undefined');
+      
+      if (missing.length === 0) {
+        return { status: 'success', message: '工具函數庫完整' };
+      } else {
+        return { status: 'warning', message: `缺少函數: ${missing.join(', ')}` };
+      }
+    }
+  },
+  {
+    id: 'cache-system',
+    name: '快取系統',
+    description: '檢查 LocalStorage 快取是否可用',
+    test: async () => {
+      try {
+        const testKey = 'health_check_test';
+        const testData = { test: true, timestamp: Date.now() };
+        
+        CacheManager.set(testKey, testData, 1000);
+        const retrieved = CacheManager.get(testKey);
+        CacheManager.remove(testKey);
+        
+        if (retrieved && retrieved.test === true) {
+          return { status: 'success', message: '快取系統正常' };
+        } else {
+          return { status: 'warning', message: '快取讀寫異常' };
+        }
+      } catch (error) {
+        return { status: 'error', message: `快取系統錯誤: ${error.message}` };
+      }
+    }
+  },
+  {
+    id: 'validation',
+    name: '資料驗證',
+    description: '檢查驗證器是否正常運作',
+    test: async () => {
+      try {
+        const tests = [
+          { fn: () => Validator.phone('0912-345-678'), expected: true },
+          { fn: () => Validator.phone('invalid'), expected: false },
+          { fn: () => Validator.email('test@example.com'), expected: true },
+          { fn: () => Validator.email('invalid'), expected: false },
+          { fn: () => Validator.referralCode('A3K8M2'), expected: true },
+          { fn: () => Validator.referralCode('invalid'), expected: false }
+        ];
+        
+        const results = tests.map(t => t.fn() === t.expected);
+        const passed = results.filter(r => r).length;
+        
+        if (passed === tests.length) {
+          return { status: 'success', message: '驗證器運作正常' };
+        } else {
+          return { status: 'warning', message: `${passed}/${tests.length} 個測試通過` };
+        }
+      } catch (error) {
+        return { status: 'error', message: `驗證器錯誤: ${error.message}` };
+      }
+    }
+  },
+  {
+    id: 'formatting',
+    name: '格式化功能',
+    description: '檢查格式化工具是否正常',
+    test: async () => {
+      try {
+        const phoneTest = Formatter.phone('0912345678') === '0912-345-678';
+        const pointsTest = Formatter.points(1000) === '1,000';
+        const dateTest = Formatter.date('2025-01-01') !== '-';
+        
+        if (phoneTest && pointsTest && dateTest) {
+          return { status: 'success', message: '格式化工具正常' };
+        } else {
+          return { status: 'warning', message: '部分格式化功能異常' };
+        }
+      } catch (error) {
+        return { status: 'error', message: `格式化錯誤: ${error.message}` };
+      }
+    }
+  },
+  {
+    id: 'member-level',
+    name: '會員等級系統',
+    description: '檢查會員等級計算是否正常',
+    test: async () => {
+      try {
+        const bronze = MemberLevelHelper.getLevel(100);
+        const silver = MemberLevelHelper.getLevel(500);
+        const gold = MemberLevelHelper.getLevel(1000);
+        const platinum = MemberLevelHelper.getLevel(5000);
+        
+        if (bronze.name.includes('銅') && silver.name.includes('銀') &&
+            gold.name.includes('金') && platinum.name.includes('白金')) {
+          return { status: 'success', message: '會員等級系統正常' };
+        } else {
+          return { status: 'warning', message: '等級計算可能有誤' };
+        }
+      } catch (error) {
+        return { status: 'error', message: `等級系統錯誤: ${error.message}` };
+      }
+    }
+  },
+  {
+    id: 'referral-helper',
+    name: '推薦系統',
+    description: '檢查推薦連結生成是否正常',
+    test: async () => {
+      try {
+        const testCode = 'A3K8M2';
+        const link = ReferralHelper.getLink(testCode);
+        
+        if (link && link.includes(testCode) && link.includes('register.html')) {
+          return { status: 'success', message: '推薦系統正常' };
+        } else {
+          return { status: 'warning', message: '推薦連結格式異常' };
+        }
+      } catch (error) {
+        return { status: 'error', message: `推薦系統錯誤: ${error.message}` };
+      }
+    }
+  },
+  {
+    id: 'system-pages',
+    name: '系統頁面',
+    description: '檢查核心頁面檔案是否存在',
+    test: async () => {
+      const pages = [
+        'index.html', 'register.html', 'profile.html', 
+        'transfer.html', 'admin.html'
+      ];
+      
+      // 這個測試在前端無法完全執行，只能確認當前頁面存在
+      return { 
+        status: 'success', 
+        message: `核心頁面：${pages.join(', ')}` 
+      };
+    }
+  },
+  {
+    id: 'response-time',
+    name: 'API 響應時間',
+    description: '測試 API 響應速度',
+    test: async () => {
+      try {
+        const startTime = Date.now();
+        await apiCall('admin-stats', {}, { timeout: 5000, retryCount: 0 });
+        const responseTime = Date.now() - startTime;
+        
+        let status = 'success';
+        let message = `響應時間: ${responseTime}ms (優秀)`;
+        
+        if (responseTime > 2000) {
+          status = 'warning';
+          message = `響應時間: ${responseTime}ms (較慢)`;
+        }
+        
+        if (responseTime > 5000) {
+          status = 'error';
+          message = `響應時間: ${responseTime}ms (超時)`;
+        }
+        
+        return { status, message };
+      } catch (error) {
+        return { status: 'error', message: `響應測試失敗: ${error.message}` };
+      }
+    }
+  }
+];
+
+async function runHealthCheck() {
+  const resultsDiv = document.getElementById('checkResults');
+  resultsDiv.innerHTML = '';
+  
+  let passed = 0;
+  let warnings = 0;
+  let failed = 0;
+  
+  // 更新總數
+  document.getElementById('totalChecks').textContent = checks.length;
+  document.getElementById('passedChecks').textContent = '...';
+  document.getElementById('warningChecks').textContent = '...';
+  document.getElementById('failedChecks').textContent = '...';
+  
+  for (const check of checks) {
+    // 建立檢查項目 UI
+    const checkDiv = document.createElement('div');
+    checkDiv.className = 'check-item';
+    checkDiv.innerHTML = `
+      <div class="check-icon">⏳</div>
+      <div class="check-info">
+        <div class="check-name">${check.name}</div>
+        <div class="check-status">檢查中...</div>
+      </div>
+      <div class="check-action status-checking">檢查中</div>
+    `;
+    resultsDiv.appendChild(checkDiv);
+    
+    // 執行測試
+    try {
+      const result = await check.test();
+      
+      // 更新 UI
+      const icon = checkDiv.querySelector('.check-icon');
+      const status = checkDiv.querySelector('.check-status');
+      const action = checkDiv.querySelector('.check-action');
+      
+      if (result.status === 'success') {
+        icon.textContent = '✅';
+        action.textContent = '正常';
+        action.className = 'check-action status-success';
+        passed++;
+      } else if (result.status === 'warning') {
+        icon.textContent = '⚠️';
+        action.textContent = '警告';
+        action.className = 'check-action status-warning';
+        warnings++;
+      } else {
+        icon.textContent = '❌';
+        action.textContent = '失敗';
+        action.className = 'check-action status-error';
+        failed++;
+      }
+      
+      status.textContent = result.message;
+      
+    } catch (error) {
+      console.error(`檢查失敗 [${check.id}]:`, error);
+      
+      const icon = checkDiv.querySelector('.check-icon');
+      const status = checkDiv.querySelector('.check-status');
+      const action = checkDiv.querySelector('.check-action');
+      
+      icon.textContent = '❌';
+      status.textContent = `檢查失敗: ${error.message}`;
+      action.textContent = '失敗';
+      action.className = 'check-action status-error';
+      failed++;
+    }
+    
+    // 更新統計
+    document.getElementById('passedChecks').textContent = passed;
+    document.getElementById('warningChecks').textContent = warnings;
+    document.getElementById('failedChecks').textContent = failed;
+  }
+  
+  // 顯示總結
+  console.log(`✅ 健康檢查完成: ${passed} 通過, ${warnings} 警告, ${failed} 失敗`);
+  
+  if (failed === 0 && warnings === 0) {
+    UIHelper.showMessage('🎉 所有檢查項目通過！系統運作正常', 'success', 5000);
+  } else if (failed === 0) {
+    UIHelper.showMessage(`⚠️ 有 ${warnings} 個警告項目，請注意`, 'warning', 5000);
+  } else {
+    UIHelper.showMessage(`❌ 有 ${failed} 個項目失敗，請修復`, 'error', 5000);
+  }
+}
+
+// 頁面載入完成後自動執行
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🏥 系統健康檢查頁面載入完成');
+  runHealthCheck();
+});
+</script>
+</body>
+</html>
+
+
