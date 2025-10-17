@@ -414,10 +414,6 @@ async function confirmPurchase() {
     if (data.success) {
       let successMsg = `🎉 購買成功！\n\n已獲得 ${points.toLocaleString()} 公益點數`;
       
-      if (data.referrerReward && data.referrerReward.success) {
-        successMsg += `\n\n您的推薦人 ${data.referrerReward.referrerName} 獲得了 ${data.referrerReward.reward.toLocaleString()} 點獎勵！`;
-      }
-      
       showMessage(successMsg, 'success');
       
       setTimeout(() => {

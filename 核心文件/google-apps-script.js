@@ -93,7 +93,8 @@ function doGet(e) {
           email: e.parameter.email || '',
           birthday: e.parameter.birthday || '',
           lineName: e.parameter.lineName || '',
-          linePicture: e.parameter.linePicture || ''
+          linePicture: e.parameter.linePicture || '',
+          referralCode: e.parameter.referralCode || ''  // 🔧 添加推薦碼參數
         });
         break;
         
@@ -124,6 +125,51 @@ function doGet(e) {
       case 'referral-stats':
         // 🎯 取得推薦統計
         result = getReferralStats();
+        break;
+        
+      case 'my-referrals':
+        // 🎯 取得個人推薦記錄
+        result = getMyReferrals(e.parameter.lineUserId);
+        break;
+        
+      case 'purchase':
+        // 🎯 購買點數（支援 GET 方式）
+        result = purchasePoints(
+          e.parameter.lineUserId,
+          parseInt(e.parameter.points)
+        );
+        break;
+        
+      case 'withdraw':
+        // 🎯 提領點數（支援 GET 方式）
+        result = withdrawPoints(
+          e.parameter.lineUserId,
+          parseInt(e.parameter.points)
+        );
+        break;
+        
+      case 'version':
+        // 🔧 檢查版本
+        result = {
+          success: true,
+          version: '2.0.0',
+          build: '2025-10-17-20:15',
+          features: [
+            '新推薦系統（購買/提領 20% 獎勵）',
+            '時間戳修復',
+            '累加式快速選擇',
+            '自動刷新（5秒）',
+            '即時通知'
+          ],
+          functions: {
+            bindReferralRelation: typeof bindReferralRelation !== 'undefined',
+            purchasePoints: typeof purchasePoints !== 'undefined',
+            withdrawPoints: typeof withdrawPoints !== 'undefined',
+            getReferrer: typeof getReferrer !== 'undefined',
+            giveReferrerReward: typeof giveReferrerReward !== 'undefined'
+          },
+          totalLines: 2248
+        };
         break;
         
       default:
@@ -366,27 +412,28 @@ function registerMember(data) {
       status: 'completed'
     });
     
-    // 🎯 處理推薦獎勵
-    let referralBonus = 0;
+    // 🎯 處理推薦綁定（不再贈送點數，只記錄關係）
     let referrerName = '';
+    
+    Logger.log('========== 推薦碼檢查 ==========');
+    Logger.log('推薦碼參數: ' + JSON.stringify(data.referralCode));
+    
     if (data.referralCode && data.referralCode.trim() !== '') {
-      const referralResult = processReferralReward(data.lineUserId, data.name, data.referralCode.trim());
+      Logger.log('✅ 偵測到推薦碼: ' + data.referralCode.trim());
+      
+      const referralResult = bindReferralRelation(data.lineUserId, data.name, data.referralCode.trim());
+      Logger.log('推薦綁定結果: ' + JSON.stringify(referralResult));
+      
       if (referralResult.success) {
-        referralBonus = referralResult.newMemberBonus;
         referrerName = referralResult.referrerName;
-        
-        // 更新新會員點數
-        const allData = sheet.getDataRange().getValues();
-        for (let i = 1; i < allData.length; i++) {
-          if (allData[i][0] === data.lineUserId) {
-            const newPoints = initialPoints + referralBonus;
-            sheet.getRange(i + 1, 8).setValue(newPoints); // points
-            sheet.getRange(i + 1, 10).setValue(newPoints); // totalEarned
-            break;
-          }
-        }
+        Logger.log(`✅ 推薦關係綁定成功：${referrerName} → ${data.name}`);
+      } else {
+        Logger.log('❌ 推薦關係綁定失敗: ' + referralResult.message);
       }
+    } else {
+      Logger.log('⚠️ 沒有推薦碼或推薦碼為空');
     }
+    Logger.log('========== 推薦碼檢查結束 ==========');
     
     // 記錄註冊活動
     logActivity(data.lineUserId, 'register', initialPoints, {
@@ -396,17 +443,18 @@ function registerMember(data) {
       referredBy: data.referralCode || null
     });
     
-    const successMessage = referralBonus > 0 
-      ? `註冊成功！獲得 ${initialPoints} 點 + 推薦獎勵 ${referralBonus} 點（推薦人：${referrerName}）` 
+    // 🔧 新版：不再贈送推薦獎勵，只綁定關係
+    const successMessage = referrerName 
+      ? `註冊成功！已綁定推薦人：${referrerName}` 
       : '註冊成功';
     
     return {
       success: true,
       message: successMessage,
-      points: initialPoints + referralBonus,
+      points: initialPoints,  // 只有初始點數
       memberLevel: memberLevel,
       referralCode: referralCode,
-      referralBonus: referralBonus
+      referrerName: referrerName || null
     };
     
   } catch (error) {
@@ -653,7 +701,7 @@ function addTransaction(data) {
   try {
     const sheet = getSheet(TRANSACTIONS_SHEET);
     const id = Utilities.getUuid();
-    const now = new Date().toISOString();
+    const now = new Date().getTime(); // 🔧 改用時間戳（毫秒）
     
     sheet.appendRow([
       id,
@@ -691,6 +739,17 @@ function getTransactions(lineUserId, limit = 20) {
       
       // 檢查是否與該使用者相關
       if (row[2] === lineUserId || row[3] === lineUserId) {
+        // 確保 createdAt 是正確的時間戳（毫秒）
+        let timestamp = row[10]; // 🔧 修正：createdAt 是第 10 個欄位（從 0 開始）
+        if (timestamp instanceof Date) {
+          timestamp = timestamp.getTime();
+        } else if (typeof timestamp === 'string') {
+          timestamp = new Date(timestamp).getTime();
+        } else if (typeof timestamp === 'number') {
+          // 已經是時間戳，直接使用
+          timestamp = timestamp;
+        }
+        
         transactions.push({
           id: row[0],
           type: row[1],
@@ -700,7 +759,7 @@ function getTransactions(lineUserId, limit = 20) {
           receiverName: row[5],
           points: row[6],
           message: row[7],
-          createdAt: row[8]
+          createdAt: timestamp
         });
         
         if (transactions.length >= limit) {
@@ -1433,7 +1492,73 @@ function verifyReferralCode(referralCode) {
 }
 
 /**
- * 處理推薦獎勵
+ * 綁定推薦關係（不贈送點數）
+ * @param {string} newMemberUserId - 新會員 LINE User ID
+ * @param {string} newMemberName - 新會員姓名
+ * @param {string} referralCode - 推薦碼
+ * @returns {object} 處理結果
+ */
+function bindReferralRelation(newMemberUserId, newMemberName, referralCode) {
+  try {
+    Logger.log('---------- bindReferralRelation 開始 ----------');
+    Logger.log('新會員ID: ' + newMemberUserId);
+    Logger.log('新會員姓名: ' + newMemberName);
+    Logger.log('推薦碼: ' + referralCode);
+    
+    // 驗證推薦碼
+    const verifyResult = verifyReferralCode(referralCode);
+    Logger.log('推薦碼驗證結果: ' + JSON.stringify(verifyResult));
+    
+    if (!verifyResult.success) {
+      Logger.log('❌ 推薦碼驗證失敗');
+      return {
+        success: false,
+        message: '推薦碼無效'
+      };
+    }
+    
+    const referrer = verifyResult.referrer;
+    Logger.log('✅ 找到推薦人: ' + referrer.name + ' (ID: ' + referrer.lineUserId + ')');
+    
+    // 🎯 只記錄推薦關係，不贈送點數
+    const relationData = {
+      referralCode: referralCode,
+      referrerUserId: referrer.lineUserId,
+      referrerName: referrer.name,
+      newMemberUserId: newMemberUserId,
+      newMemberName: newMemberName,
+      referrerPointsBefore: referrer.points || 0,
+      referrerPointsAfter: referrer.points || 0,  // 點數不變
+      referrerReward: 0,  // 不贈送
+      newMemberReward: 0,  // 不贈送
+      totalReward: 0  // 不贈送
+    };
+    
+    Logger.log('準備調用 recordReferralRelation，參數: ' + JSON.stringify(relationData));
+    
+    const recordResult = recordReferralRelation(relationData);
+    
+    Logger.log('recordReferralRelation 返回結果: ' + recordResult);
+    
+    Logger.log(`✅ 推薦關係綁定完成：${referrer.name} → ${newMemberName}（不贈送點數）`);
+    
+    return {
+      success: true,
+      referrerName: referrer.name,
+      message: '推薦關係綁定成功'
+    };
+    
+  } catch (error) {
+    Logger.log('bindReferralRelation Error: ' + error.toString());
+    return {
+      success: false,
+      message: '綁定推薦關係失敗：' + error.toString()
+    };
+  }
+}
+
+/**
+ * 處理推薦獎勵（舊版，保留以防需要）
  * @param {string} newMemberUserId - 新會員 LINE User ID
  * @param {string} newMemberName - 新會員姓名
  * @param {string} referralCode - 推薦碼
@@ -1441,9 +1566,17 @@ function verifyReferralCode(referralCode) {
  */
 function processReferralReward(newMemberUserId, newMemberName, referralCode) {
   try {
+    Logger.log('---------- processReferralReward 開始 ----------');
+    Logger.log('新會員ID: ' + newMemberUserId);
+    Logger.log('新會員姓名: ' + newMemberName);
+    Logger.log('推薦碼: ' + referralCode);
+    
     // 驗證推薦碼
     const verifyResult = verifyReferralCode(referralCode);
+    Logger.log('推薦碼驗證結果: ' + JSON.stringify(verifyResult));
+    
     if (!verifyResult.success) {
+      Logger.log('❌ 推薦碼驗證失敗');
       return {
         success: false,
         message: '推薦碼無效'
@@ -1452,6 +1585,8 @@ function processReferralReward(newMemberUserId, newMemberName, referralCode) {
     
     const referrer = verifyResult.referrer;
     const REFERRAL_REWARD = 50; // 推薦獎勵點數
+    
+    Logger.log('✅ 找到推薦人: ' + referrer.name + ' (ID: ' + referrer.lineUserId + ')');
     
     const sheet = getSheet(MEMBERS_SHEET);
     const data = sheet.getDataRange().getValues();
@@ -1539,30 +1674,55 @@ function processReferralReward(newMemberUserId, newMemberName, referralCode) {
  */
 function recordReferralRelation(data) {
   try {
+    Logger.log('========== recordReferralRelation 開始 ==========');
+    Logger.log('傳入參數類型: ' + typeof data);
+    Logger.log('推薦資料: ' + JSON.stringify(data));
+    
+    // 🔧 安全檢查
+    if (!data) {
+      Logger.log('❌ data 參數為 null 或 undefined');
+      return false;
+    }
+    
+    if (!data.referralCode) {
+      Logger.log('❌ data.referralCode 不存在');
+      Logger.log('data 內容: ' + Object.keys(data).join(', '));
+      return false;
+    }
+    
     const sheet = getSheet(REFERRALS_SHEET);
+    Logger.log('✅ 成功獲取 Referrals 工作表');
+    
     const id = Utilities.getUuid();
     const now = new Date().toISOString();
     
-    sheet.appendRow([
-      id,                           // 推薦ID
-      data.referralCode,            // 推薦碼
-      data.referrerUserId,          // 推薦人ID
-      data.referrerName,            // 推薦人姓名
-      data.referrerPointsBefore,    // 推薦人點數(前)
-      data.referrerPointsAfter,     // 推薦人點數(後)
-      data.referrerReward,          // 推薦人獲得
-      data.newMemberUserId,         // 新會員ID
-      data.newMemberName,           // 新會員姓名
-      data.newMemberReward,         // 新會員獲得
-      data.totalReward,             // 總獎勵點數
-      now,                          // 推薦時間
-      'completed'                   // 狀態
-    ]);
+    const rowData = [
+      id,                              // 推薦ID
+      data.referralCode || '',         // 推薦碼
+      data.referrerUserId || '',       // 推薦人ID
+      data.referrerName || '',         // 推薦人姓名
+      data.referrerPointsBefore || 0,  // 推薦人點數(前)
+      data.referrerPointsAfter || 0,   // 推薦人點數(後)
+      data.referrerReward || 0,        // 推薦人獲得
+      data.newMemberUserId || '',      // 新會員ID
+      data.newMemberName || '',        // 新會員姓名
+      data.newMemberReward || 0,       // 新會員獲得
+      data.totalReward || 0,           // 總獎勵點數
+      now,                             // 推薦時間
+      'completed'                      // 狀態
+    ];
     
-    Logger.log(`✅ Referrals 表記錄完成：${data.referrerName} → ${data.newMemberName}`);
+    Logger.log('準備寫入資料: ' + JSON.stringify(rowData));
+    
+    sheet.appendRow(rowData);
+    
+    Logger.log(`✅✅✅ Referrals 表記錄完成：${data.referrerName} → ${data.newMemberName}`);
+    Logger.log('========== recordReferralRelation 結束 ==========');
     return true;
   } catch (error) {
-    Logger.log('recordReferralRelation Error: ' + error.toString());
+    Logger.log('❌❌❌ recordReferralRelation Error: ' + error.toString());
+    Logger.log('Error stack: ' + error.stack);
+    Logger.log('data 參數: ' + JSON.stringify(data));
     return false;
   }
 }
@@ -1745,6 +1905,128 @@ function getReferralStats() {
   }
 }
 
+/**
+ * 取得個人推薦記錄
+ * @param {string} lineUserId - LINE 使用者 ID
+ * @returns {object} 個人推薦記錄
+ */
+function getMyReferrals(lineUserId) {
+  try {
+    if (!lineUserId) {
+      return {
+        success: false,
+        message: '缺少使用者 ID'
+      };
+    }
+    
+    const membersSheet = getSheet(MEMBERS_SHEET);
+    const transactionsSheet = getSheet(TRANSACTIONS_SHEET);
+    const activitiesSheet = getSheet(ACTIVITIES_SHEET);
+    
+    const membersData = membersSheet.getDataRange().getValues();
+    const transactionsData = transactionsSheet.getDataRange().getValues();
+    const activitiesData = activitiesSheet.getDataRange().getValues();
+    
+    // 找到會員資料
+    let memberInfo = null;
+    let memberReferralCode = '';
+    
+    for (let i = 1; i < membersData.length; i++) {
+      if (membersData[i][0] === lineUserId) {
+        memberInfo = {
+          name: membersData[i][1],
+          referralCode: membersData[i][11] || '',
+          points: membersData[i][7] || 0
+        };
+        memberReferralCode = membersData[i][11] || '';
+        break;
+      }
+    }
+    
+    if (!memberInfo) {
+      return {
+        success: false,
+        message: '會員不存在'
+      };
+    }
+    
+    // 計算推薦統計
+    let totalReferrals = 0;
+    let totalEarned = 0;
+    const referralDetails = [];
+    
+    // 從 Activities 表找出所有被推薦的會員
+    for (let i = 1; i < activitiesData.length; i++) {
+      if (activitiesData[i][1] === 'register') { // activityType
+        const metadata = activitiesData[i][3];
+        if (typeof metadata === 'string') {
+          try {
+            const metaObj = JSON.parse(metadata);
+            if (metaObj.referredBy === memberReferralCode) {
+              const referredUserId = activitiesData[i][0];
+              const referredAt = activitiesData[i][5];
+              
+              // 找到被推薦人的名稱
+              let referredName = '未知';
+              for (let j = 1; j < membersData.length; j++) {
+                if (membersData[j][0] === referredUserId) {
+                  referredName = membersData[j][1];
+                  break;
+                }
+              }
+              
+              // 找到對應的推薦獎勵交易
+              let rewardPoints = 0;
+              for (let k = 1; k < transactionsData.length; k++) {
+                if (transactionsData[k][1] === 'referral_reward' && 
+                    transactionsData[k][3] === lineUserId) { // receiverUserId
+                  const message = transactionsData[k][7];
+                  if (message.includes(referredName)) {
+                    rewardPoints = Number(transactionsData[k][6]) || 0;
+                    break;
+                  }
+                }
+              }
+              
+              totalReferrals++;
+              totalEarned += rewardPoints;
+              
+              referralDetails.push({
+                name: referredName,
+                userId: referredUserId,
+                reward: rewardPoints,
+                date: referredAt
+              });
+            }
+          } catch (e) {
+            // 忽略解析錯誤
+          }
+        }
+      }
+    }
+    
+    // 按日期排序（最新的在前）
+    referralDetails.sort((a, b) => {
+      return new Date(b.date) - new Date(a.date);
+    });
+    
+    return {
+      success: true,
+      memberInfo: memberInfo,
+      totalReferrals: totalReferrals,
+      totalEarned: totalEarned,
+      referralDetails: referralDetails
+    };
+    
+  } catch (error) {
+    Logger.log('getMyReferrals Error: ' + error.toString());
+    return {
+      success: false,
+      message: '獲取推薦記錄失敗：' + error.toString()
+    };
+  }
+}
+
 // ==================== 工作表初始化函數 ====================
 
 /**
@@ -1831,6 +2113,287 @@ function migrateExistingMembers() {
   } catch (error) {
     Logger.log('migrateExistingMembers Error: ' + error.toString());
     return { success: false, message: error.toString() };
+  }
+}
+
+// ==================== 新推薦獎勵系統 ====================
+
+/**
+ * 獲取會員的推薦人
+ * @param {string} lineUserId - 會員 LINE User ID
+ * @returns {object|null} 推薦人資料或 null
+ */
+function getReferrer(lineUserId) {
+  try {
+    const sheet = getSheet(REFERRALS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    // 從 Referrals 表中查找該會員的推薦人
+    for (let i = data.length - 1; i > 0; i--) {
+      if (data[i][7] === lineUserId) { // newMemberUserId
+        return {
+          lineUserId: data[i][2],  // referrerUserId
+          name: data[i][3],         // referrerName
+          referralCode: data[i][1]  // referralCode
+        };
+      }
+    }
+    
+    return null; // 沒有推薦人
+  } catch (error) {
+    Logger.log('getReferrer Error: ' + error.toString());
+    return null;
+  }
+}
+
+/**
+ * 給推薦人獎勵（20%）
+ * @param {string} memberId - 被推薦人的 LINE User ID
+ * @param {string} memberName - 被推薦人姓名
+ * @param {number} amount - 交易金額
+ * @param {string} type - 交易類型（purchase=購買, withdraw=提領）
+ * @returns {object} 處理結果
+ */
+function giveReferrerReward(memberId, memberName, amount, type) {
+  try {
+    Logger.log('---------- giveReferrerReward 開始 ----------');
+    Logger.log(`會員: ${memberName} (${memberId})`);
+    Logger.log(`金額: ${amount}, 類型: ${type}`);
+    
+    // 獲取推薦人
+    const referrer = getReferrer(memberId);
+    
+    if (!referrer) {
+      Logger.log('⚠️ 該會員沒有推薦人');
+      return {
+        success: false,
+        message: '沒有推薦人'
+      };
+    }
+    
+    Logger.log(`✅ 找到推薦人: ${referrer.name} (${referrer.lineUserId})`);
+    
+    // 計算 20% 獎勵
+    const reward = Math.floor(amount * 0.2);
+    Logger.log(`計算獎勵: ${amount} × 20% = ${reward} 點`);
+    
+    if (reward <= 0) {
+      Logger.log('⚠️ 獎勵點數為 0，不處理');
+      return {
+        success: false,
+        message: '獎勵點數為 0'
+      };
+    }
+    
+    // 增加推薦人點數
+    const sheet = getSheet(MEMBERS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === referrer.lineUserId) {
+        const row = i + 1;
+        const currentPoints = Number(data[i][7]) || 0;
+        const totalEarned = Number(data[i][9]) || 0;
+        const newPoints = currentPoints + reward;
+        const newTotalEarned = totalEarned + reward;
+        
+        // 更新推薦人點數
+        sheet.getRange(row, 8).setValue(newPoints);       // 目前點數
+        sheet.getRange(row, 10).setValue(newTotalEarned); // 累計獲得
+        sheet.getRange(row, 17).setValue(new Date().toISOString()); // 更新時間
+        
+        Logger.log(`✅ 推薦人點數更新: ${currentPoints} → ${newPoints}`);
+        
+        // 記錄交易
+        const transactionType = type === 'purchase' ? 'referral_purchase_reward' : 'referral_withdraw_reward';
+        const message = type === 'purchase' 
+          ? `推薦好友「${memberName}」購買點數獎勵（${amount}點×20%）`
+          : `推薦好友「${memberName}」提領獎勵（${amount}點×20%）`;
+        
+        addTransaction({
+          type: transactionType,
+          receiverUserId: referrer.lineUserId,
+          receiverName: referrer.name,
+          senderName: memberName,
+          points: reward,
+          message: message,
+          balanceAfter: newPoints,
+          status: 'completed'
+        });
+        
+        Logger.log(`✅ 推薦獎勵完成: ${referrer.name} 獲得 ${reward} 點`);
+        Logger.log('---------- giveReferrerReward 結束 ----------');
+        
+        return {
+          success: true,
+          referrerName: referrer.name,
+          reward: reward,
+          message: `推薦人 ${referrer.name} 獲得 ${reward} 點獎勵`
+        };
+      }
+    }
+    
+    Logger.log('❌ 找不到推薦人資料');
+    return {
+      success: false,
+      message: '找不到推薦人資料'
+    };
+    
+  } catch (error) {
+    Logger.log('giveReferrerReward Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 購買點數（給推薦人 20% 獎勵）
+ * @param {string} lineUserId - LINE User ID
+ * @param {number} points - 購買點數
+ * @returns {object} 處理結果
+ */
+function purchasePoints(lineUserId, points) {
+  try {
+    Logger.log('========== purchasePoints 開始 ==========');
+    Logger.log(`會員ID: ${lineUserId}, 購買點數: ${points}`);
+    
+    const sheet = getSheet(MEMBERS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === lineUserId) {
+        const row = i + 1;
+        const memberName = data[i][1];
+        const currentPoints = Number(data[i][7]) || 0;
+        const totalEarned = Number(data[i][9]) || 0;
+        const newPoints = currentPoints + points;
+        const newTotalEarned = totalEarned + points;
+        
+        // 更新會員點數
+        sheet.getRange(row, 8).setValue(newPoints);
+        sheet.getRange(row, 10).setValue(newTotalEarned);
+        sheet.getRange(row, 17).setValue(new Date().toISOString());
+        
+        Logger.log(`✅ 會員點數更新: ${currentPoints} → ${newPoints}`);
+        
+        // 記錄交易
+        addTransaction({
+          type: 'purchase',
+          receiverUserId: lineUserId,
+          receiverName: memberName,
+          points: points,
+          message: '購買公益點數',
+          balanceAfter: newPoints,
+          status: 'completed'
+        });
+        
+        // 給推薦人 20% 獎勵
+        const referrerReward = giveReferrerReward(lineUserId, memberName, points, 'purchase');
+        Logger.log('推薦人獎勵結果: ' + JSON.stringify(referrerReward));
+        
+        Logger.log('========== purchasePoints 結束 ==========');
+        
+        return {
+          success: true,
+          points: newPoints,
+          purchased: points,
+          referrerReward: referrerReward,
+          message: `成功購買 ${points} 點`
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      message: '找不到會員資料'
+    };
+    
+  } catch (error) {
+    Logger.log('purchasePoints Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 提領點數（給推薦人 20% 獎勵）
+ * @param {string} lineUserId - LINE User ID
+ * @param {number} points - 提領點數
+ * @returns {object} 處理結果
+ */
+function withdrawPoints(lineUserId, points) {
+  try {
+    Logger.log('========== withdrawPoints 開始 ==========');
+    Logger.log(`會員ID: ${lineUserId}, 提領點數: ${points}`);
+    
+    const sheet = getSheet(MEMBERS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === lineUserId) {
+        const row = i + 1;
+        const memberName = data[i][1];
+        const currentPoints = Number(data[i][7]) || 0;
+        
+        // 檢查點數是否足夠
+        if (currentPoints < points) {
+          Logger.log(`❌ 點數不足: ${currentPoints} < ${points}`);
+          return {
+            success: false,
+            message: '點數不足'
+          };
+        }
+        
+        const newPoints = currentPoints - points;
+        
+        // 更新會員點數
+        sheet.getRange(row, 8).setValue(newPoints);
+        sheet.getRange(row, 17).setValue(new Date().toISOString());
+        
+        Logger.log(`✅ 會員點數更新: ${currentPoints} → ${newPoints}`);
+        
+        // 記錄交易
+        addTransaction({
+          type: 'withdraw',
+          senderUserId: lineUserId,
+          senderName: memberName,
+          points: -points,
+          message: '提領兌現',
+          balanceAfter: newPoints,
+          status: 'completed'
+        });
+        
+        // 給推薦人 20% 獎勵
+        const referrerReward = giveReferrerReward(lineUserId, memberName, points, 'withdraw');
+        Logger.log('推薦人獎勵結果: ' + JSON.stringify(referrerReward));
+        
+        Logger.log('========== withdrawPoints 結束 ==========');
+        
+        return {
+          success: true,
+          points: newPoints,
+          withdrawn: points,
+          referrerReward: referrerReward,
+          message: `成功提領 ${points} 點`
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      message: '找不到會員資料'
+    };
+    
+  } catch (error) {
+    Logger.log('withdrawPoints Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
   }
 }
 

@@ -16,7 +16,8 @@ const SHEET_ID = '1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw'; // 替換為您
 const MEMBERS_SHEET = 'Members';
 const TRANSACTIONS_SHEET = 'Transactions';
 const REFERRALS_SHEET = 'Referrals'; // 🎯 推薦關係表
-const PURCHASES_SHEET = 'Purchases'; // 💰 購買記錄表（新增）
+const PURCHASES_SHEET = 'Purchases'; // 💰 購買記錄表
+const WITHDRAWALS_SHEET = 'Withdrawals'; // 💵 提領記錄表（新增）
 const MEMBER_LEVELS_SHEET = 'MemberLevels';
 const ACTIVITIES_SHEET = 'Activities';
 const SETTINGS_SHEET = 'Settings';
@@ -1584,6 +1585,39 @@ function initializeSheet(sheet, sheetName) {
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#E91E63');
     headerRange.setFontColor('#ffffff');
+    
+  } else if (sheetName === WITHDRAWALS_SHEET) {
+    // 💵 提領記錄表（超詳細）
+    sheet.appendRow([
+      '提領ID',            // id
+      '訂單編號',          // orderNumber
+      '會員ID',            // lineUserId
+      '會員姓名',          // memberName
+      '提領點數',          // points
+      '換算金額',          // amountBeforeFee (0.7換算)
+      '手續費',            // fee (15元)
+      '實際到帳',          // amount (扣除手續費後)
+      '換算比例',          // exchangeRate
+      '銀行名稱',          // bankName
+      '銀行代碼',          // bankCode
+      '帳號',              // bankAccount
+      '戶名',              // accountName
+      '推薦人ID',          // referrerUserId
+      '推薦人姓名',        // referrerName
+      '推薦獎勵',          // referrerReward (20%)
+      '提領前點數',        // pointsBefore
+      '提領後點數',        // pointsAfter
+      '申請時間',          // requestTime
+      '完成時間',          // completedTime
+      '處理狀態',          // status: pending/processing/completed/rejected
+      '備註'               // notes
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 22);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#F44336');
+    headerRange.setFontColor('#ffffff');
   }
 }
 
@@ -2820,15 +2854,19 @@ function withdrawPoints(lineUserId, points, options = {}) {
         }
         
         const newPoints = currentPoints - points;
+        const withdrawAmountBeforeFee = Math.floor(points * 0.7); // 0.7 換算（10,000點 → 7,000元）
+        const withdrawFee = 15; // 手續費 15 元
+        const withdrawAmount = withdrawAmountBeforeFee - withdrawFee; // 扣除手續費後的實際金額
         
         // 更新會員點數
         sheet.getRange(row, 8).setValue(newPoints);
         sheet.getRange(row, 17).setValue(new Date().toISOString());
         
         Logger.log(`✅ 會員點數更新: ${currentPoints} → ${newPoints}`);
+        Logger.log(`💵 提領金額: ${points} 點 → NT$ ${withdrawAmountBeforeFee} - 手續費 ${withdrawFee} = NT$ ${withdrawAmount}`);
         
         // 建立提領訊息（包含銀行資訊）
-        let withdrawMessage = `提領兌現 NT$ ${points.toLocaleString()}`;
+        let withdrawMessage = `提領兌現 ${points.toLocaleString()} 點 → NT$ ${withdrawAmount.toLocaleString()}`;
         if (options.bankName && options.bankAccount) {
           const lastFour = options.bankAccount.slice(-4);
           withdrawMessage += ` → ${options.bankName} (****${lastFour})`;
@@ -2845,9 +2883,25 @@ function withdrawPoints(lineUserId, points, options = {}) {
           status: 'pending'  // 🔧 待處理狀態，匯款後改為 completed
         });
         
-        // 給推薦人 20% 獎勵
+        // 給推薦人 20% 獎勵（基於點數）
         const referrerReward = giveReferrerReward(lineUserId, memberName, points, 'withdraw');
         Logger.log('推薦人獎勵結果: ' + JSON.stringify(referrerReward));
+        
+        // 🔧 記錄詳細提領資料到 Withdrawals 工作表
+        const withdrawalRecord = recordWithdrawal({
+          lineUserId: lineUserId,
+          memberName: memberName,
+          points: points,
+          amount: withdrawAmount,
+          amountBeforeFee: withdrawAmountBeforeFee,
+          fee: withdrawFee,
+          exchangeRate: 0.7,
+          bankInfo: options,
+          referrerReward: referrerReward,
+          pointsBefore: currentPoints,
+          pointsAfter: newPoints
+        });
+        Logger.log('提領記錄結果: ' + JSON.stringify(withdrawalRecord));
         
         Logger.log('========== withdrawPoints 結束 ==========');
         
@@ -2855,14 +2909,17 @@ function withdrawPoints(lineUserId, points, options = {}) {
           success: true,
           points: newPoints,
           withdrawn: points,
-          amount: points, // 1:1 兌換
+          amount: withdrawAmount, // 🔧 扣除手續費後的實際金額
+          amountBeforeFee: withdrawAmountBeforeFee, // 換算後金額（扣手續費前）
+          fee: withdrawFee,
+          exchangeRate: 0.7,
           bankInfo: {
             bankName: options.bankName,
             bankAccount: options.bankAccount,
             accountName: options.accountName
           },
           referrerReward: referrerReward,
-          message: `成功提領 ${points} 點，預計 1-3 個工作天匯款`
+          message: `成功提領 ${points} 點（NT$ ${withdrawAmount.toLocaleString()}，已扣除手續費 ${withdrawFee} 元），預計 1-3 個工作天匯款`
         };
       }
     }
@@ -2874,6 +2931,64 @@ function withdrawPoints(lineUserId, points, options = {}) {
     
   } catch (error) {
     Logger.log('withdrawPoints Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 記錄詳細提領資料到 Withdrawals 工作表
+ * @param {object} data - 提領資料
+ * @returns {object} 記錄結果
+ */
+function recordWithdrawal(data) {
+  try {
+    Logger.log('========== recordWithdrawal 開始 ==========');
+    Logger.log('提領資料: ' + JSON.stringify(data));
+    
+    const sheet = getSheet(WITHDRAWALS_SHEET);
+    const now = new Date();
+    const orderNumber = 'WD' + now.getTime(); // 訂單編號：WD + 時間戳
+    
+    const withdrawalRow = [
+      now.getTime(),                           // 提領ID (timestamp)
+      orderNumber,                             // 訂單編號
+      data.lineUserId || '',                   // 會員ID
+      data.memberName || '',                   // 會員姓名
+      data.points || 0,                        // 提領點數
+      data.amountBeforeFee || 0,               // 換算金額 (0.7換算)
+      data.fee || 0,                           // 手續費 (15元)
+      data.amount || 0,                        // 實際到帳 (扣除手續費後)
+      data.exchangeRate || 0.7,                // 換算比例
+      data.bankInfo?.bankName || '',           // 銀行名稱
+      data.bankInfo?.bankCode || '',           // 銀行代碼
+      data.bankInfo?.bankAccount || '',        // 帳號
+      data.bankInfo?.accountName || '',        // 戶名
+      data.referrerReward?.referrerUserId || '', // 推薦人ID
+      data.referrerReward?.referrerName || '',   // 推薦人姓名
+      data.referrerReward?.rewardPoints || 0,    // 推薦獎勵 (20%)
+      data.pointsBefore || 0,                  // 提領前點數
+      data.pointsAfter || 0,                   // 提領後點數
+      now.toISOString(),                       // 申請時間
+      '',                                      // 完成時間（待處理）
+      'pending',                               // 處理狀態
+      ''                                       // 備註
+    ];
+    
+    sheet.appendRow(withdrawalRow);
+    Logger.log('✅ 提領記錄已新增');
+    Logger.log('========== recordWithdrawal 結束 ==========');
+    
+    return {
+      success: true,
+      orderNumber: orderNumber,
+      message: '提領記錄已建立'
+    };
+    
+  } catch (error) {
+    Logger.log('❌ recordWithdrawal Error: ' + error.toString());
     return {
       success: false,
       message: error.toString()
