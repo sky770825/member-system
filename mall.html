@@ -239,6 +239,7 @@
 }
 </style>
 
+<script src="./assets/cache-manager.js"></script>
 <script src="./assets/auth.js"></script>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec';
@@ -250,6 +251,8 @@ let currentCategory = 'all';
 
 async function initLiff() {
   try {
+    const startTime = Date.now();
+    
     // 使用認證工具初始化
     const authResult = await AUTH.init();
     
@@ -259,22 +262,39 @@ async function initLiff() {
     
     currentUserId = authResult.user.userId;
     
-    // 取得會員資料
-    const res = await fetch(`${API_URL}?action=profile&lineUserId=${currentUserId}`);
-    const data = await res.json();
+    // 🚀 優化：使用快取機制
+    const profileCache = CacheManager.get(`profile_${currentUserId}`);
     
-    if (data.success) {
-      currentPoints = data.points || 0;
-      
-      // 顯示當前點數
+    // 如果有快取，先顯示快取的點數
+    if (profileCache) {
+      currentPoints = profileCache.points || 0;
       document.getElementById('currentPoints').innerHTML = `
         <p class="points-label" style="color: #856404; font-weight: 600;">❤️ 目前公益點數</p>
         <p class="points-value" style="color: #FFB800; font-weight: 800;">${currentPoints} <span style="color: #856404; font-size: 20px; font-weight: 600;">點</span></p>
       `;
     }
     
-    // 載入商品
+    // 背景更新最新資料
+    fetch(`${API_URL}?action=profile&lineUserId=${currentUserId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          currentPoints = data.points || 0;
+          CacheManager.set(`profile_${currentUserId}`, data, 5 * 60 * 1000);
+          
+          // 更新顯示
+          document.getElementById('currentPoints').innerHTML = `
+            <p class="points-label" style="color: #856404; font-weight: 600;">❤️ 目前公益點數</p>
+            <p class="points-value" style="color: #FFB800; font-weight: 800;">${currentPoints} <span style="color: #856404; font-size: 20px; font-weight: 600;">點</span></p>
+          `;
+        }
+      });
+    
+    // 載入商品（使用快取）
     await loadProducts();
+    
+    const loadTime = Date.now() - startTime;
+    console.log(`⚡ 商城載入時間: ${loadTime}ms`);
     
   } catch (error) {
     console.error('LIFF 初始化錯誤:', error);
@@ -282,11 +302,27 @@ async function initLiff() {
   }
 }
 
-// 載入商品列表
+// 載入商品列表（優化版：使用快取）
 async function loadProducts() {
   try {
-    const res = await fetch(`${API_URL}?action=mall-products`);
-    const data = await res.json();
+    // 🚀 優化：使用快取機制
+    const result = await CacheManager.getOrFetch(
+      'mall_products',
+      async () => {
+        const res = await fetch(`${API_URL}?action=mall-products`);
+        const data = await res.json();
+        return data;
+      },
+      3 * 60 * 1000 // 商品列表快取 3 分鐘
+    );
+    
+    const data = result.data;
+    
+    if (result.fromCache) {
+      console.log('📦 使用快取的商品列表');
+    } else {
+      console.log('🔄 從 API 載入商品列表');
+    }
     
     if (data.success) {
       allProducts = data.products || [];
@@ -339,9 +375,10 @@ function renderProducts(products) {
     
     return `
       <div class="product-card" onclick="viewProduct('${product.productId}')">
-        <img src="${product.imageUrl || 'https://via.placeholder.com/400x300?text=商品圖片'}" 
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23f5f5f5' width='400' height='300'/%3E%3C/svg%3E"
+             data-src="${product.imageUrl || 'https://via.placeholder.com/400x300?text=商品圖片'}" 
              alt="${product.productName}" 
-             class="product-image"
+             class="product-image lazy-image"
              onerror="this.src='https://via.placeholder.com/400x300?text=商品圖片'">
         <div class="product-info">
           <h3 class="product-name">${product.productName}</h3>
@@ -433,6 +470,12 @@ async function buyProduct(productId) {
     if (data.success) {
       showMessage('🎉 兌換成功！請至「我的訂單」查看詳情', 'success');
       
+      // 🚀 優化：清除相關快取，確保數據最新
+      CacheManager.remove(`profile_${currentUserId}`);
+      CacheManager.remove(`mall_products`);
+      CacheManager.remove(`mall_orders_${currentUserId}`);
+      CacheManager.remove(`transactions_${currentUserId}`);
+      
       // 更新點數
       currentPoints = data.newPoints || (currentPoints - product.points);
       document.getElementById('currentPoints').innerHTML = `
@@ -440,7 +483,7 @@ async function buyProduct(productId) {
         <p class="points-value" style="color: #FFB800; font-weight: 800;">${currentPoints} <span style="color: #856404; font-size: 20px; font-weight: 600;">點</span></p>
       `;
       
-      // 重新載入商品
+      // 重新載入商品（會重新fetch，因為快取已清除）
       await loadProducts();
       
       setTimeout(() => {
@@ -473,6 +516,38 @@ function showMessage(msg, type) {
 function goBack() {
   window.location.href = 'profile.html';
 }
+
+// 🚀 圖片懶加載
+function lazyLoadImages() {
+  const lazyImages = document.querySelectorAll('.lazy-image');
+  
+  if ('IntersectionObserver' in window) {
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          img.src = img.dataset.src;
+          img.classList.remove('lazy-image');
+          imageObserver.unobserve(img);
+        }
+      });
+    });
+    
+    lazyImages.forEach(img => imageObserver.observe(img));
+  } else {
+    // 降級方案：直接載入所有圖片
+    lazyImages.forEach(img => {
+      img.src = img.dataset.src;
+    });
+  }
+}
+
+// 商品渲染後調用懶加載
+const originalRenderProducts = renderProducts;
+renderProducts = function(products) {
+  originalRenderProducts(products);
+  setTimeout(lazyLoadImages, 100); // 稍微延遲讓 DOM 更新
+};
 
 initLiff();
 </script>

@@ -265,6 +265,7 @@
 }
 </style>
 
+<script src="./assets/cache-manager.js"></script>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec';
 
@@ -292,11 +293,21 @@ async function initLiff() {
   }
 }
 
-// 載入訂單列表
+// 載入訂單列表（優化版：使用快取）
 async function loadOrders() {
   try {
-    const res = await fetch(`${API_URL}?action=mall-orders&lineUserId=${currentUserId}`);
-    const data = await res.json();
+    // 🚀 優化：使用快取機制
+    const result = await CacheManager.getOrFetch(
+      `mall_orders_${currentUserId}`,
+      async () => {
+        const res = await fetch(`${API_URL}?action=mall-orders&lineUserId=${currentUserId}`);
+        return await res.json();
+      },
+      1 * 60 * 1000 // 訂單快取 1 分鐘（較短，確保即時性）
+    );
+    
+    const data = result.data;
+    console.log(result.fromCache ? '📦 使用快取的訂單' : '🔄 從 API 載入訂單');
     
     if (data.success) {
       allOrders = data.orders || [];

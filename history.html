@@ -112,6 +112,7 @@
   </div>
 </div>
 
+<script src="./assets/cache-manager.js"></script>
 <script>
 const LIFF_ID = "2008231108-2PDbO5qk"; // 統一使用主要 LIFF ID
 const API_URL = "https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec";
@@ -149,8 +150,18 @@ async function initLiff() {
     const profile = await liff.getProfile();
     const userId = profile.userId;
 
-    const res = await fetch(`${API_URL}?action=transactions&lineUserId=${userId}&limit=50`);
-    const data = await res.json();
+    // 🚀 優化：使用快取機制
+    const result = await CacheManager.getOrFetch(
+      `transactions_${userId}`,
+      async () => {
+        const res = await fetch(`${API_URL}?action=transactions&lineUserId=${userId}&limit=50`);
+        return await res.json();
+      },
+      2 * 60 * 1000 // 交易記錄快取 2 分鐘
+    );
+    
+    const data = result.data;
+    console.log(result.fromCache ? '📦 使用快取的交易記錄' : '🔄 從 API 載入交易記錄');
 
     const loading = document.getElementById("loading");
     const list = document.getElementById("transactions");
