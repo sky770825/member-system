@@ -72,6 +72,16 @@ let lineUserId = '';
 let lineProfile = null;
 let referralCode = ''; // 推薦碼
 
+// 🔧 超時保護函數
+function fetchWithTimeout(url, options = {}, timeout = 15000) {
+  return Promise.race([
+    fetch(url, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('請求超時，請檢查網路連線')), timeout)
+    )
+  ]);
+}
+
 // 🎯 讀取 URL 參數中的推薦碼
 function getReferralCodeFromURL() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -114,10 +124,12 @@ async function initLiff() {
     // 先讀取推薦碼
     getReferralCodeFromURL();
     
+    // 🔧 優化：保留當前網址作為登入後的返回地址
     await liff.init({ liffId: "2008231108-rZQKp3mn" });
     
     if (!liff.isLoggedIn()) {
-      liff.login();
+      // 🔧 優化：使用 redirectUri 保留當前頁面狀態
+      liff.login({ redirectUri: window.location.href });
       return;
     }
     
@@ -126,11 +138,18 @@ async function initLiff() {
     
     console.log('LINE 登入成功:', lineProfile);
     
+    // 🔧 緩存用戶資料，減少重複請求
+    localStorage.setItem('liff_user_profile', JSON.stringify(lineProfile));
+    
     // 預填 LINE 資料
     document.getElementById('name').value = lineProfile.displayName || '';
     
-    // 檢查是否已註冊
-    const checkRes = await fetch(`https://script.google.com/macros/s/AKfycbxJl7rgw5aPx_YRpZAHnDGexJw9PeaQdi47Y1OQLPiJrIA9TZvxFzMKkpiEN7warYc/exec?action=check&lineUserId=${lineUserId}`);
+    // 檢查是否已註冊 - 🔧 使用超時保護
+    const checkRes = await fetchWithTimeout(
+      `https://script.google.com/macros/s/AKfycbxJl7rgw5aPx_YRpZAHnDGexJw9PeaQdi47Y1OQLPiJrIA9TZvxFzMKkpiEN7warYc/exec?action=check&lineUserId=${lineUserId}`,
+      {},
+      10000
+    );
     const checkData = await checkRes.json();
     
     console.log('註冊檢查結果:', checkData);

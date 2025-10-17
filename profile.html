@@ -24,7 +24,8 @@ async function initLiff() {
     await liff.init({ liffId: "2008231108-2PDbO5qk" });
     
     if (!liff.isLoggedIn()) {
-      liff.login();
+      // 🔧 優化：使用 redirectUri 保留當前頁面
+      liff.login({ redirectUri: window.location.href });
       return;
     }
     
