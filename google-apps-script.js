@@ -653,7 +653,7 @@ function addTransaction(data) {
   try {
     const sheet = getSheet(TRANSACTIONS_SHEET);
     const id = Utilities.getUuid();
-    const now = new Date().toISOString();
+    const now = new Date().getTime(); // 🔧 改用時間戳（毫秒）
     
     sheet.appendRow([
       id,
@@ -692,11 +692,14 @@ function getTransactions(lineUserId, limit = 20) {
       // 檢查是否與該使用者相關
       if (row[2] === lineUserId || row[3] === lineUserId) {
         // 確保 createdAt 是正確的時間戳（毫秒）
-        let timestamp = row[8];
+        let timestamp = row[10]; // 🔧 修正：createdAt 是第 10 個欄位（從 0 開始）
         if (timestamp instanceof Date) {
           timestamp = timestamp.getTime();
         } else if (typeof timestamp === 'string') {
           timestamp = new Date(timestamp).getTime();
+        } else if (typeof timestamp === 'number') {
+          // 已經是時間戳，直接使用
+          timestamp = timestamp;
         }
         
         transactions.push({
