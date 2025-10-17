@@ -200,6 +200,19 @@ p {
   box-shadow: 0 3px 10px rgba(255, 184, 0, 0.3);
 }
 
+.btn-clear {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef) !important;
+  border: 2px solid #6c757d !important;
+  color: #495057 !important;
+}
+
+.btn-clear:hover {
+  background: linear-gradient(135deg, #e9ecef, #dee2e6) !important;
+  border-color: #495057 !important;
+  color: #212529 !important;
+  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.3) !important;
+}
+
 /* ==================== 輸入框 ==================== */
 input, select, textarea {
   width: 100%;
@@ -583,19 +596,19 @@ textarea {
 
 .quick-btns {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 10px;
 }
 
-/* 手機版：3 列布局 */
-@media (max-width: 600px) {
+/* 平板版：3 列布局 */
+@media (max-width: 768px) {
   .quick-btns {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
 /* 小手機：2 列布局 */
-@media (max-width: 400px) {
+@media (max-width: 480px) {
   .quick-btns {
     grid-template-columns: repeat(2, 1fr);
   }

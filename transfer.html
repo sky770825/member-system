@@ -35,22 +35,25 @@
         </div>
         
         <div class="quick-amount">
-          <p style="margin: 0 0 10px 0; color: #666; font-size: 14px; font-weight: 600;">⚡ 快速選擇：</p>
+          <p style="margin: 0 0 10px 0; color: #666; font-size: 14px; font-weight: 600;">⚡ 快速選擇（可累加）：</p>
           <div class="quick-btns">
             <button type="button" class="btn-quick" onclick="setAmount(50)">
-              <span style="font-size: 18px; font-weight: 800;">50</span>
+              <span style="font-size: 18px; font-weight: 800;">+50</span>
             </button>
             <button type="button" class="btn-quick" onclick="setAmount(100)">
-              <span style="font-size: 18px; font-weight: 800;">100</span>
+              <span style="font-size: 18px; font-weight: 800;">+100</span>
             </button>
             <button type="button" class="btn-quick" onclick="setAmount(200)">
-              <span style="font-size: 18px; font-weight: 800;">200</span>
+              <span style="font-size: 18px; font-weight: 800;">+200</span>
             </button>
             <button type="button" class="btn-quick" onclick="setAmount(500)">
-              <span style="font-size: 18px; font-weight: 800;">500</span>
+              <span style="font-size: 18px; font-weight: 800;">+500</span>
             </button>
             <button type="button" class="btn-quick" onclick="setAmount(1000)">
-              <span style="font-size: 18px; font-weight: 800;">1000</span>
+              <span style="font-size: 18px; font-weight: 800;">+1000</span>
+            </button>
+            <button type="button" class="btn-quick btn-clear" onclick="clearAmount()">
+              <span style="font-size: 18px; font-weight: 800;">清除</span>
             </button>
           </div>
         </div>
@@ -221,13 +224,30 @@ document.getElementById('message').addEventListener('input', function() {
   document.getElementById('charCount').textContent = `${count}/100`;
 });
 
-// 快速選擇金額
+// 快速選擇金額（累加模式）
 function setAmount(amount) {
-  if (amount > currentPoints) {
+  // 獲取當前欄位的值，如果是空的或無效的就當作 0
+  const currentValue = parseInt(document.getElementById('points').value) || 0;
+  
+  // 累加新的金額
+  const newValue = currentValue + amount;
+  
+  // 檢查是否超過可用點數
+  if (newValue > currentPoints) {
     showMessage('❤️ 公益點數不足', 'error');
     return;
   }
-  document.getElementById('points').value = amount;
+  
+  // 設定新的值
+  document.getElementById('points').value = newValue;
+  
+  console.log(`➕ 累加金額: ${currentValue} + ${amount} = ${newValue}`);
+}
+
+// 清除金額
+function clearAmount() {
+  document.getElementById('points').value = '';
+  console.log('🗑️ 已清除金額');
 }
 
 // 表單提交

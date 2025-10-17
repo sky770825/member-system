@@ -92,17 +92,31 @@ function startAutoRefresh(lineUserId, pictureUrl, displayName) {
     clearInterval(autoRefreshInterval);
   }
   
-  // 每 10 秒檢查一次
+  console.log('🔄 啟動自動刷新（每 5 秒檢查一次）');
+  
+  // 添加自動刷新指示器
+  addRefreshIndicator();
+  
+  // 每 5 秒檢查一次
   autoRefreshInterval = setInterval(async () => {
     try {
+      console.log('🔍 檢查點數更新中...', new Date().toLocaleTimeString());
+      
+      // 更新指示器
+      updateRefreshIndicator();
+      
       const res = await fetch("https://script.google.com/macros/s/AKfycbx2TRenhHm1LWkCtLB1BwQtUO6XQM1aNopS6HKOgTmGziu2GYX8ZwgDPv64cRRt6XU4/exec?action=profile&lineUserId=" + lineUserId);
       const data = await res.json();
       
       const newPoints = data.points || 0;
       
+      console.log(`當前點數: ${currentPoints} → 最新點數: ${newPoints}`);
+      
       // 如果點數有變化
       if (newPoints !== currentPoints) {
         const pointsDiff = newPoints - currentPoints;
+        
+        console.log(`🎉 點數變動: ${pointsDiff > 0 ? '+' : ''}${pointsDiff}`);
         
         // 如果是增加（收到點數）
         if (pointsDiff > 0) {
@@ -116,15 +130,42 @@ function startAutoRefresh(lineUserId, pictureUrl, displayName) {
         // 重新渲染
         renderProfile(data, pictureUrl, displayName);
         
-        console.log(`點數已更新: ${pointsDiff > 0 ? '+' : ''}${pointsDiff}`);
+        console.log('✅ 頁面已更新');
+      } else {
+        console.log('⏸️ 點數無變化');
       }
     } catch (error) {
-      console.error('自動刷新失敗:', error);
+      console.error('❌ 自動刷新失敗:', error);
     }
-  }, 10000); // 10 秒
+  }, 5000); // 5 秒
   
-  console.log('✅ 自動刷新已啟動（每 10 秒檢查一次）');
+  console.log('✅ 自動刷新已啟動（每 5 秒檢查一次）');
 }
+
+// 🔧 頁面可見性檢測：當用戶切回頁面時立即檢查
+document.addEventListener('visibilitychange', async () => {
+  if (!document.hidden && currentUserId) {
+    console.log('👁️ 頁面重新可見，立即檢查點數');
+    try {
+      const profile = await liff.getProfile();
+      const res = await fetch("https://script.google.com/macros/s/AKfycbx2TRenhHm1LWkCtLB1BwQtUO6XQM1aNopS6HKOgTmGziu2GYX8ZwgDPv64cRRt6XU4/exec?action=profile&lineUserId=" + currentUserId);
+      const data = await res.json();
+      
+      const newPoints = data.points || 0;
+      if (newPoints !== currentPoints) {
+        const pointsDiff = newPoints - currentPoints;
+        if (pointsDiff > 0) {
+          await showReceivedPointsNotification(currentUserId, pointsDiff);
+        }
+        currentPoints = newPoints;
+        renderProfile(data, profile.pictureUrl, profile.displayName);
+        console.log('✅ 頁面已更新');
+      }
+    } catch (error) {
+      console.error('❌ 立即檢查失敗:', error);
+    }
+  }
+});
 
 // 🔧 顯示收到點數的通知
 async function showReceivedPointsNotification(lineUserId, pointsDiff) {
