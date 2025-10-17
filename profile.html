@@ -327,6 +327,10 @@ function renderProfile(data, pictureUrl, displayName) {
           <span class="btn-icon">💰</span>
           購買公益點數
         </button>
+        <button class="btn btn-primary" onclick="goWithdraw()" style="background: linear-gradient(135deg, #FF6B00, #E65100); border-color: #FF6B00;">
+          <span class="btn-icon">💵</span>
+          提領兌現
+        </button>
         <button class="btn btn-primary" onclick="goTransfer()">
           <span class="btn-icon">❤️</span>
           分享公益點數
@@ -376,6 +380,10 @@ function getCache(key) {
 
 function goPurchase() {
   window.location.href = "purchase.html";
+}
+
+function goWithdraw() {
+  window.location.href = "withdraw.html";
 }
 
 function goTransfer() {

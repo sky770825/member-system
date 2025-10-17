@@ -154,7 +154,13 @@ function doGet(e) {
         // 🎯 提領點數（支援 GET 方式）
         result = withdrawPoints(
           e.parameter.lineUserId,
-          parseInt(e.parameter.points)
+          parseInt(e.parameter.points),
+          {
+            bankName: e.parameter.bankName || '',
+            bankAccount: e.parameter.bankAccount || '',
+            accountName: e.parameter.accountName || '',
+            notes: e.parameter.notes || ''
+          }
         );
         break;
         
@@ -2778,12 +2784,14 @@ function purchasePoints(lineUserId, points, options = {}) {
  * 提領點數（給推薦人 20% 獎勵）
  * @param {string} lineUserId - LINE User ID
  * @param {number} points - 提領點數
+ * @param {object} options - 提領選項（銀行資訊等）
  * @returns {object} 處理結果
  */
-function withdrawPoints(lineUserId, points) {
+function withdrawPoints(lineUserId, points, options = {}) {
   try {
     Logger.log('========== withdrawPoints 開始 ==========');
     Logger.log(`會員ID: ${lineUserId}, 提領點數: ${points}`);
+    Logger.log(`銀行資訊: ${JSON.stringify(options)}`);
     
     const sheet = getSheet(MEMBERS_SHEET);
     const data = sheet.getDataRange().getValues();
@@ -2803,6 +2811,14 @@ function withdrawPoints(lineUserId, points) {
           };
         }
         
+        // 檢查最低提領金額
+        if (points < 100) {
+          return {
+            success: false,
+            message: '最少提領 100 點'
+          };
+        }
+        
         const newPoints = currentPoints - points;
         
         // 更新會員點數
@@ -2811,15 +2827,22 @@ function withdrawPoints(lineUserId, points) {
         
         Logger.log(`✅ 會員點數更新: ${currentPoints} → ${newPoints}`);
         
+        // 建立提領訊息（包含銀行資訊）
+        let withdrawMessage = `提領兌現 NT$ ${points.toLocaleString()}`;
+        if (options.bankName && options.bankAccount) {
+          const lastFour = options.bankAccount.slice(-4);
+          withdrawMessage += ` → ${options.bankName} (****${lastFour})`;
+        }
+        
         // 記錄交易
         addTransaction({
           type: 'withdraw',
           senderUserId: lineUserId,
           senderName: memberName,
           points: -points,
-          message: '提領兌現',
+          message: withdrawMessage,
           balanceAfter: newPoints,
-          status: 'completed'
+          status: 'pending'  // 🔧 待處理狀態，匯款後改為 completed
         });
         
         // 給推薦人 20% 獎勵
@@ -2832,8 +2855,14 @@ function withdrawPoints(lineUserId, points) {
           success: true,
           points: newPoints,
           withdrawn: points,
+          amount: points, // 1:1 兌換
+          bankInfo: {
+            bankName: options.bankName,
+            bankAccount: options.bankAccount,
+            accountName: options.accountName
+          },
           referrerReward: referrerReward,
-          message: `成功提領 ${points} 點`
+          message: `成功提領 ${points} 點，預計 1-3 個工作天匯款`
         };
       }
     }
