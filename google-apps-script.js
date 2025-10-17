@@ -15,7 +15,8 @@
 const SHEET_ID = '1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw'; // 替換為您的 Google Sheet ID
 const MEMBERS_SHEET = 'Members';
 const TRANSACTIONS_SHEET = 'Transactions';
-const REFERRALS_SHEET = 'Referrals'; // 🎯 推薦關係表（新增）
+const REFERRALS_SHEET = 'Referrals'; // 🎯 推薦關係表
+const PURCHASES_SHEET = 'Purchases'; // 💰 購買記錄表（新增）
 const MEMBER_LEVELS_SHEET = 'MemberLevels';
 const ACTIVITIES_SHEET = 'Activities';
 const SETTINGS_SHEET = 'Settings';
@@ -127,11 +128,25 @@ function doGet(e) {
         result = getReferralStats();
         break;
         
+      case 'my-referrals':
+        // 🎯 取得個人推薦記錄
+        result = getMyReferrals(e.parameter.lineUserId);
+        break;
+        
       case 'purchase':
         // 🎯 購買點數（支援 GET 方式）
         result = purchasePoints(
           e.parameter.lineUserId,
-          parseInt(e.parameter.points)
+          parseInt(e.parameter.points),
+          {
+            amount: parseFloat(e.parameter.amount) || parseInt(e.parameter.points),
+            paymentMethod: e.parameter.paymentMethod || 'manual',
+            paymentStatus: e.parameter.paymentStatus || 'paid',
+            invoiceNumber: e.parameter.invoiceNumber || '',
+            orderNumber: e.parameter.orderNumber || '',
+            ipAddress: e.parameter.ipAddress || '',
+            notes: e.parameter.notes || ''
+          }
         );
         break;
         
@@ -141,6 +156,27 @@ function doGet(e) {
           e.parameter.lineUserId,
           parseInt(e.parameter.points)
         );
+        break;
+        
+      case 'purchase-history':
+        // 💰 取得購買歷史
+        result = getPurchaseHistory(
+          e.parameter.lineUserId,
+          parseInt(e.parameter.limit) || 20
+        );
+        break;
+        
+      case 'purchase-stats':
+        // 📊 取得購買統計
+        result = getPurchaseStats(e.parameter.lineUserId || null);
+        break;
+        
+      case 'all-purchases':
+        // 📊 取得所有購買記錄（管理員）
+        result = getAllPurchases({
+          status: e.parameter.status || '',
+          paymentStatus: e.parameter.paymentStatus || ''
+        });
         break;
         
       case 'version':
@@ -1136,6 +1172,37 @@ function initializeSheet(sheet, sheetName) {
     headerRange.setBackground('#9C27B0');
     headerRange.setFontColor('#ffffff');
     
+  } else if (sheetName === PURCHASES_SHEET) {
+    // 💰 購買記錄表（超詳細）
+    sheet.appendRow([
+      '購買ID',            // id
+      '訂單編號',          // orderNumber
+      '會員ID',            // lineUserId
+      '會員姓名',          // memberName
+      '購買點數',          // points
+      '購買金額',          // amount
+      '單價',              // unitPrice
+      '付款方式',          // paymentMethod
+      '付款狀態',          // paymentStatus
+      '發票號碼',          // invoiceNumber
+      '推薦人ID',          // referrerUserId
+      '推薦人姓名',        // referrerName
+      '推薦獎勵',          // referrerReward
+      '購買前點數',        // pointsBefore
+      '購買後點數',        // pointsAfter
+      '交易IP',            // ipAddress
+      '購買時間',          // purchaseTime
+      '完成時間',          // completedTime
+      '備註',              // notes
+      '狀態'               // status
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 20);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#FF9800');
+    headerRange.setFontColor('#ffffff');
+    
   } else if (sheetName === SETTINGS_SHEET) {
     sheet.appendRow([
       '設定鍵值',          // key
@@ -1900,6 +1967,128 @@ function getReferralStats() {
   }
 }
 
+/**
+ * 取得個人推薦記錄
+ * @param {string} lineUserId - LINE 使用者 ID
+ * @returns {object} 個人推薦記錄
+ */
+function getMyReferrals(lineUserId) {
+  try {
+    if (!lineUserId) {
+      return {
+        success: false,
+        message: '缺少使用者 ID'
+      };
+    }
+    
+    const membersSheet = getSheet(MEMBERS_SHEET);
+    const transactionsSheet = getSheet(TRANSACTIONS_SHEET);
+    const activitiesSheet = getSheet(ACTIVITIES_SHEET);
+    
+    const membersData = membersSheet.getDataRange().getValues();
+    const transactionsData = transactionsSheet.getDataRange().getValues();
+    const activitiesData = activitiesSheet.getDataRange().getValues();
+    
+    // 找到會員資料
+    let memberInfo = null;
+    let memberReferralCode = '';
+    
+    for (let i = 1; i < membersData.length; i++) {
+      if (membersData[i][0] === lineUserId) {
+        memberInfo = {
+          name: membersData[i][1],
+          referralCode: membersData[i][11] || '',
+          points: membersData[i][7] || 0
+        };
+        memberReferralCode = membersData[i][11] || '';
+        break;
+      }
+    }
+    
+    if (!memberInfo) {
+      return {
+        success: false,
+        message: '會員不存在'
+      };
+    }
+    
+    // 計算推薦統計
+    let totalReferrals = 0;
+    let totalEarned = 0;
+    const referralDetails = [];
+    
+    // 從 Activities 表找出所有被推薦的會員
+    for (let i = 1; i < activitiesData.length; i++) {
+      if (activitiesData[i][1] === 'register') { // activityType
+        const metadata = activitiesData[i][3];
+        if (typeof metadata === 'string') {
+          try {
+            const metaObj = JSON.parse(metadata);
+            if (metaObj.referredBy === memberReferralCode) {
+              const referredUserId = activitiesData[i][0];
+              const referredAt = activitiesData[i][5];
+              
+              // 找到被推薦人的名稱
+              let referredName = '未知';
+              for (let j = 1; j < membersData.length; j++) {
+                if (membersData[j][0] === referredUserId) {
+                  referredName = membersData[j][1];
+                  break;
+                }
+              }
+              
+              // 找到對應的推薦獎勵交易
+              let rewardPoints = 0;
+              for (let k = 1; k < transactionsData.length; k++) {
+                if (transactionsData[k][1] === 'referral_reward' && 
+                    transactionsData[k][3] === lineUserId) { // receiverUserId
+                  const message = transactionsData[k][7];
+                  if (message.includes(referredName)) {
+                    rewardPoints = Number(transactionsData[k][6]) || 0;
+                    break;
+                  }
+                }
+              }
+              
+              totalReferrals++;
+              totalEarned += rewardPoints;
+              
+              referralDetails.push({
+                name: referredName,
+                userId: referredUserId,
+                reward: rewardPoints,
+                date: referredAt
+              });
+            }
+          } catch (e) {
+            // 忽略解析錯誤
+          }
+        }
+      }
+    }
+    
+    // 按日期排序（最新的在前）
+    referralDetails.sort((a, b) => {
+      return new Date(b.date) - new Date(a.date);
+    });
+    
+    return {
+      success: true,
+      memberInfo: memberInfo,
+      totalReferrals: totalReferrals,
+      totalEarned: totalEarned,
+      referralDetails: referralDetails
+    };
+    
+  } catch (error) {
+    Logger.log('getMyReferrals Error: ' + error.toString());
+    return {
+      success: false,
+      message: '獲取推薦記錄失敗：' + error.toString()
+    };
+  }
+}
+
 // ==================== 工作表初始化函數 ====================
 
 /**
@@ -2099,6 +2288,7 @@ function giveReferrerReward(memberId, memberName, amount, type) {
         
         return {
           success: true,
+          referrerId: referrer.lineUserId,  // 🔧 添加推薦人ID
           referrerName: referrer.name,
           reward: reward,
           message: `推薦人 ${referrer.name} 獲得 ${reward} 點獎勵`
@@ -2122,15 +2312,69 @@ function giveReferrerReward(memberId, memberName, amount, type) {
 }
 
 /**
+ * 記錄購買到 Purchases 表
+ * @param {object} data - 購買資料
+ * @returns {string} 購買ID
+ */
+function recordPurchase(data) {
+  try {
+    Logger.log('========== recordPurchase 開始 ==========');
+    
+    const sheet = getSheet(PURCHASES_SHEET);
+    const purchaseId = 'PUR-' + new Date().getTime();
+    const orderNumber = data.orderNumber || 'ORD-' + new Date().getTime();
+    const now = new Date().getTime();
+    
+    const rowData = [
+      purchaseId,                    // 購買ID
+      orderNumber,                   // 訂單編號
+      data.lineUserId || '',         // 會員ID
+      data.memberName || '',         // 會員姓名
+      data.points || 0,              // 購買點數
+      data.amount || 0,              // 購買金額
+      data.unitPrice || 1.0,         // 單價
+      data.paymentMethod || 'manual',// 付款方式
+      data.paymentStatus || 'paid',  // 付款狀態
+      data.invoiceNumber || '',      // 發票號碼
+      data.referrerUserId || '',     // 推薦人ID
+      data.referrerName || '',       // 推薦人姓名
+      data.referrerReward || 0,      // 推薦獎勵
+      data.pointsBefore || 0,        // 購買前點數
+      data.pointsAfter || 0,         // 購買後點數
+      data.ipAddress || '',          // 交易IP
+      now,                           // 購買時間
+      now,                           // 完成時間
+      data.notes || '',              // 備註
+      data.status || 'active'        // 狀態
+    ];
+    
+    Logger.log('準備寫入 Purchases 表: ' + JSON.stringify(rowData));
+    
+    sheet.appendRow(rowData);
+    
+    Logger.log(`✅ Purchases 表記錄完成：${data.memberName} 購買 ${data.points} 點`);
+    Logger.log('========== recordPurchase 結束 ==========');
+    
+    return purchaseId;
+    
+  } catch (error) {
+    Logger.log('recordPurchase Error: ' + error.toString());
+    return 'PUR-ERROR-' + new Date().getTime();
+  }
+}
+
+/**
  * 購買點數（給推薦人 20% 獎勵）
  * @param {string} lineUserId - LINE User ID
  * @param {number} points - 購買點數
+ * @param {object} options - 購買選項（金額、付款方式等）
  * @returns {object} 處理結果
  */
-function purchasePoints(lineUserId, points) {
+function purchasePoints(lineUserId, points, options = {}) {
   try {
     Logger.log('========== purchasePoints 開始 ==========');
     Logger.log(`會員ID: ${lineUserId}, 購買點數: ${points}`);
+    Logger.log(`選項: ${JSON.stringify(options)}`);
     
     const sheet = getSheet(MEMBERS_SHEET);
     const data = sheet.getDataRange().getValues();
@@ -2144,6 +2388,10 @@ function purchasePoints(lineUserId, points) {
         const newPoints = currentPoints + points;
         const newTotalEarned = totalEarned + points;
         
+        // 計算金額（默認 1:1）
+        const amount = options.amount || points;
+        const unitPrice = amount / points;
+        
         // 更新會員點數
         sheet.getRange(row, 8).setValue(newPoints);
         sheet.getRange(row, 10).setValue(newTotalEarned);
@@ -2151,27 +2399,50 @@ function purchasePoints(lineUserId, points) {
         
         Logger.log(`✅ 會員點數更新: ${currentPoints} → ${newPoints}`);
         
-        // 記錄交易
+        // 給推薦人 20% 獎勵（先處理，獲取推薦人資訊）
+        const referrerReward = giveReferrerReward(lineUserId, memberName, points, 'purchase');
+        Logger.log('推薦人獎勵結果: ' + JSON.stringify(referrerReward));
+        
+        // 🔧 記錄到 Purchases 表（超詳細）
+        const purchaseId = recordPurchase({
+          lineUserId: lineUserId,
+          memberName: memberName,
+          points: points,
+          amount: amount,
+          unitPrice: unitPrice,
+          paymentMethod: options.paymentMethod || 'manual',
+          paymentStatus: options.paymentStatus || 'paid',
+          invoiceNumber: options.invoiceNumber || '',
+          referrerUserId: referrerReward.success ? referrerReward.referrerId : '',
+          referrerName: referrerReward.success ? referrerReward.referrerName : '',
+          referrerReward: referrerReward.success ? referrerReward.reward : 0,
+          pointsBefore: currentPoints,
+          pointsAfter: newPoints,
+          ipAddress: options.ipAddress || '',
+          notes: options.notes || ''
+        });
+        
+        Logger.log('購買記錄ID: ' + purchaseId);
+        
+        // 記錄交易（簡要版，用於點數記錄）
         addTransaction({
           type: 'purchase',
           receiverUserId: lineUserId,
           receiverName: memberName,
           points: points,
-          message: '購買公益點數',
+          message: `購買公益點數（訂單：${purchaseId}）`,
           balanceAfter: newPoints,
           status: 'completed'
         });
-        
-        // 給推薦人 20% 獎勵
-        const referrerReward = giveReferrerReward(lineUserId, memberName, points, 'purchase');
-        Logger.log('推薦人獎勵結果: ' + JSON.stringify(referrerReward));
         
         Logger.log('========== purchasePoints 結束 ==========');
         
         return {
           success: true,
+          purchaseId: purchaseId,
           points: newPoints,
           purchased: points,
+          amount: amount,
           referrerReward: referrerReward,
           message: `成功購買 ${points} 點`
         };
@@ -2263,6 +2534,174 @@ function withdrawPoints(lineUserId, points) {
     
   } catch (error) {
     Logger.log('withdrawPoints Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+// ==================== 購買記錄查詢功能 ====================
+
+/**
+ * 取得會員的購買歷史
+ * @param {string} lineUserId - LINE User ID
+ * @param {number} limit - 限制筆數
+ * @returns {object} 購買歷史
+ */
+function getPurchaseHistory(lineUserId, limit = 20) {
+  try {
+    const sheet = getSheet(PURCHASES_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const purchases = [];
+    
+    // 從最新的記錄開始讀取
+    for (let i = data.length - 1; i > 0; i--) {
+      if (data[i][2] === lineUserId) { // lineUserId 在第 3 欄
+        purchases.push({
+          purchaseId: data[i][0],
+          orderNumber: data[i][1],
+          points: data[i][4],
+          amount: data[i][5],
+          unitPrice: data[i][6],
+          paymentMethod: data[i][7],
+          paymentStatus: data[i][8],
+          invoiceNumber: data[i][9],
+          referrerName: data[i][11],
+          referrerReward: data[i][12],
+          pointsBefore: data[i][13],
+          pointsAfter: data[i][14],
+          purchaseTime: data[i][16],
+          completedTime: data[i][17],
+          notes: data[i][18],
+          status: data[i][19]
+        });
+        
+        if (purchases.length >= limit) {
+          break;
+        }
+      }
+    }
+    
+    return {
+      success: true,
+      purchases: purchases,
+      total: purchases.length
+    };
+    
+  } catch (error) {
+    Logger.log('getPurchaseHistory Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 取得購買統計
+ * @param {string} lineUserId - LINE User ID（可選，不提供則返回全站統計）
+ * @returns {object} 購買統計
+ */
+function getPurchaseStats(lineUserId = null) {
+  try {
+    const sheet = getSheet(PURCHASES_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    let totalPurchases = 0;
+    let totalAmount = 0;
+    let totalPoints = 0;
+    const paymentMethods = {};
+    
+    for (let i = 1; i < data.length; i++) {
+      // 如果指定了 lineUserId，只統計該會員
+      if (lineUserId && data[i][2] !== lineUserId) {
+        continue;
+      }
+      
+      // 只統計已完成的購買
+      if (data[i][8] === 'paid' && data[i][19] === 'active') {
+        totalPurchases++;
+        totalAmount += Number(data[i][5]) || 0;
+        totalPoints += Number(data[i][4]) || 0;
+        
+        const method = data[i][7] || 'manual';
+        paymentMethods[method] = (paymentMethods[method] || 0) + 1;
+      }
+    }
+    
+    return {
+      success: true,
+      stats: {
+        totalPurchases: totalPurchases,
+        totalAmount: totalAmount,
+        totalPoints: totalPoints,
+        averageAmount: totalPurchases > 0 ? Math.round(totalAmount / totalPurchases) : 0,
+        averagePoints: totalPurchases > 0 ? Math.round(totalPoints / totalPurchases) : 0,
+        paymentMethods: paymentMethods
+      }
+    };
+    
+  } catch (error) {
+    Logger.log('getPurchaseStats Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 取得所有購買記錄（管理員用）
+ * @param {object} filter - 篩選條件
+ * @returns {object} 購買記錄列表
+ */
+function getAllPurchases(filter = {}) {
+  try {
+    const sheet = getSheet(PURCHASES_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const purchases = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      // 篩選條件
+      if (filter.status && data[i][19] !== filter.status) continue;
+      if (filter.paymentStatus && data[i][8] !== filter.paymentStatus) continue;
+      
+      purchases.push({
+        purchaseId: data[i][0],
+        orderNumber: data[i][1],
+        lineUserId: data[i][2],
+        memberName: data[i][3],
+        points: data[i][4],
+        amount: data[i][5],
+        unitPrice: data[i][6],
+        paymentMethod: data[i][7],
+        paymentStatus: data[i][8],
+        invoiceNumber: data[i][9],
+        referrerUserId: data[i][10],
+        referrerName: data[i][11],
+        referrerReward: data[i][12],
+        pointsBefore: data[i][13],
+        pointsAfter: data[i][14],
+        ipAddress: data[i][15],
+        purchaseTime: data[i][16],
+        completedTime: data[i][17],
+        notes: data[i][18],
+        status: data[i][19]
+      });
+    }
+    
+    // 按購買時間降序排列
+    purchases.sort((a, b) => b.purchaseTime - a.purchaseTime);
+    
+    return {
+      success: true,
+      purchases: purchases,
+      total: purchases.length
+    };
+    
+  } catch (error) {
+    Logger.log('getAllPurchases Error: ' + error.toString());
     return {
       success: false,
       message: error.toString()

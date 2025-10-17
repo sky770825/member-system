@@ -323,6 +323,10 @@ function renderProfile(data, pictureUrl, displayName) {
       </div>
       
       <div class="action-buttons">
+        <button class="btn btn-primary" onclick="goPurchase()" style="background: linear-gradient(135deg, #FFB800, #E69500); border-color: #FFB800;">
+          <span class="btn-icon">💰</span>
+          購買公益點數
+        </button>
         <button class="btn btn-primary" onclick="goTransfer()">
           <span class="btn-icon">❤️</span>
           分享公益點數
@@ -368,6 +372,10 @@ function getCache(key) {
   } catch (e) {
     return null;
   }
+}
+
+function goPurchase() {
+  window.location.href = "purchase.html";
 }
 
 function goTransfer() {
@@ -485,6 +493,11 @@ function fallbackShare(link, message) {
 
 // 📊 查看推薦統計
 function viewReferralStats() {
+  window.location.href = 'referral-stats.html';
+}
+
+// 舊的提示功能（已棄用）
+function viewReferralStatsOld() {
   alert('📊 推薦統計功能開發中...\n\n' +
         '即將顯示：\n' +
         '• 推薦人數\n' +
