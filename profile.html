@@ -289,18 +289,18 @@ function renderProfile(data, pictureUrl, displayName) {
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
           <span style="font-size: 28px;">🎁</span>
           <div>
-            <h3 style="margin: 0; font-size: 18px; font-weight: bold;">邀請好友註冊</h3>
-            <p style="margin: 5px 0 0 0; font-size: 13px; opacity: 0.9;">分享您的專屬推薦碼</p>
+            <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: #fff;">邀請好友註冊</h3>
+            <p style="margin: 5px 0 0 0; font-size: 14px; color: rgba(255,255,255,0.95); font-weight: 500;">分享您的專屬推薦碼</p>
           </div>
         </div>
         
-        <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-          <p style="margin: 0 0 8px 0; font-size: 13px; opacity: 0.9;">您的推薦碼</p>
+        <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 14px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.3);">
+          <p style="margin: 0 0 10px 0; font-size: 14px; color: #fff; font-weight: 600;">您的推薦碼</p>
           <div style="display: flex; align-items: center; gap: 10px;">
             <input type="text" id="referralCodeDisplay" value="${data.referralCode || '載入中...'}" readonly 
-                   style="flex: 1; background: rgba(255,255,255,0.9); border: none; border-radius: 6px; padding: 10px 12px; font-size: 18px; font-weight: bold; letter-spacing: 2px; text-align: center; color: #333;">
+                   style="flex: 1; background: rgba(255,255,255,0.95); border: none; border-radius: 6px; padding: 12px 14px; font-size: 20px; font-weight: 800; letter-spacing: 3px; text-align: center; color: #764ba2;">
             <button onclick="copyReferralCode('${data.referralCode}')" 
-                    style="background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.5); border-radius: 6px; padding: 10px 16px; color: white; font-weight: bold; cursor: pointer; transition: all 0.3s;">
+                    style="background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.6); border-radius: 6px; padding: 12px 18px; color: #fff; font-weight: bold; cursor: pointer; transition: all 0.3s; font-size: 14px;">
               📋 複製
             </button>
           </div>
@@ -308,17 +308,17 @@ function renderProfile(data, pictureUrl, displayName) {
         
         <div style="display: flex; gap: 8px;">
           <button onclick="shareReferralLink('${data.referralCode}')" class="btn" 
-                  style="flex: 1; background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.5); color: white; font-weight: bold; padding: 12px;">
+                  style="flex: 1; background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.6); color: #fff; font-weight: bold; padding: 12px; font-size: 14px;">
             <span style="font-size: 18px;">📤</span> 分享連結
           </button>
           <button onclick="viewReferralStats()" class="btn" 
-                  style="flex: 1; background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.5); color: white; font-weight: bold; padding: 12px;">
+                  style="flex: 1; background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.6); color: #fff; font-weight: bold; padding: 12px; font-size: 14px;">
             <span style="font-size: 18px;">📊</span> 推薦統計
           </button>
         </div>
         
-        <p style="margin: 12px 0 0 0; font-size: 12px; opacity: 0.8; text-align: center;">
-          已成功推薦 <strong style="font-size: 16px; color: #FFD700;">${data.referralCount || 0}</strong> 人
+        <p style="margin: 12px 0 0 0; font-size: 13px; text-align: center; color: #fff; font-weight: 500;">
+          已成功推薦 <strong style="font-size: 18px; color: #FFD700; font-weight: 800;">${data.referralCount || 0}</strong> 人
         </p>
       </div>
       
