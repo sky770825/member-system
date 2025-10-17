@@ -146,7 +146,7 @@ async function initLiff() {
     
     // 取得當前點數 - 🔧 使用超時保護
     const res = await fetchWithTimeout(
-      `https://script.google.com/macros/s/AKfycbx2TRenhHm1LWkCtLB1BwQtUO6XQM1aNopS6HKOgTmGziu2GYX8ZwgDPv64cRRt6XU4/exec?action=profile&lineUserId=${lineUserId}`,
+      `https://script.google.com/macros/s/AKfycbyqCRT7gki4fVY85jkHzNv1OkDojgzq81erVHfpzQPeqvWUFi2IQmStlNxDlUcRr4U/exec?action=profile&lineUserId=${lineUserId}`,
       {},
       10000 // 10秒超時
     );
@@ -179,7 +179,7 @@ document.getElementById('receiverPhone').addEventListener('blur', async function
   try {
     // 🔧 使用超時保護
     const res = await fetchWithTimeout(
-      `https://script.google.com/macros/s/AKfycbx2TRenhHm1LWkCtLB1BwQtUO6XQM1aNopS6HKOgTmGziu2GYX8ZwgDPv64cRRt6XU4/exec?action=check-user&phone=${phone}`,
+      `https://script.google.com/macros/s/AKfycbyqCRT7gki4fVY85jkHzNv1OkDojgzq81erVHfpzQPeqvWUFi2IQmStlNxDlUcRr4U/exec?action=check-user&phone=${phone}`,
       {},
       10000 // 10秒超時
     );
@@ -305,7 +305,7 @@ async function confirmTransfer() {
     
     // 🔧 使用超時保護（15秒）
     const res = await fetchWithTimeout(
-      `https://script.google.com/macros/s/AKfycbx2TRenhHm1LWkCtLB1BwQtUO6XQM1aNopS6HKOgTmGziu2GYX8ZwgDPv64cRRt6XU4/exec?${params.toString()}`,
+      `https://script.google.com/macros/s/AKfycbyqCRT7gki4fVY85jkHzNv1OkDojgzq81erVHfpzQPeqvWUFi2IQmStlNxDlUcRr4U/exec?${params.toString()}`,
       {
         method: 'GET',
         redirect: 'follow'
