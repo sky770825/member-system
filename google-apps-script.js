@@ -179,12 +179,33 @@ function doGet(e) {
         });
         break;
         
+      case 'login':
+        // 🔐 帳號密碼登入
+        result = loginWithPassword(
+          e.parameter.username,
+          e.parameter.password
+        );
+        break;
+        
+      case 'register-password':
+        // 🔐 帳號密碼註冊
+        result = registerWithPassword({
+          name: e.parameter.name,
+          phone: e.parameter.phone,
+          email: e.parameter.email || '',
+          birthday: e.parameter.birthday || '',
+          username: e.parameter.username,
+          password: e.parameter.password,
+          referralCode: e.parameter.referralCode || ''
+        });
+        break;
+        
       case 'version':
         // 🔧 檢查版本
         result = {
           success: true,
-          version: '2.0.0',
-          build: '2025-10-17-20:15',
+          version: '2.1.0',
+          build: '2025-10-17-21:00',
           features: [
             '新推薦系統（購買/提領 20% 獎勵）',
             '時間戳修復',
@@ -1059,6 +1080,291 @@ function getLeaderboard(limit = 10) {
   }
 }
 
+// ==================== 密碼加密與驗證 ====================
+
+/**
+ * SHA-256 密碼加密
+ * @param {string} password - 原始密碼
+ * @returns {string} 加密後的密碼
+ */
+function hashPassword(password) {
+  const rawHash = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    password,
+    Utilities.Charset.UTF_8
+  );
+  
+  // 轉換為十六進制字符串
+  let hashString = '';
+  for (let i = 0; i < rawHash.length; i++) {
+    const byte = rawHash[i];
+    if (byte < 0) {
+      hashString += ('0' + (byte + 256).toString(16)).slice(-2);
+    } else {
+      hashString += ('0' + byte.toString(16)).slice(-2);
+    }
+  }
+  
+  return hashString;
+}
+
+/**
+ * 驗證密碼
+ * @param {string} password - 輸入的密碼
+ * @param {string} hash - 儲存的密碼雜湊
+ * @returns {boolean} 是否匹配
+ */
+function verifyPassword(password, hash) {
+  const inputHash = hashPassword(password);
+  return inputHash === hash;
+}
+
+/**
+ * 生成 Session Token
+ * @param {string} userId - 用戶ID
+ * @returns {string} Session Token
+ */
+function generateSessionToken(userId) {
+  const timestamp = new Date().getTime();
+  const randomStr = Utilities.getUuid();
+  const tokenData = `${userId}:${timestamp}:${randomStr}`;
+  return Utilities.base64Encode(tokenData);
+}
+
+// ==================== 帳號密碼登入系統 ====================
+
+/**
+ * 帳號密碼登入
+ * @param {string} username - 帳號（手機號碼或 email）
+ * @param {string} password - 密碼
+ * @returns {object} 登入結果
+ */
+function loginWithPassword(username, password) {
+  try {
+    Logger.log('========== loginWithPassword 開始 ==========');
+    Logger.log('帳號: ' + username);
+    
+    const sheet = getSheet(MEMBERS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    // 查找會員（支援手機號碼或 email 登入）
+    for (let i = 1; i < data.length; i++) {
+      const phone = data[i][2]; // 手機號碼
+      const email = data[i][3]; // email
+      const storedUsername = data[i][17]; // username
+      const passwordHash = data[i][18]; // passwordHash
+      const status = data[i][13]; // status
+      
+      // 檢查帳號是否匹配（手機號碼、email 或 username）
+      if (phone === username || email === username || storedUsername === username) {
+        Logger.log('找到會員: ' + data[i][1]);
+        
+        // 檢查帳號狀態
+        if (status !== 'active') {
+          Logger.log('帳號狀態異常: ' + status);
+          return {
+            success: false,
+            message: '帳號已被停用，請聯繫客服'
+          };
+        }
+        
+        // 檢查密碼
+        if (!passwordHash) {
+          Logger.log('該帳號未設定密碼');
+          return {
+            success: false,
+            message: '此帳號僅支援 LINE 登入，請使用 LINE 登入'
+          };
+        }
+        
+        // 驗證密碼
+        if (!verifyPassword(password, passwordHash)) {
+          Logger.log('密碼錯誤');
+          return {
+            success: false,
+            message: '帳號或密碼錯誤'
+          };
+        }
+        
+        // 更新最後登入時間
+        const row = i + 1;
+        sheet.getRange(row, 15).setValue(new Date().getTime()); // lastLoginAt
+        
+        // 生成 Session Token
+        const userId = data[i][0] || ('WEB-' + data[i][2]); // 如果沒有 LINE ID，用手機號碼
+        const sessionToken = generateSessionToken(userId);
+        
+        Logger.log('登入成功，生成 Token');
+        Logger.log('========== loginWithPassword 結束 ==========');
+        
+        return {
+          success: true,
+          message: '登入成功',
+          sessionToken: sessionToken,
+          user: {
+            userId: userId,
+            name: data[i][1],
+            phone: data[i][2],
+            email: data[i][3],
+            points: data[i][7] || 0,
+            memberLevel: data[i][8],
+            referralCode: data[i][11],
+            loginType: data[i][19] || 'password'
+          }
+        };
+      }
+    }
+    
+    Logger.log('找不到帳號');
+    return {
+      success: false,
+      message: '帳號或密碼錯誤'
+    };
+    
+  } catch (error) {
+    Logger.log('loginWithPassword Error: ' + error.toString());
+    return {
+      success: false,
+      message: '登入失敗：' + error.toString()
+    };
+  }
+}
+
+/**
+ * 帳號密碼註冊
+ * @param {object} data - 註冊資料
+ * @returns {object} 註冊結果
+ */
+function registerWithPassword(data) {
+  try {
+    Logger.log('========== registerWithPassword 開始 ==========');
+    Logger.log('註冊資料: ' + JSON.stringify({
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      username: data.username
+    }));
+    
+    const sheet = getSheet(MEMBERS_SHEET);
+    
+    // 檢查手機號碼是否重複
+    const phoneCheck = checkUserByPhone(data.phone);
+    if (phoneCheck.exists) {
+      return {
+        success: false,
+        message: '此手機號碼已被使用'
+      };
+    }
+    
+    // 檢查帳號是否重複
+    const sheetData = sheet.getDataRange().getValues();
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][17] === data.username) {
+        return {
+          success: false,
+          message: '此帳號已被使用'
+        };
+      }
+      if (sheetData[i][3] === data.email && data.email) {
+        return {
+          success: false,
+          message: '此 Email 已被使用'
+        };
+      }
+    }
+    
+    const now = new Date().toISOString();
+    const initialPoints = getSetting('initialPoints', INITIAL_POINTS);
+    const memberLevel = calculateMemberLevel(initialPoints);
+    const referralCode = generateReferralCode('WEB-' + data.phone, data.phone);
+    const passwordHash = hashPassword(data.password);
+    const userId = 'WEB-' + data.phone; // 網頁版用戶ID
+    
+    // 新增會員資料
+    sheet.appendRow([
+      userId,                           // LINE用戶ID (使用 WEB- 前綴)
+      data.name,                        // 姓名
+      data.phone,                       // 手機號碼
+      data.email || '',                 // 電子郵件
+      data.birthday || '',              // 生日
+      '',                               // LINE顯示名稱（空）
+      '',                               // LINE頭像網址（空）
+      initialPoints,                    // 目前點數
+      memberLevel,                      // 會員等級
+      initialPoints,                    // 累計獲得
+      0,                                // 累計消費
+      referralCode,                     // 推薦碼
+      data.referralCode || '',          // 被誰推薦
+      'active',                         // 帳號狀態
+      now,                              // 最後登入
+      now,                              // 註冊時間
+      now,                              // 更新時間
+      data.username,                    // 登入帳號 🔧 新增
+      passwordHash,                     // 密碼雜湊 🔧 新增
+      'password'                        // 登入類型 🔧 新增
+    ]);
+    
+    Logger.log('✅ 會員資料已新增');
+    
+    // 記錄註冊交易
+    addTransaction({
+      type: 'register',
+      receiverUserId: userId,
+      receiverName: data.name,
+      points: initialPoints,
+      message: '新會員註冊贈送（網頁版）',
+      balanceAfter: initialPoints,
+      status: 'completed'
+    });
+    
+    // 處理推薦綁定
+    if (data.referralCode && data.referralCode.trim() !== '') {
+      const referralResult = bindReferralRelation(userId, data.name, data.referralCode.trim());
+      Logger.log('推薦綁定結果: ' + JSON.stringify(referralResult));
+    }
+    
+    // 記錄註冊活動
+    logActivity(userId, 'register', initialPoints, {
+      name: data.name,
+      phone: data.phone,
+      referralCode: referralCode,
+      referredBy: data.referralCode || null,
+      loginType: 'password'
+    });
+    
+    // 生成 Session Token
+    const sessionToken = generateSessionToken(userId);
+    
+    Logger.log('========== registerWithPassword 結束 ==========');
+    
+    return {
+      success: true,
+      message: '註冊成功',
+      sessionToken: sessionToken,
+      points: initialPoints,
+      memberLevel: memberLevel,
+      referralCode: referralCode,
+      user: {
+        userId: userId,
+        name: data.name,
+        phone: data.phone,
+        email: data.email || '',
+        points: initialPoints,
+        memberLevel: memberLevel,
+        referralCode: referralCode,
+        loginType: 'password'
+      }
+    };
+    
+  } catch (error) {
+    Logger.log('registerWithPassword Error: ' + error.toString());
+    return {
+      success: false,
+      message: '註冊失敗：' + error.toString()
+    };
+  }
+}
+
 // ==================== 工具函數 ====================
 
 /**
@@ -1083,27 +1389,30 @@ function getSheet(sheetName) {
 function initializeSheet(sheet, sheetName) {
   if (sheetName === MEMBERS_SHEET) {
     sheet.appendRow([
-      'LINE用戶ID',        // lineUserId
-      '姓名',              // name
-      '手機號碼',          // phone
-      '電子郵件',          // email
-      '生日',              // birthday
-      'LINE顯示名稱',      // lineName
-      'LINE頭像網址',      // linePicture
-      '目前點數',          // points
-      '會員等級',          // memberLevel
-      '累計獲得',          // totalEarned
-      '累計消費',          // totalSpent
-      '推薦碼',            // referralCode
-      '被誰推薦',          // referredBy (🎯 新增)
-      '帳號狀態',          // status
-      '最後登入',          // lastLoginAt
-      '註冊時間',          // createdAt
-      '更新時間'           // updatedAt
+      'LINE用戶ID',        // lineUserId (0)
+      '姓名',              // name (1)
+      '手機號碼',          // phone (2)
+      '電子郵件',          // email (3)
+      '生日',              // birthday (4)
+      'LINE顯示名稱',      // lineName (5)
+      'LINE頭像網址',      // linePicture (6)
+      '目前點數',          // points (7)
+      '會員等級',          // memberLevel (8)
+      '累計獲得',          // totalEarned (9)
+      '累計消費',          // totalSpent (10)
+      '推薦碼',            // referralCode (11)
+      '被誰推薦',          // referredBy (12)
+      '帳號狀態',          // status (13)
+      '最後登入',          // lastLoginAt (14)
+      '註冊時間',          // createdAt (15)
+      '更新時間',          // updatedAt (16)
+      '登入帳號',          // username (17) 🔧 新增
+      '密碼雜湊',          // passwordHash (18) 🔧 新增
+      '登入類型'           // loginType (19) 🔧 新增: line/password/both
     ]);
     
     // 設定標題列樣式
-    const headerRange = sheet.getRange(1, 1, 1, 17);
+    const headerRange = sheet.getRange(1, 1, 1, 20);
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#4285f4');
     headerRange.setFontColor('#ffffff');
