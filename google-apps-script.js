@@ -691,6 +691,14 @@ function getTransactions(lineUserId, limit = 20) {
       
       // 檢查是否與該使用者相關
       if (row[2] === lineUserId || row[3] === lineUserId) {
+        // 確保 createdAt 是正確的時間戳（毫秒）
+        let timestamp = row[8];
+        if (timestamp instanceof Date) {
+          timestamp = timestamp.getTime();
+        } else if (typeof timestamp === 'string') {
+          timestamp = new Date(timestamp).getTime();
+        }
+        
         transactions.push({
           id: row[0],
           type: row[1],
@@ -700,7 +708,7 @@ function getTransactions(lineUserId, limit = 20) {
           receiverName: row[5],
           points: row[6],
           message: row[7],
-          createdAt: row[8]
+          createdAt: timestamp
         });
         
         if (transactions.length >= limit) {
