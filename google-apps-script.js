@@ -143,6 +143,30 @@ function doGet(e) {
         );
         break;
         
+      case 'version':
+        // 🔧 檢查版本
+        result = {
+          success: true,
+          version: '2.0.0',
+          build: '2025-10-17-20:15',
+          features: [
+            '新推薦系統（購買/提領 20% 獎勵）',
+            '時間戳修復',
+            '累加式快速選擇',
+            '自動刷新（5秒）',
+            '即時通知'
+          ],
+          functions: {
+            bindReferralRelation: typeof bindReferralRelation !== 'undefined',
+            purchasePoints: typeof purchasePoints !== 'undefined',
+            withdrawPoints: typeof withdrawPoints !== 'undefined',
+            getReferrer: typeof getReferrer !== 'undefined',
+            giveReferrerReward: typeof giveReferrerReward !== 'undefined'
+          },
+          totalLines: 2248
+        };
+        break;
+        
       default:
         result = {
           success: false,
