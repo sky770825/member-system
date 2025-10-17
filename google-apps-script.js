@@ -93,7 +93,8 @@ function doGet(e) {
           email: e.parameter.email || '',
           birthday: e.parameter.birthday || '',
           lineName: e.parameter.lineName || '',
-          linePicture: e.parameter.linePicture || ''
+          linePicture: e.parameter.linePicture || '',
+          referralCode: e.parameter.referralCode || ''  // 🔧 添加推薦碼參數
         });
         break;
         
@@ -1638,7 +1639,20 @@ function processReferralReward(newMemberUserId, newMemberName, referralCode) {
 function recordReferralRelation(data) {
   try {
     Logger.log('========== recordReferralRelation 開始 ==========');
+    Logger.log('傳入參數類型: ' + typeof data);
     Logger.log('推薦資料: ' + JSON.stringify(data));
+    
+    // 🔧 安全檢查
+    if (!data) {
+      Logger.log('❌ data 參數為 null 或 undefined');
+      return false;
+    }
+    
+    if (!data.referralCode) {
+      Logger.log('❌ data.referralCode 不存在');
+      Logger.log('data 內容: ' + Object.keys(data).join(', '));
+      return false;
+    }
     
     const sheet = getSheet(REFERRALS_SHEET);
     Logger.log('✅ 成功獲取 Referrals 工作表');
@@ -1647,19 +1661,19 @@ function recordReferralRelation(data) {
     const now = new Date().toISOString();
     
     const rowData = [
-      id,                           // 推薦ID
-      data.referralCode,            // 推薦碼
-      data.referrerUserId,          // 推薦人ID
-      data.referrerName,            // 推薦人姓名
-      data.referrerPointsBefore,    // 推薦人點數(前)
-      data.referrerPointsAfter,     // 推薦人點數(後)
-      data.referrerReward,          // 推薦人獲得
-      data.newMemberUserId,         // 新會員ID
-      data.newMemberName,           // 新會員姓名
-      data.newMemberReward,         // 新會員獲得
-      data.totalReward,             // 總獎勵點數
-      now,                          // 推薦時間
-      'completed'                   // 狀態
+      id,                              // 推薦ID
+      data.referralCode || '',         // 推薦碼
+      data.referrerUserId || '',       // 推薦人ID
+      data.referrerName || '',         // 推薦人姓名
+      data.referrerPointsBefore || 0,  // 推薦人點數(前)
+      data.referrerPointsAfter || 0,   // 推薦人點數(後)
+      data.referrerReward || 0,        // 推薦人獲得
+      data.newMemberUserId || '',      // 新會員ID
+      data.newMemberName || '',        // 新會員姓名
+      data.newMemberReward || 0,       // 新會員獲得
+      data.totalReward || 0,           // 總獎勵點數
+      now,                             // 推薦時間
+      'completed'                      // 狀態
     ];
     
     Logger.log('準備寫入資料: ' + JSON.stringify(rowData));
@@ -1672,6 +1686,7 @@ function recordReferralRelation(data) {
   } catch (error) {
     Logger.log('❌❌❌ recordReferralRelation Error: ' + error.toString());
     Logger.log('Error stack: ' + error.stack);
+    Logger.log('data 參數: ' + JSON.stringify(data));
     return false;
   }
 }
