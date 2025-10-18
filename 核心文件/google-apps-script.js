@@ -13,16 +13,53 @@
 
 // ==================== 設定區 ====================
 const SHEET_ID = '1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw'; // 替換為您的 Google Sheet ID
-const MEMBERS_SHEET = 'Members';
-const TRANSACTIONS_SHEET = 'Transactions';
-const REFERRALS_SHEET = 'Referrals'; // 🎯 推薦關係表（新增）
-const MEMBER_LEVELS_SHEET = 'MemberLevels';
-const ACTIVITIES_SHEET = 'Activities';
-const SETTINGS_SHEET = 'Settings';
-const DAILY_STATS_SHEET = 'DailyStats';
-const INITIAL_POINTS = 100; // 新會員註冊贈送點數
 
-// 會員等級定義
+// 🔧 工作表名稱設定（全中文版）✨
+const MEMBERS_SHEET = '會員資料';           // 會員表
+const TRANSACTIONS_SHEET = '交易記錄';      // 交易記錄表
+const REFERRALS_SHEET = '推薦關係';         // 推薦關係表
+const PURCHASES_SHEET = '購買記錄';         // 購買記錄表
+const WITHDRAWALS_SHEET = '提領記錄';       // 提領記錄表
+const PRODUCTS_SHEET = '商城商品';          // 商城商品表
+const MALL_ORDERS_SHEET = '商城訂單';       // 商城訂單表 ⭐
+const MEMBER_LEVELS_SHEET = '會員等級';     // 會員等級表
+const ACTIVITIES_SHEET = '活動記錄';        // 活動記錄表
+const SETTINGS_SHEET = '系統設定';          // 系統設定表
+const DAILY_STATS_SHEET = '每日統計';       // 每日統計表
+
+const INITIAL_POINTS = 0; // 新會員註冊贈送點數
+
+// ==================== 狀態中文化對照表 ====================
+// 🎯 所有狀態都使用中文，提升使用體驗
+
+// 📋 處理狀態（用於訂單、提領等）
+const STATUS_CH = {
+  PENDING: '待處理',
+  PROCESSING: '處理中',
+  COMPLETED: '已完成',
+  REJECTED: '已拒絕',
+  CANCELLED: '已取消',
+  SHIPPED: '已出貨'
+};
+
+// 👤 帳號狀態
+const ACCOUNT_STATUS_CH = {
+  ACTIVE: '啟用',
+  INACTIVE: '停用',
+  SUSPENDED: '暫停',
+  BLOCKED: '封鎖'
+};
+
+// 💳 付款方式
+const PAYMENT_METHOD_CH = {
+  CASH: '現金',
+  CREDIT_CARD: '信用卡',
+  BANK_TRANSFER: '銀行轉帳',
+  LINE_PAY: 'LINE Pay',
+  OTHER: '其他'
+};
+
+// 會員等級定義（中文版）
 const MEMBER_LEVELS = {
   BRONZE: { name: '銅級會員', minPoints: 0, discount: 0, icon: '🥉' },
   SILVER: { name: '銀級會員', minPoints: 500, discount: 0.05, icon: '🥈' },
@@ -136,7 +173,16 @@ function doGet(e) {
         // 🎯 購買點數（支援 GET 方式）
         result = purchasePoints(
           e.parameter.lineUserId,
-          parseInt(e.parameter.points)
+          parseInt(e.parameter.points),
+          {
+            amount: parseFloat(e.parameter.amount) || parseInt(e.parameter.points),
+            paymentMethod: e.parameter.paymentMethod || 'manual',
+            paymentStatus: e.parameter.paymentStatus || 'paid',
+            invoiceNumber: e.parameter.invoiceNumber || '',
+            orderNumber: e.parameter.orderNumber || '',
+            ipAddress: e.parameter.ipAddress || '',
+            notes: e.parameter.notes || ''
+          }
         );
         break;
         
@@ -144,16 +190,89 @@ function doGet(e) {
         // 🎯 提領點數（支援 GET 方式）
         result = withdrawPoints(
           e.parameter.lineUserId,
-          parseInt(e.parameter.points)
+          parseInt(e.parameter.points),
+          {
+            bankName: e.parameter.bankName || '',
+            bankAccount: e.parameter.bankAccount || '',
+            accountName: e.parameter.accountName || '',
+            notes: e.parameter.notes || ''
+          }
         );
+        break;
+        
+      case 'purchase-history':
+        // 💰 取得購買歷史
+        result = getPurchaseHistory(
+          e.parameter.lineUserId,
+          parseInt(e.parameter.limit) || 20
+        );
+        break;
+        
+      case 'purchase-stats':
+        // 📊 取得購買統計
+        result = getPurchaseStats(e.parameter.lineUserId || null);
+        break;
+        
+      case 'all-purchases':
+        // 📊 取得所有購買記錄（管理員）
+        result = getAllPurchases({
+          status: e.parameter.status || '',
+          paymentStatus: e.parameter.paymentStatus || ''
+        });
+        break;
+        
+      case 'login':
+        // 🔐 帳號密碼登入
+        result = loginWithPassword(
+          e.parameter.username,
+          e.parameter.password
+        );
+        break;
+        
+      case 'register-password':
+        // 🔐 帳號密碼註冊
+        result = registerWithPassword({
+          name: e.parameter.name,
+          phone: e.parameter.phone,
+          email: e.parameter.email || '',
+          birthday: e.parameter.birthday || '',
+          username: e.parameter.username,
+          password: e.parameter.password,
+          referralCode: e.parameter.referralCode || ''
+        });
+        break;
+        
+      case 'withdrawal-history':
+        // 💵 查詢提領記錄
+        result = getWithdrawalHistory(lineUserId);
+        break;
+        
+      case 'mall-products':
+        // 🛒 獲取商城商品列表
+        result = getMallProducts();
+        break;
+        
+      case 'mall-product-detail':
+        // 🛒 獲取商品詳情
+        result = getMallProductDetail(e.parameter.productId);
+        break;
+        
+      case 'mall-purchase':
+        // 🛒 購買商城商品
+        result = purchaseMallProduct(lineUserId, e.parameter.productId);
+        break;
+        
+      case 'mall-orders':
+        // 🛍️ 獲取我的訂單
+        result = getMallOrders(lineUserId);
         break;
         
       case 'version':
         // 🔧 檢查版本
         result = {
           success: true,
-          version: '2.0.0',
-          build: '2025-10-17-20:15',
+          version: '2.1.0',
+          build: '2025-10-17-21:00',
           features: [
             '新推薦系統（購買/提領 20% 獎勵）',
             '時間戳修復',
@@ -205,6 +324,41 @@ function doPost(e) {
       case 'register':
         // 註冊新會員
         result = registerMember(data);
+        break;
+        
+      case 'register-password':
+        // 🔐 帳號密碼註冊（安全的 POST 方式）
+        result = registerWithPassword({
+          name: data.name,
+          phone: data.phone,
+          email: data.email || '',
+          birthday: data.birthday || '',
+          username: data.username,
+          password: data.password,
+          referralCode: data.referralCode || ''
+        });
+        break;
+        
+      case 'login':
+        // 🔐 帳號密碼登入（安全的 POST 方式）
+        result = loginWithPassword(
+          data.username,
+          data.password
+        );
+        break;
+        
+      case 'withdraw':
+        // 🔐 提領點數（安全的 POST 方式，保護銀行帳號）
+        result = withdrawPoints(
+          data.lineUserId,
+          parseInt(data.points),
+          {
+            bankName: data.bankName || '',
+            bankAccount: data.bankAccount || '',
+            accountName: data.accountName || '',
+            notes: data.notes || ''
+          }
+        );
         break;
         
       case 'transfer':
@@ -409,7 +563,7 @@ function registerMember(data) {
       points: initialPoints,
       message: '新會員註冊贈送',
       balanceAfter: initialPoints,
-      status: 'completed'
+      status: STATUS_CH.COMPLETED
     });
     
     // 🎯 處理推薦綁定（不再贈送點數，只記錄關係）
@@ -575,7 +729,7 @@ function transferPoints(data) {
       points: -data.points,
       message: data.message || '',
       balanceAfter: newSenderPoints,
-      status: 'completed'
+      status: STATUS_CH.COMPLETED
     });
     
     // 記錄交易 (接收者)
@@ -588,7 +742,7 @@ function transferPoints(data) {
       points: data.points,
       message: data.message || '',
       balanceAfter: newReceiverPoints,
-      status: 'completed'
+      status: STATUS_CH.COMPLETED
     });
     
     return {
@@ -713,7 +867,7 @@ function addTransaction(data) {
       data.points,
       data.message || '',
       data.balanceAfter || 0,
-      data.status || 'completed',
+      data.status || STATUS_CH.COMPLETED,
       now
     ]);
     
@@ -1028,6 +1182,291 @@ function getLeaderboard(limit = 10) {
   }
 }
 
+// ==================== 密碼加密與驗證 ====================
+
+/**
+ * SHA-256 密碼加密
+ * @param {string} password - 原始密碼
+ * @returns {string} 加密後的密碼
+ */
+function hashPassword(password) {
+  const rawHash = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    password,
+    Utilities.Charset.UTF_8
+  );
+  
+  // 轉換為十六進制字符串
+  let hashString = '';
+  for (let i = 0; i < rawHash.length; i++) {
+    const byte = rawHash[i];
+    if (byte < 0) {
+      hashString += ('0' + (byte + 256).toString(16)).slice(-2);
+    } else {
+      hashString += ('0' + byte.toString(16)).slice(-2);
+    }
+  }
+  
+  return hashString;
+}
+
+/**
+ * 驗證密碼
+ * @param {string} password - 輸入的密碼
+ * @param {string} hash - 儲存的密碼雜湊
+ * @returns {boolean} 是否匹配
+ */
+function verifyPassword(password, hash) {
+  const inputHash = hashPassword(password);
+  return inputHash === hash;
+}
+
+/**
+ * 生成 Session Token
+ * @param {string} userId - 用戶ID
+ * @returns {string} Session Token
+ */
+function generateSessionToken(userId) {
+  const timestamp = new Date().getTime();
+  const randomStr = Utilities.getUuid();
+  const tokenData = `${userId}:${timestamp}:${randomStr}`;
+  return Utilities.base64Encode(tokenData);
+}
+
+// ==================== 帳號密碼登入系統 ====================
+
+/**
+ * 帳號密碼登入
+ * @param {string} username - 帳號（手機號碼或 email）
+ * @param {string} password - 密碼
+ * @returns {object} 登入結果
+ */
+function loginWithPassword(username, password) {
+  try {
+    Logger.log('========== loginWithPassword 開始 ==========');
+    Logger.log('帳號: ' + username);
+    
+    const sheet = getSheet(MEMBERS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    // 查找會員（支援手機號碼或 email 登入）
+    for (let i = 1; i < data.length; i++) {
+      const phone = data[i][2]; // 手機號碼
+      const email = data[i][3]; // email
+      const storedUsername = data[i][17]; // username
+      const passwordHash = data[i][18]; // passwordHash
+      const status = data[i][13]; // status
+      
+      // 檢查帳號是否匹配（手機號碼、email 或 username）
+      if (phone === username || email === username || storedUsername === username) {
+        Logger.log('找到會員: ' + data[i][1]);
+        
+        // 檢查帳號狀態
+        if (status !== 'active') {
+          Logger.log('帳號狀態異常: ' + status);
+          return {
+            success: false,
+            message: '帳號已被停用，請聯繫客服'
+          };
+        }
+        
+        // 檢查密碼
+        if (!passwordHash) {
+          Logger.log('該帳號未設定密碼');
+          return {
+            success: false,
+            message: '此帳號僅支援 LINE 登入，請使用 LINE 登入'
+          };
+        }
+        
+        // 驗證密碼
+        if (!verifyPassword(password, passwordHash)) {
+          Logger.log('密碼錯誤');
+          return {
+            success: false,
+            message: '帳號或密碼錯誤'
+          };
+        }
+        
+        // 更新最後登入時間
+        const row = i + 1;
+        sheet.getRange(row, 15).setValue(new Date().getTime()); // lastLoginAt
+        
+        // 生成 Session Token
+        const userId = data[i][0] || ('WEB-' + data[i][2]); // 如果沒有 LINE ID，用手機號碼
+        const sessionToken = generateSessionToken(userId);
+        
+        Logger.log('登入成功，生成 Token');
+        Logger.log('========== loginWithPassword 結束 ==========');
+        
+        return {
+          success: true,
+          message: '登入成功',
+          sessionToken: sessionToken,
+          user: {
+            userId: userId,
+            name: data[i][1],
+            phone: data[i][2],
+            email: data[i][3],
+            points: data[i][7] || 0,
+            memberLevel: data[i][8],
+            referralCode: data[i][11],
+            loginType: data[i][19] || 'password'
+          }
+        };
+      }
+    }
+    
+    Logger.log('找不到帳號');
+    return {
+      success: false,
+      message: '帳號或密碼錯誤'
+    };
+    
+  } catch (error) {
+    Logger.log('loginWithPassword Error: ' + error.toString());
+    return {
+      success: false,
+      message: '登入失敗：' + error.toString()
+    };
+  }
+}
+
+/**
+ * 帳號密碼註冊
+ * @param {object} data - 註冊資料
+ * @returns {object} 註冊結果
+ */
+function registerWithPassword(data) {
+  try {
+    Logger.log('========== registerWithPassword 開始 ==========');
+    Logger.log('註冊資料: ' + JSON.stringify({
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      username: data.username
+    }));
+    
+    const sheet = getSheet(MEMBERS_SHEET);
+    
+    // 檢查手機號碼是否重複
+    const phoneCheck = checkUserByPhone(data.phone);
+    if (phoneCheck.exists) {
+      return {
+        success: false,
+        message: '此手機號碼已被使用'
+      };
+    }
+    
+    // 檢查帳號是否重複
+    const sheetData = sheet.getDataRange().getValues();
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][17] === data.username) {
+        return {
+          success: false,
+          message: '此帳號已被使用'
+        };
+      }
+      if (sheetData[i][3] === data.email && data.email) {
+        return {
+          success: false,
+          message: '此 Email 已被使用'
+        };
+      }
+    }
+    
+    const now = new Date().toISOString();
+    const initialPoints = getSetting('initialPoints', INITIAL_POINTS);
+    const memberLevel = calculateMemberLevel(initialPoints);
+    const referralCode = generateReferralCode('WEB-' + data.phone, data.phone);
+    const passwordHash = hashPassword(data.password);
+    const userId = 'WEB-' + data.phone; // 網頁版用戶ID
+    
+    // 新增會員資料
+    sheet.appendRow([
+      userId,                           // LINE用戶ID (使用 WEB- 前綴)
+      data.name,                        // 姓名
+      data.phone,                       // 手機號碼
+      data.email || '',                 // 電子郵件
+      data.birthday || '',              // 生日
+      '',                               // LINE顯示名稱（空）
+      '',                               // LINE頭像網址（空）
+      initialPoints,                    // 目前點數
+      memberLevel,                      // 會員等級
+      initialPoints,                    // 累計獲得
+      0,                                // 累計消費
+      referralCode,                     // 推薦碼
+      data.referralCode || '',          // 被誰推薦
+      'active',                         // 帳號狀態
+      now,                              // 最後登入
+      now,                              // 註冊時間
+      now,                              // 更新時間
+      data.username,                    // 登入帳號 🔧 新增
+      passwordHash,                     // 密碼雜湊 🔧 新增
+      'password'                        // 登入類型 🔧 新增
+    ]);
+    
+    Logger.log('✅ 會員資料已新增');
+    
+    // 記錄註冊交易
+    addTransaction({
+      type: 'register',
+      receiverUserId: userId,
+      receiverName: data.name,
+      points: initialPoints,
+      message: '新會員註冊贈送（網頁版）',
+      balanceAfter: initialPoints,
+      status: STATUS_CH.COMPLETED
+    });
+    
+    // 處理推薦綁定
+    if (data.referralCode && data.referralCode.trim() !== '') {
+      const referralResult = bindReferralRelation(userId, data.name, data.referralCode.trim());
+      Logger.log('推薦綁定結果: ' + JSON.stringify(referralResult));
+    }
+    
+    // 記錄註冊活動
+    logActivity(userId, 'register', initialPoints, {
+      name: data.name,
+      phone: data.phone,
+      referralCode: referralCode,
+      referredBy: data.referralCode || null,
+      loginType: 'password'
+    });
+    
+    // 生成 Session Token
+    const sessionToken = generateSessionToken(userId);
+    
+    Logger.log('========== registerWithPassword 結束 ==========');
+    
+    return {
+      success: true,
+      message: '註冊成功',
+      sessionToken: sessionToken,
+      points: initialPoints,
+      memberLevel: memberLevel,
+      referralCode: referralCode,
+      user: {
+        userId: userId,
+        name: data.name,
+        phone: data.phone,
+        email: data.email || '',
+        points: initialPoints,
+        memberLevel: memberLevel,
+        referralCode: referralCode,
+        loginType: 'password'
+      }
+    };
+    
+  } catch (error) {
+    Logger.log('registerWithPassword Error: ' + error.toString());
+    return {
+      success: false,
+      message: '註冊失敗：' + error.toString()
+    };
+  }
+}
+
 // ==================== 工具函數 ====================
 
 /**
@@ -1052,27 +1491,30 @@ function getSheet(sheetName) {
 function initializeSheet(sheet, sheetName) {
   if (sheetName === MEMBERS_SHEET) {
     sheet.appendRow([
-      'LINE用戶ID',        // lineUserId
-      '姓名',              // name
-      '手機號碼',          // phone
-      '電子郵件',          // email
-      '生日',              // birthday
-      'LINE顯示名稱',      // lineName
-      'LINE頭像網址',      // linePicture
-      '目前點數',          // points
-      '會員等級',          // memberLevel
-      '累計獲得',          // totalEarned
-      '累計消費',          // totalSpent
-      '推薦碼',            // referralCode
-      '被誰推薦',          // referredBy (🎯 新增)
-      '帳號狀態',          // status
-      '最後登入',          // lastLoginAt
-      '註冊時間',          // createdAt
-      '更新時間'           // updatedAt
+      'LINE用戶ID',        // lineUserId (0)
+      '姓名',              // name (1)
+      '手機號碼',          // phone (2)
+      '電子郵件',          // email (3)
+      '生日',              // birthday (4)
+      'LINE顯示名稱',      // lineName (5)
+      'LINE頭像網址',      // linePicture (6)
+      '目前點數',          // points (7)
+      '會員等級',          // memberLevel (8)
+      '累計獲得',          // totalEarned (9)
+      '累計消費',          // totalSpent (10)
+      '推薦碼',            // referralCode (11)
+      '被誰推薦',          // referredBy (12)
+      '帳號狀態',          // status (13)
+      '最後登入',          // lastLoginAt (14)
+      '註冊時間',          // createdAt (15)
+      '更新時間',          // updatedAt (16)
+      '登入帳號',          // username (17) 🔧 新增
+      '密碼雜湊',          // passwordHash (18) 🔧 新增
+      '登入類型'           // loginType (19) 🔧 新增: line/password/both
     ]);
     
     // 設定標題列樣式
-    const headerRange = sheet.getRange(1, 1, 1, 17);
+    const headerRange = sheet.getRange(1, 1, 1, 20);
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#4285f4');
     headerRange.setFontColor('#ffffff');
@@ -1141,6 +1583,37 @@ function initializeSheet(sheet, sheetName) {
     headerRange.setBackground('#9C27B0');
     headerRange.setFontColor('#ffffff');
     
+  } else if (sheetName === PURCHASES_SHEET) {
+    // 💰 購買記錄表（超詳細）
+    sheet.appendRow([
+      '購買ID',            // id
+      '訂單編號',          // orderNumber
+      '會員ID',            // lineUserId
+      '會員姓名',          // memberName
+      '購買點數',          // points
+      '購買金額',          // amount
+      '單價',              // unitPrice
+      '付款方式',          // paymentMethod
+      '付款狀態',          // paymentStatus
+      '發票號碼',          // invoiceNumber
+      '推薦人ID',          // referrerUserId
+      '推薦人姓名',        // referrerName
+      '推薦獎勵',          // referrerReward
+      '購買前點數',        // pointsBefore
+      '購買後點數',        // pointsAfter
+      '交易IP',            // ipAddress
+      '購買時間',          // purchaseTime
+      '完成時間',          // completedTime
+      '備註',              // notes
+      '狀態'               // status
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 20);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#FF9800');
+    headerRange.setFontColor('#ffffff');
+    
   } else if (sheetName === SETTINGS_SHEET) {
     sheet.appendRow([
       '設定鍵值',          // key
@@ -1206,6 +1679,115 @@ function initializeSheet(sheet, sheetName) {
     const headerRange = sheet.getRange(1, 1, 1, 13);
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#E91E63');
+    headerRange.setFontColor('#ffffff');
+    
+  } else if (sheetName === WITHDRAWALS_SHEET) {
+    // 💵 提領記錄表（超詳細）
+    sheet.appendRow([
+      '提領ID',            // id
+      '訂單編號',          // orderNumber
+      '會員ID',            // lineUserId
+      '會員姓名',          // memberName
+      '提領點數',          // points
+      '換算金額',          // amountBeforeFee (0.7換算)
+      '手續費',            // fee (15元)
+      '實際到帳',          // amount (扣除手續費後)
+      '換算比例',          // exchangeRate
+      '銀行名稱',          // bankName
+      '銀行代碼',          // bankCode
+      '帳號',              // bankAccount
+      '戶名',              // accountName
+      '推薦人ID',          // referrerUserId
+      '推薦人姓名',        // referrerName
+      '推薦獎勵',          // referrerReward (20%)
+      '提領前點數',        // pointsBefore
+      '提領後點數',        // pointsAfter
+      '申請時間',          // requestTime
+      '完成時間',          // completedTime
+      '處理狀態',          // status: pending/processing/completed/rejected
+      '備註'               // notes
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 22);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#F44336');
+    headerRange.setFontColor('#ffffff');
+    
+  } else if (sheetName === PRODUCTS_SHEET) {
+    // 🛒 商城商品表
+    sheet.appendRow([
+      '商品ID',            // id
+      '商品代碼',          // productCode (例如: H3X9V7)
+      '商品名稱',          // productName
+      '商品描述',          // description
+      '商品圖片',          // imageUrl
+      '所需點數',          // points
+      '原價',              // originalPrice
+      '折扣',              // discount
+      '商品類型',          // category
+      '庫存數量',          // stock (-1=無限)
+      '已售出',            // soldCount
+      '是否上架',          // isActive
+      '排序',              // sortOrder
+      '標籤',              // tags
+      '建立時間',          // createdAt
+      '更新時間'           // updatedAt
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 16);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#4CAF50');
+    headerRange.setFontColor('#ffffff');
+    
+    // 新增範例商品：拍新聞
+    const now = new Date().toISOString();
+    sheet.appendRow([
+      now,                                            // 商品ID
+      'H3X9V7',                                       // 商品代碼
+      '拍新聞',                                       // 商品名稱
+      '獲得拍新聞虛擬商品序號',                     // 商品描述
+      'https://i.postimg.cc/3R5j7t6k/Pi-News-GIF2.gif', // 商品圖片
+      3600,                                           // 所需點數
+      3600,                                           // 原價
+      0,                                              // 折扣
+      'virtual',                                      // 商品類型
+      -1,                                             // 庫存數量 (-1=無限)
+      0,                                              // 已售出
+      true,                                           // 是否上架
+      1,                                              // 排序
+      '虛擬商品,序號',                               // 標籤
+      now,                                            // 建立時間
+      now                                             // 更新時間
+    ]);
+    
+  } else if (sheetName === MALL_ORDERS_SHEET) {
+    // 🛍️ 商城訂單表
+    sheet.appendRow([
+      '訂單ID',            // id
+      '訂單編號',          // orderNumber
+      '會員ID',            // lineUserId
+      '會員姓名',          // memberName
+      '商品ID',            // productId
+      '商品代碼',          // productCode
+      '商品名稱',          // productName
+      '商品圖片',          // productImage
+      '購買點數',          // points
+      '購買前點數',        // pointsBefore
+      '購買後點數',        // pointsAfter
+      '序號/代碼',         // serialCode (商品代碼，購買後顯示)
+      '訂單狀態',          // status (pending/completed/cancelled)
+      '付款時間',          // paidAt
+      '完成時間',          // completedAt
+      '備註',              // notes
+      '建立時間'           // createdAt
+    ]);
+    
+    // 設定標題列樣式
+    const headerRange = sheet.getRange(1, 1, 1, 17);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#FF9800');
     headerRange.setFontColor('#ffffff');
   }
 }
@@ -1975,16 +2557,18 @@ function getMyReferrals(lineUserId) {
                 }
               }
               
-              // 找到對應的推薦獎勵交易
+              // 🔧 新版：找到對應的推薦獎勵交易（購買+提領獎勵）
               let rewardPoints = 0;
               for (let k = 1; k < transactionsData.length; k++) {
-                if (transactionsData[k][1] === 'referral_reward' && 
-                    transactionsData[k][3] === lineUserId) { // receiverUserId
-                  const message = transactionsData[k][7];
-                  if (message.includes(referredName)) {
-                    rewardPoints = Number(transactionsData[k][6]) || 0;
-                    break;
-                  }
+                const txType = transactionsData[k][1];
+                const txReceiver = transactionsData[k][3];
+                const txMessage = transactionsData[k][7];
+                
+                // 檢查購買獎勵和提領獎勵
+                if ((txType === 'referral_purchase_reward' || txType === 'referral_withdraw_reward') && 
+                    txReceiver === lineUserId &&
+                    txMessage.includes(referredName)) {
+                  rewardPoints += Number(transactionsData[k][6]) || 0;
                 }
               }
               
@@ -2038,12 +2622,16 @@ function initializeAllSheets() {
     getSheet(MEMBERS_SHEET);
     getSheet(TRANSACTIONS_SHEET);
     getSheet(REFERRALS_SHEET);        // 🎯 推薦關係表
+    getSheet(PURCHASES_SHEET);        // 💰 購買記錄表
+    getSheet(WITHDRAWALS_SHEET);      // 💵 提領記錄表
+    getSheet(PRODUCTS_SHEET);         // 🛒 商城商品表
+    getSheet(MALL_ORDERS_SHEET);      // 🛍️ 商城訂單表
     getSheet(MEMBER_LEVELS_SHEET);
     getSheet(ACTIVITIES_SHEET);
     getSheet(SETTINGS_SHEET);
     getSheet(DAILY_STATS_SHEET);
     
-    Logger.log('所有工作表初始化完成（含 Referrals 表）！');
+    Logger.log('所有工作表初始化完成（含 Referrals、Purchases、Withdrawals、Products、MallOrders 表）！');
     return { success: true, message: '所有工作表已創建' };
   } catch (error) {
     Logger.log('initializeAllSheets Error: ' + error.toString());
@@ -2226,6 +2814,7 @@ function giveReferrerReward(memberId, memberName, amount, type) {
         
         return {
           success: true,
+          referrerId: referrer.lineUserId,  // 🔧 添加推薦人ID
           referrerName: referrer.name,
           reward: reward,
           message: `推薦人 ${referrer.name} 獲得 ${reward} 點獎勵`
@@ -2249,15 +2838,69 @@ function giveReferrerReward(memberId, memberName, amount, type) {
 }
 
 /**
+ * 記錄購買到 Purchases 表
+ * @param {object} data - 購買資料
+ * @returns {string} 購買ID
+ */
+function recordPurchase(data) {
+  try {
+    Logger.log('========== recordPurchase 開始 ==========');
+    
+    const sheet = getSheet(PURCHASES_SHEET);
+    const purchaseId = 'PUR-' + new Date().getTime();
+    const orderNumber = data.orderNumber || 'ORD-' + new Date().getTime();
+    const now = new Date().getTime();
+    
+    const rowData = [
+      purchaseId,                    // 購買ID
+      orderNumber,                   // 訂單編號
+      data.lineUserId || '',         // 會員ID
+      data.memberName || '',         // 會員姓名
+      data.points || 0,              // 購買點數
+      data.amount || 0,              // 購買金額
+      data.unitPrice || 1.0,         // 單價
+      data.paymentMethod || 'manual',// 付款方式
+      data.paymentStatus || 'paid',  // 付款狀態
+      data.invoiceNumber || '',      // 發票號碼
+      data.referrerUserId || '',     // 推薦人ID
+      data.referrerName || '',       // 推薦人姓名
+      data.referrerReward || 0,      // 推薦獎勵
+      data.pointsBefore || 0,        // 購買前點數
+      data.pointsAfter || 0,         // 購買後點數
+      data.ipAddress || '',          // 交易IP
+      now,                           // 購買時間
+      now,                           // 完成時間
+      data.notes || '',              // 備註
+      data.status || 'active'        // 狀態
+    ];
+    
+    Logger.log('準備寫入 Purchases 表: ' + JSON.stringify(rowData));
+    
+    sheet.appendRow(rowData);
+    
+    Logger.log(`✅ Purchases 表記錄完成：${data.memberName} 購買 ${data.points} 點`);
+    Logger.log('========== recordPurchase 結束 ==========');
+    
+    return purchaseId;
+    
+  } catch (error) {
+    Logger.log('recordPurchase Error: ' + error.toString());
+    return 'PUR-ERROR-' + new Date().getTime();
+  }
+}
+
+/**
  * 購買點數（給推薦人 20% 獎勵）
  * @param {string} lineUserId - LINE User ID
  * @param {number} points - 購買點數
+ * @param {object} options - 購買選項（金額、付款方式等）
  * @returns {object} 處理結果
  */
-function purchasePoints(lineUserId, points) {
+function purchasePoints(lineUserId, points, options = {}) {
   try {
     Logger.log('========== purchasePoints 開始 ==========');
     Logger.log(`會員ID: ${lineUserId}, 購買點數: ${points}`);
+    Logger.log(`選項: ${JSON.stringify(options)}`);
     
     const sheet = getSheet(MEMBERS_SHEET);
     const data = sheet.getDataRange().getValues();
@@ -2271,6 +2914,10 @@ function purchasePoints(lineUserId, points) {
         const newPoints = currentPoints + points;
         const newTotalEarned = totalEarned + points;
         
+        // 計算金額（默認 1:1）
+        const amount = options.amount || points;
+        const unitPrice = amount / points;
+        
         // 更新會員點數
         sheet.getRange(row, 8).setValue(newPoints);
         sheet.getRange(row, 10).setValue(newTotalEarned);
@@ -2278,27 +2925,50 @@ function purchasePoints(lineUserId, points) {
         
         Logger.log(`✅ 會員點數更新: ${currentPoints} → ${newPoints}`);
         
-        // 記錄交易
+        // 給推薦人 20% 獎勵（先處理，獲取推薦人資訊）
+        const referrerReward = giveReferrerReward(lineUserId, memberName, points, 'purchase');
+        Logger.log('推薦人獎勵結果: ' + JSON.stringify(referrerReward));
+        
+        // 🔧 記錄到 Purchases 表（超詳細）
+        const purchaseId = recordPurchase({
+          lineUserId: lineUserId,
+          memberName: memberName,
+          points: points,
+          amount: amount,
+          unitPrice: unitPrice,
+          paymentMethod: options.paymentMethod || 'manual',
+          paymentStatus: options.paymentStatus || 'paid',
+          invoiceNumber: options.invoiceNumber || '',
+          referrerUserId: referrerReward.success ? referrerReward.referrerId : '',
+          referrerName: referrerReward.success ? referrerReward.referrerName : '',
+          referrerReward: referrerReward.success ? referrerReward.reward : 0,
+          pointsBefore: currentPoints,
+          pointsAfter: newPoints,
+          ipAddress: options.ipAddress || '',
+          notes: options.notes || ''
+        });
+        
+        Logger.log('購買記錄ID: ' + purchaseId);
+        
+        // 記錄交易（簡要版，用於點數記錄）
         addTransaction({
           type: 'purchase',
           receiverUserId: lineUserId,
           receiverName: memberName,
           points: points,
-          message: '購買公益點數',
+          message: `購買公益點數（訂單：${purchaseId}）`,
           balanceAfter: newPoints,
           status: 'completed'
         });
-        
-        // 給推薦人 20% 獎勵
-        const referrerReward = giveReferrerReward(lineUserId, memberName, points, 'purchase');
-        Logger.log('推薦人獎勵結果: ' + JSON.stringify(referrerReward));
         
         Logger.log('========== purchasePoints 結束 ==========');
         
         return {
           success: true,
+          purchaseId: purchaseId,
           points: newPoints,
           purchased: points,
+          amount: amount,
           referrerReward: referrerReward,
           message: `成功購買 ${points} 點`
         };
@@ -2323,12 +2993,14 @@ function purchasePoints(lineUserId, points) {
  * 提領點數（給推薦人 20% 獎勵）
  * @param {string} lineUserId - LINE User ID
  * @param {number} points - 提領點數
+ * @param {object} options - 提領選項（銀行資訊等）
  * @returns {object} 處理結果
  */
-function withdrawPoints(lineUserId, points) {
+function withdrawPoints(lineUserId, points, options = {}) {
   try {
     Logger.log('========== withdrawPoints 開始 ==========');
     Logger.log(`會員ID: ${lineUserId}, 提領點數: ${points}`);
+    Logger.log(`銀行資訊: ${JSON.stringify(options)}`);
     
     const sheet = getSheet(MEMBERS_SHEET);
     const data = sheet.getDataRange().getValues();
@@ -2348,13 +3020,32 @@ function withdrawPoints(lineUserId, points) {
           };
         }
         
+        // 檢查最低提領金額
+        if (points < 100) {
+          return {
+            success: false,
+            message: '最少提領 100 點'
+          };
+        }
+        
         const newPoints = currentPoints - points;
+        const withdrawAmountBeforeFee = Math.floor(points * 0.7); // 0.7 換算（10,000點 → 7,000元）
+        const withdrawFee = 15; // 手續費 15 元
+        const withdrawAmount = withdrawAmountBeforeFee - withdrawFee; // 扣除手續費後的實際金額
         
         // 更新會員點數
         sheet.getRange(row, 8).setValue(newPoints);
         sheet.getRange(row, 17).setValue(new Date().toISOString());
         
         Logger.log(`✅ 會員點數更新: ${currentPoints} → ${newPoints}`);
+        Logger.log(`💵 提領金額: ${points} 點 → NT$ ${withdrawAmountBeforeFee} - 手續費 ${withdrawFee} = NT$ ${withdrawAmount}`);
+        
+        // 建立提領訊息（包含銀行資訊）
+        let withdrawMessage = `提領兌現 ${points.toLocaleString()} 點 → NT$ ${withdrawAmount.toLocaleString()}`;
+        if (options.bankName && options.bankAccount) {
+          const lastFour = options.bankAccount.slice(-4);
+          withdrawMessage += ` → ${options.bankName} (****${lastFour})`;
+        }
         
         // 記錄交易
         addTransaction({
@@ -2362,14 +3053,30 @@ function withdrawPoints(lineUserId, points) {
           senderUserId: lineUserId,
           senderName: memberName,
           points: -points,
-          message: '提領兌現',
+          message: withdrawMessage,
           balanceAfter: newPoints,
-          status: 'completed'
+          status: STATUS_CH.PENDING  // 🔧 待處理狀態，匯款後改為已完成
         });
         
-        // 給推薦人 20% 獎勵
+        // 給推薦人 20% 獎勵（基於點數）
         const referrerReward = giveReferrerReward(lineUserId, memberName, points, 'withdraw');
         Logger.log('推薦人獎勵結果: ' + JSON.stringify(referrerReward));
+        
+        // 🔧 記錄詳細提領資料到 Withdrawals 工作表
+        const withdrawalRecord = recordWithdrawal({
+          lineUserId: lineUserId,
+          memberName: memberName,
+          points: points,
+          amount: withdrawAmount,
+          amountBeforeFee: withdrawAmountBeforeFee,
+          fee: withdrawFee,
+          exchangeRate: 0.7,
+          bankInfo: options,
+          referrerReward: referrerReward,
+          pointsBefore: currentPoints,
+          pointsAfter: newPoints
+        });
+        Logger.log('提領記錄結果: ' + JSON.stringify(withdrawalRecord));
         
         Logger.log('========== withdrawPoints 結束 ==========');
         
@@ -2377,8 +3084,17 @@ function withdrawPoints(lineUserId, points) {
           success: true,
           points: newPoints,
           withdrawn: points,
+          amount: withdrawAmount, // 🔧 扣除手續費後的實際金額
+          amountBeforeFee: withdrawAmountBeforeFee, // 換算後金額（扣手續費前）
+          fee: withdrawFee,
+          exchangeRate: 0.7,
+          bankInfo: {
+            bankName: options.bankName,
+            bankAccount: options.bankAccount,
+            accountName: options.accountName
+          },
           referrerReward: referrerReward,
-          message: `成功提領 ${points} 點`
+          message: `成功提領 ${points} 點（NT$ ${withdrawAmount.toLocaleString()}，已扣除手續費 ${withdrawFee} 元），預計 1-3 個工作天匯款`
         };
       }
     }
@@ -2390,6 +3106,1767 @@ function withdrawPoints(lineUserId, points) {
     
   } catch (error) {
     Logger.log('withdrawPoints Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 記錄詳細提領資料到 Withdrawals 工作表
+ * @param {object} data - 提領資料
+ * @returns {object} 記錄結果
+ */
+function recordWithdrawal(data) {
+  try {
+    Logger.log('========== recordWithdrawal 開始 ==========');
+    Logger.log('提領資料: ' + JSON.stringify(data));
+    
+    const sheet = getSheet(WITHDRAWALS_SHEET);
+    const now = new Date();
+    const orderNumber = 'WD' + now.getTime(); // 訂單編號：WD + 時間戳
+    
+    const withdrawalRow = [
+      now.getTime(),                           // 提領ID (timestamp)
+      orderNumber,                             // 訂單編號
+      data.lineUserId || '',                   // 會員ID
+      data.memberName || '',                   // 會員姓名
+      data.points || 0,                        // 提領點數
+      data.amountBeforeFee || 0,               // 換算金額 (0.7換算)
+      data.fee || 0,                           // 手續費 (15元)
+      data.amount || 0,                        // 實際到帳 (扣除手續費後)
+      data.exchangeRate || 0.7,                // 換算比例
+      data.bankInfo?.bankName || '',           // 銀行名稱
+      data.bankInfo?.bankCode || '',           // 銀行代碼
+      data.bankInfo?.bankAccount || '',        // 帳號
+      data.bankInfo?.accountName || '',        // 戶名
+      data.referrerReward?.referrerUserId || '', // 推薦人ID
+      data.referrerReward?.referrerName || '',   // 推薦人姓名
+      data.referrerReward?.rewardPoints || 0,    // 推薦獎勵 (20%)
+      data.pointsBefore || 0,                  // 提領前點數
+      data.pointsAfter || 0,                   // 提領後點數
+      now.toISOString(),                       // 申請時間
+      '',                                      // 完成時間（待處理）
+      'pending',                               // 處理狀態
+      ''                                       // 備註
+    ];
+    
+    sheet.appendRow(withdrawalRow);
+    Logger.log('✅ 提領記錄已新增');
+    Logger.log('========== recordWithdrawal 結束 ==========');
+    
+    return {
+      success: true,
+      orderNumber: orderNumber,
+      message: '提領記錄已建立'
+    };
+    
+  } catch (error) {
+    Logger.log('❌ recordWithdrawal Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+// ==================== 購買記錄查詢功能 ====================
+
+/**
+ * 取得會員的購買歷史
+ * @param {string} lineUserId - LINE User ID
+ * @param {number} limit - 限制筆數
+ * @returns {object} 購買歷史
+ */
+function getPurchaseHistory(lineUserId, limit = 20) {
+  try {
+    const sheet = getSheet(PURCHASES_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const purchases = [];
+    
+    // 從最新的記錄開始讀取
+    for (let i = data.length - 1; i > 0; i--) {
+      if (data[i][2] === lineUserId) { // lineUserId 在第 3 欄
+        purchases.push({
+          purchaseId: data[i][0],
+          orderNumber: data[i][1],
+          points: data[i][4],
+          amount: data[i][5],
+          unitPrice: data[i][6],
+          paymentMethod: data[i][7],
+          paymentStatus: data[i][8],
+          invoiceNumber: data[i][9],
+          referrerName: data[i][11],
+          referrerReward: data[i][12],
+          pointsBefore: data[i][13],
+          pointsAfter: data[i][14],
+          purchaseTime: data[i][16],
+          completedTime: data[i][17],
+          notes: data[i][18],
+          status: data[i][19]
+        });
+        
+        if (purchases.length >= limit) {
+          break;
+        }
+      }
+    }
+    
+    return {
+      success: true,
+      purchases: purchases,
+      total: purchases.length
+    };
+    
+  } catch (error) {
+    Logger.log('getPurchaseHistory Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 取得購買統計
+ * @param {string} lineUserId - LINE User ID（可選，不提供則返回全站統計）
+ * @returns {object} 購買統計
+ */
+function getPurchaseStats(lineUserId = null) {
+  try {
+    const sheet = getSheet(PURCHASES_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    let totalPurchases = 0;
+    let totalAmount = 0;
+    let totalPoints = 0;
+    const paymentMethods = {};
+    
+    for (let i = 1; i < data.length; i++) {
+      // 如果指定了 lineUserId，只統計該會員
+      if (lineUserId && data[i][2] !== lineUserId) {
+        continue;
+      }
+      
+      // 只統計已完成的購買
+      if (data[i][8] === 'paid' && data[i][19] === 'active') {
+        totalPurchases++;
+        totalAmount += Number(data[i][5]) || 0;
+        totalPoints += Number(data[i][4]) || 0;
+        
+        const method = data[i][7] || 'manual';
+        paymentMethods[method] = (paymentMethods[method] || 0) + 1;
+      }
+    }
+    
+    return {
+      success: true,
+      stats: {
+        totalPurchases: totalPurchases,
+        totalAmount: totalAmount,
+        totalPoints: totalPoints,
+        averageAmount: totalPurchases > 0 ? Math.round(totalAmount / totalPurchases) : 0,
+        averagePoints: totalPurchases > 0 ? Math.round(totalPoints / totalPurchases) : 0,
+        paymentMethods: paymentMethods
+      }
+    };
+    
+  } catch (error) {
+    Logger.log('getPurchaseStats Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 取得所有購買記錄（管理員用）
+ * @param {object} filter - 篩選條件
+ * @returns {object} 購買記錄列表
+ */
+function getAllPurchases(filter = {}) {
+  try {
+    const sheet = getSheet(PURCHASES_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const purchases = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      // 篩選條件
+      if (filter.status && data[i][19] !== filter.status) continue;
+      if (filter.paymentStatus && data[i][8] !== filter.paymentStatus) continue;
+      
+      purchases.push({
+        purchaseId: data[i][0],
+        orderNumber: data[i][1],
+        lineUserId: data[i][2],
+        memberName: data[i][3],
+        points: data[i][4],
+        amount: data[i][5],
+        unitPrice: data[i][6],
+        paymentMethod: data[i][7],
+        paymentStatus: data[i][8],
+        invoiceNumber: data[i][9],
+        referrerUserId: data[i][10],
+        referrerName: data[i][11],
+        referrerReward: data[i][12],
+        pointsBefore: data[i][13],
+        pointsAfter: data[i][14],
+        ipAddress: data[i][15],
+        purchaseTime: data[i][16],
+        completedTime: data[i][17],
+        notes: data[i][18],
+        status: data[i][19]
+      });
+    }
+    
+    // 按購買時間降序排列
+    purchases.sort((a, b) => b.purchaseTime - a.purchaseTime);
+    
+    return {
+      success: true,
+      purchases: purchases,
+      total: purchases.length
+    };
+    
+  } catch (error) {
+    Logger.log('getAllPurchases Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+// ==================== 提領記錄查詢功能 ====================
+
+/**
+ * 取得會員的提領歷史
+ * @param {string} lineUserId - LINE User ID
+ * @param {number} limit - 限制筆數
+ * @returns {object} 提領歷史
+ */
+function getWithdrawalHistory(lineUserId, limit = 50) {
+  try {
+    Logger.log('========== getWithdrawalHistory 開始 ==========');
+    Logger.log('查詢會員: ' + lineUserId);
+    
+    const sheet = getSheet(WITHDRAWALS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const withdrawals = [];
+    
+    if (data.length <= 1) {
+      Logger.log('沒有提領記錄');
+      return {
+        success: true,
+        withdrawals: [],
+        total: 0
+      };
+    }
+    
+    // 從最新的記錄開始讀取
+    for (let i = data.length - 1; i > 0; i--) {
+      if (data[i][2] === lineUserId) { // lineUserId 在第 3 欄 (index 2)
+        withdrawals.push({
+          withdrawalId: data[i][0],           // 提領ID
+          orderNumber: data[i][1],            // 訂單編號
+          memberName: data[i][3],             // 會員姓名
+          points: Number(data[i][4]) || 0,    // 提領點數
+          amountBeforeFee: Number(data[i][5]) || 0, // 換算金額
+          fee: Number(data[i][6]) || 0,       // 手續費
+          amount: Number(data[i][7]) || 0,    // 實際到帳
+          exchangeRate: Number(data[i][8]) || 0.7, // 換算比例
+          bankName: data[i][9],               // 銀行名稱
+          bankCode: data[i][10],              // 銀行代碼
+          bankAccount: data[i][11],           // 帳號
+          accountName: data[i][12],           // 戶名
+          referrerUserId: data[i][13],        // 推薦人ID
+          referrerName: data[i][14],          // 推薦人姓名
+          referrerReward: Number(data[i][15]) || 0, // 推薦獎勵
+          pointsBefore: Number(data[i][16]) || 0,   // 提領前點數
+          pointsAfter: Number(data[i][17]) || 0,    // 提領後點數
+          requestTime: data[i][18],           // 申請時間
+          completedTime: data[i][19],         // 完成時間
+          status: data[i][20] || STATUS_CH.PENDING,   // 處理狀態
+          notes: data[i][21]                  // 備註
+        });
+        
+        if (withdrawals.length >= limit) {
+          break;
+        }
+      }
+    }
+    
+    Logger.log(`找到 ${withdrawals.length} 筆提領記錄`);
+    Logger.log('========== getWithdrawalHistory 結束 ==========');
+    
+    return {
+      success: true,
+      withdrawals: withdrawals,
+      total: withdrawals.length
+    };
+    
+  } catch (error) {
+    Logger.log('getWithdrawalHistory Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 取得所有提領記錄（管理員用）
+ * @param {object} filter - 篩選條件 {status: 'pending/processing/completed/rejected'}
+ * @returns {object} 提領記錄列表
+ */
+function getAllWithdrawals(filter = {}) {
+  try {
+    const sheet = getSheet(WITHDRAWALS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const withdrawals = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      // 篩選條件
+      if (filter.status && data[i][20] !== filter.status) continue;
+      
+      withdrawals.push({
+        withdrawalId: data[i][0],
+        orderNumber: data[i][1],
+        lineUserId: data[i][2],
+        memberName: data[i][3],
+        points: Number(data[i][4]) || 0,
+        amountBeforeFee: Number(data[i][5]) || 0,
+        fee: Number(data[i][6]) || 0,
+        amount: Number(data[i][7]) || 0,
+        exchangeRate: Number(data[i][8]) || 0.7,
+        bankName: data[i][9],
+        bankCode: data[i][10],
+        bankAccount: data[i][11],
+        accountName: data[i][12],
+        referrerUserId: data[i][13],
+        referrerName: data[i][14],
+        referrerReward: Number(data[i][15]) || 0,
+        pointsBefore: Number(data[i][16]) || 0,
+        pointsAfter: Number(data[i][17]) || 0,
+        requestTime: data[i][18],
+        completedTime: data[i][19],
+        status: data[i][20] || 'pending',
+        notes: data[i][21]
+      });
+    }
+    
+    // 按申請時間降序排列
+    withdrawals.sort((a, b) => {
+      const timeA = new Date(a.requestTime).getTime();
+      const timeB = new Date(b.requestTime).getTime();
+      return timeB - timeA;
+    });
+    
+    return {
+      success: true,
+      withdrawals: withdrawals,
+      total: withdrawals.length
+    };
+    
+  } catch (error) {
+    Logger.log('getAllWithdrawals Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 更新提領狀態（管理員用）
+ * @param {string} orderNumber - 訂單編號
+ * @param {string} status - 新狀態 (processing/completed/rejected)
+ * @param {string} notes - 備註
+ * @returns {object} 更新結果
+ */
+function updateWithdrawalStatus(orderNumber, status, notes = '') {
+  try {
+    const sheet = getSheet(WITHDRAWALS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === orderNumber) { // 訂單編號在第 2 欄
+        const row = i + 1;
+        
+        // 更新狀態
+        sheet.getRange(row, 21).setValue(status); // 狀態在第 21 欄
+        
+        // 如果是完成，記錄完成時間
+        if (status === STATUS_CH.COMPLETED || status === '已完成') {
+          sheet.getRange(row, 20).setValue(new Date().toISOString()); // 完成時間在第 20 欄
+        }
+        
+        // 更新備註
+        if (notes) {
+          const currentNotes = data[i][21] || '';
+          const newNotes = currentNotes ? `${currentNotes}\n${new Date().toLocaleString()}: ${notes}` : notes;
+          sheet.getRange(row, 22).setValue(newNotes); // 備註在第 22 欄
+        }
+        
+        Logger.log(`提領狀態已更新: ${orderNumber} → ${status}`);
+        
+        return {
+          success: true,
+          message: '狀態更新成功'
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      message: '找不到該提領記錄'
+    };
+    
+  } catch (error) {
+    Logger.log('updateWithdrawalStatus Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+// ==================== 商城功能 ====================
+
+/**
+ * 通過推薦碼查找會員資訊
+ * @param {string} referralCode - 推薦碼
+ * @returns {object} 會員資訊
+ */
+function getMemberByReferralCode(referralCode) {
+  if (!referralCode) return null;
+  
+  try {
+    const membersSheet = getSheet(MEMBERS_SHEET);
+    const membersData = membersSheet.getDataRange().getValues();
+    
+    // 從第二行開始查找（第一行是標題）
+    for (let i = 1; i < membersData.length; i++) {
+      const memberReferralCode = membersData[i][11]; // L欄：推薦碼
+      
+      if (memberReferralCode === referralCode) {
+        return {
+          lineUserId: membersData[i][0],      // A欄：LINE User ID
+          name: membersData[i][1],            // B欄：姓名
+          phone: membersData[i][2],           // C欄：電話
+          email: membersData[i][3] || '',     // D欄：Email
+          referralCode: memberReferralCode    // L欄：推薦碼
+        };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    Logger.log('getMemberByReferralCode Error: ' + error.toString());
+    return null;
+  }
+}
+
+/**
+ * 獲取商城商品列表
+ * @param {object} filter - 篩選條件 {category, isActive}
+ * @returns {object} 商品列表
+ */
+function getMallProducts(filter = {}) {
+  try {
+    Logger.log('========== getMallProducts 開始 ==========');
+    
+    const sheet = getSheet(PRODUCTS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const products = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      // 只顯示上架的商品
+      const isActive = data[i][11];
+      if (!isActive) continue;
+      
+      // 分類篩選
+      if (filter.category && data[i][8] !== filter.category) continue;
+      
+      const productCode = data[i][1];
+      
+      // 🔧 通過商品編號（productCode）自動匹配賣家資訊
+      const seller = getMemberByReferralCode(productCode);
+      
+      products.push({
+        productId: data[i][0],
+        productCode: productCode,
+        productName: data[i][2],
+        description: data[i][3],
+        imageUrl: data[i][4],
+        points: Number(data[i][5]) || 0,
+        originalPrice: Number(data[i][6]) || 0,
+        discount: Number(data[i][7]) || 0,
+        category: data[i][8],
+        stock: Number(data[i][9]) || 0,
+        soldCount: Number(data[i][10]) || 0,
+        isActive: data[i][11],
+        sortOrder: Number(data[i][12]) || 0,
+        tags: data[i][13],
+        createdAt: data[i][14],
+        updatedAt: data[i][15],
+        // 🔧 販售者資訊（自動從 Members 表獲取）
+        sellerUserId: seller ? seller.lineUserId : '',
+        sellerName: seller ? seller.name : '',
+        sellerReferralCode: seller ? seller.referralCode : '',
+        sellerPhone: seller ? seller.phone : '',
+        sellerEmail: seller ? seller.email : ''
+      });
+    }
+    
+    // 按排序順序排列
+    products.sort((a, b) => a.sortOrder - b.sortOrder);
+    
+    Logger.log(`找到 ${products.length} 個商品`);
+    Logger.log('========== getMallProducts 結束 ==========');
+    
+    return {
+      success: true,
+      products: products,
+      total: products.length
+    };
+    
+  } catch (error) {
+    Logger.log('getMallProducts Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 獲取商品詳情
+ * @param {string} productId - 商品ID
+ * @returns {object} 商品詳情
+ */
+function getMallProductDetail(productId) {
+  try {
+    const sheet = getSheet(PRODUCTS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === productId) {
+        const productCode = data[i][1];
+        
+        // 🔧 通過商品編號（productCode）自動匹配賣家資訊
+        const seller = getMemberByReferralCode(productCode);
+        
+        return {
+          success: true,
+          product: {
+            productId: data[i][0],
+            productCode: productCode,
+            productName: data[i][2],
+            description: data[i][3],
+            imageUrl: data[i][4],
+            points: Number(data[i][5]) || 0,
+            originalPrice: Number(data[i][6]) || 0,
+            discount: Number(data[i][7]) || 0,
+            category: data[i][8],
+            stock: Number(data[i][9]) || 0,
+            soldCount: Number(data[i][10]) || 0,
+            isActive: data[i][11],
+            sortOrder: Number(data[i][12]) || 0,
+            tags: data[i][13],
+            createdAt: data[i][14],
+            updatedAt: data[i][15],
+            // 🔧 販售者資訊（自動從 Members 表獲取）
+            sellerUserId: seller ? seller.lineUserId : '',
+            sellerName: seller ? seller.name : '',
+            sellerReferralCode: seller ? seller.referralCode : '',
+            sellerPhone: seller ? seller.phone : '',
+            sellerEmail: seller ? seller.email : ''
+          }
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      message: '找不到該商品'
+    };
+    
+  } catch (error) {
+    Logger.log('getMallProductDetail Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 購買商城商品
+ * @param {string} lineUserId - 會員ID
+ * @param {string} productId - 商品ID
+ * @returns {object} 購買結果
+ */
+function purchaseMallProduct(lineUserId, productId) {
+  try {
+    Logger.log('========== purchaseMallProduct 開始 ==========');
+    Logger.log(`會員: ${lineUserId}, 商品: ${productId}`);
+    
+    // 1. 獲取商品資訊
+    const productResult = getMallProductDetail(productId);
+    if (!productResult.success) {
+      return {
+        success: false,
+        message: '商品不存在'
+      };
+    }
+    
+    const product = productResult.product;
+    
+    // 檢查商品是否上架
+    if (!product.isActive) {
+      return {
+        success: false,
+        message: '商品已下架'
+      };
+    }
+    
+    // 檢查庫存
+    if (product.stock !== -1 && product.stock <= 0) {
+      return {
+        success: false,
+        message: '商品已售完'
+      };
+    }
+    
+    // 2. 獲取會員資訊
+    const membersSheet = getSheet(MEMBERS_SHEET);
+    const membersData = membersSheet.getDataRange().getValues();
+    let memberRow = -1;
+    let memberName = '';
+    let currentPoints = 0;
+    
+    for (let i = 1; i < membersData.length; i++) {
+      if (membersData[i][0] === lineUserId) {
+        memberRow = i + 1;
+        memberName = membersData[i][1];
+        currentPoints = Number(membersData[i][7]) || 0;
+        break;
+      }
+    }
+    
+    if (memberRow === -1) {
+      return {
+        success: false,
+        message: '會員不存在'
+      };
+    }
+    
+    // 3. 檢查點數是否足夠
+    if (currentPoints < product.points) {
+      return {
+        success: false,
+        message: `點數不足，需要 ${product.points} 點，目前只有 ${currentPoints} 點`
+      };
+    }
+    
+    // 4. 扣除買家點數
+    const newPoints = currentPoints - product.points;
+    membersSheet.getRange(memberRow, 8).setValue(newPoints);
+    membersSheet.getRange(memberRow, 17).setValue(new Date().toISOString());
+    
+    Logger.log(`✅ 買家點數扣除成功: ${currentPoints} → ${newPoints}`);
+    
+    // 5. 轉點數給販售者（如果有設定販售者）
+    let sellerReward = null;
+    if (product.sellerUserId) {
+      const transferResult = transferPointsToSeller(product.sellerUserId, product.points, product.productName, memberName);
+      if (transferResult.success) {
+        sellerReward = {
+          sellerUserId: product.sellerUserId,
+          sellerName: product.sellerName,
+          points: product.points
+        };
+        Logger.log(`✅ 點數已轉給販售者: ${product.sellerName}`);
+      }
+    }
+    
+    // 6. 記錄買家交易
+    addTransaction({
+      type: 'mall_purchase',
+      senderUserId: lineUserId,
+      senderName: memberName,
+      receiverUserId: product.sellerUserId || '',
+      receiverName: product.sellerName || '系統',
+      points: -product.points,
+      message: `購買商城商品：${product.productName}${product.sellerName ? ` (販售者：${product.sellerName})` : ''}`,
+      balanceAfter: newPoints,
+      status: STATUS_CH.COMPLETED
+    });
+    
+    // 6. 創建訂單
+    const now = new Date();
+    const orderNumber = 'MO' + now.getTime();
+    const ordersSheet = getSheet(MALL_ORDERS_SHEET);
+    
+    // 🔧 移除虛擬商品序號功能，改為記錄賣家聯絡資訊
+    const sellerContact = product.sellerPhone ? 
+      `📱 ${product.sellerPhone}` : 
+      (product.sellerEmail ? `📧 ${product.sellerEmail}` : '');
+    
+    ordersSheet.appendRow([
+      now.getTime(),              // 訂單ID
+      orderNumber,                // 訂單編號
+      lineUserId,                 // 會員ID
+      memberName,                 // 會員姓名
+      product.productId,          // 商品ID
+      product.productCode,        // 商品代碼
+      product.productName,        // 商品名稱
+      product.imageUrl,           // 商品圖片
+      product.points,             // 購買點數
+      currentPoints,              // 購買前點數
+      newPoints,                  // 購買後點數
+      product.sellerName || '',   // 🔧 賣家姓名
+      product.sellerPhone || '',  // 🔧 賣家電話
+      product.sellerReferralCode || product.productCode, // 🔧 賣家推薦碼
+      STATUS_CH.COMPLETED,        // 訂單狀態（中文）
+      now.toISOString(),          // 付款時間
+      now.toISOString(),          // 完成時間
+      sellerContact,              // 🔧 賣家聯絡資訊（在備註欄）
+      now.toISOString()           // 建立時間
+    ]);
+    
+    // 7. 更新商品庫存和銷售數量
+    const productsSheet = getSheet(PRODUCTS_SHEET);
+    const productsData = productsSheet.getDataRange().getValues();
+    
+    for (let i = 1; i < productsData.length; i++) {
+      if (productsData[i][0] === productId) {
+        const productRow = i + 1;
+        const currentStock = Number(productsData[i][9]) || 0;
+        const soldCount = Number(productsData[i][10]) || 0;
+        
+        // 更新庫存（如果不是無限庫存）
+        if (currentStock !== -1) {
+          productsSheet.getRange(productRow, 10).setValue(currentStock - 1);
+        }
+        
+        // 更新銷售數量
+        productsSheet.getRange(productRow, 11).setValue(soldCount + 1);
+        break;
+      }
+    }
+    
+    Logger.log('========== purchaseMallProduct 結束 ==========');
+    
+    // 🔧 C2C 商城不使用虛擬序號，改為顯示賣家聯絡資訊
+    let message = `購買成功！`;
+    if (product.sellerName) {
+      message += `\n請聯絡賣家：${product.sellerName}`;
+      if (product.sellerPhone) {
+        message += `\n電話：${product.sellerPhone}`;
+      }
+    }
+    if (sellerReward) {
+      message += `\n\n販售者 ${sellerReward.sellerName} 已收到 ${sellerReward.points} 點`;
+    }
+    
+    return {
+      success: true,
+      orderNumber: orderNumber,
+      productCode: product.productCode,
+      productName: product.productName,
+      newPoints: newPoints,
+      sellerName: product.sellerName || null,
+      sellerPhone: product.sellerPhone || null,
+      sellerReward: sellerReward,
+      message: message
+    };
+    
+  } catch (error) {
+    Logger.log('purchaseMallProduct Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 獲取我的商城訂單
+ * @param {string} lineUserId - 會員ID
+ * @param {number} limit - 限制筆數
+ * @returns {object} 訂單列表
+ */
+function getMallOrders(lineUserId, limit = 50) {
+  try {
+    Logger.log('========== getMallOrders 開始 ==========');
+    Logger.log('查詢會員: ' + lineUserId);
+    
+    const sheet = getSheet(MALL_ORDERS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const orders = [];
+    
+    if (data.length <= 1) {
+      return {
+        success: true,
+        orders: [],
+        total: 0
+      };
+    }
+    
+    // 🚀 優化：預先載入商品分類 Map
+    const productsSheet = getSheet(PRODUCTS_SHEET);
+    const productsData = productsSheet.getDataRange().getValues();
+    const productCategoryMap = {};
+    for (let j = 1; j < productsData.length; j++) {
+      productCategoryMap[productsData[j][0]] = productsData[j][8];
+    }
+    
+    // 從最新的記錄開始讀取
+    for (let i = data.length - 1; i > 0; i--) {
+      if (data[i][2] === lineUserId) {
+        const productCategory = productCategoryMap[data[i][4]] || '';
+        
+        orders.push({
+          orderId: data[i][0],
+          orderNumber: data[i][1],
+          memberName: data[i][3],
+          productId: data[i][4],
+          productCode: data[i][5],
+          productName: data[i][6],
+          productImage: data[i][7],
+          pointsUsed: Number(data[i][8]) || 0,
+          pointsBefore: Number(data[i][9]) || 0,
+          pointsAfter: Number(data[i][10]) || 0,
+          sellerName: data[i][11] || '',           // 🔧 賣家姓名
+          sellerPhone: data[i][12] || '',          // 🔧 賣家電話
+          sellerReferralCode: data[i][13] || '',   // 🔧 賣家推薦碼
+          status: data[i][14],
+          orderDate: data[i][15],
+          completedAt: data[i][16],
+          notes: data[i][17],
+          createdAt: data[i][18],
+          productCategory: productCategory,
+          quantity: 1
+        });
+        
+        if (orders.length >= limit) {
+          break;
+        }
+      }
+    }
+    
+    Logger.log(`找到 ${orders.length} 筆訂單`);
+    Logger.log('========== getMallOrders 結束 ==========');
+    
+    return {
+      success: true,
+      orders: orders,
+      total: orders.length
+    };
+    
+  } catch (error) {
+    Logger.log('getMallOrders Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 生成虛擬商品序號
+ * @param {string} productCode - 商品代碼
+ * @returns {string} 序號
+ */
+function generateSerialNumber(productCode) {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const code = (productCode || 'ITEM').substring(0, 4).toUpperCase();
+  return `${code}-${timestamp}-${random}`;
+}
+
+/**
+ * 初始化所有工作表的下拉選單
+ * 為各工作表的狀態欄位設定中文下拉選單
+ */
+function initAllDropdowns() {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    Logger.log('========== 開始設定所有下拉選單 ==========');
+    
+    // 1. 會員資料 - 帳號狀態和會員等級
+    try {
+      const membersSheet = ss.getSheetByName(MEMBERS_SHEET);
+      if (membersSheet) {
+        // 帳號狀態 (第 M 欄)
+        const statusRange = membersSheet.getRange('M2:M1000');
+        const statusRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList([
+            ACCOUNT_STATUS_CH.ACTIVE,
+            ACCOUNT_STATUS_CH.INACTIVE,
+            ACCOUNT_STATUS_CH.SUSPENDED,
+            ACCOUNT_STATUS_CH.BLOCKED
+          ], true)
+          .setAllowInvalid(false)
+          .build();
+        statusRange.setDataValidation(statusRule);
+        
+        // 會員等級 (第 I 欄)
+        const levelRange = membersSheet.getRange('I2:I1000');
+        const levelRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList([
+            MEMBER_LEVELS.BRONZE.name,
+            MEMBER_LEVELS.SILVER.name,
+            MEMBER_LEVELS.GOLD.name,
+            MEMBER_LEVELS.PLATINUM.name
+          ], true)
+          .setAllowInvalid(false)
+          .build();
+        levelRange.setDataValidation(levelRule);
+        
+        Logger.log('✅ 會員資料 - 下拉選單設定完成');
+      }
+    } catch (e) {
+      Logger.log('⚠️ 會員資料設定失敗: ' + e.toString());
+    }
+    
+    // 2. 交易記錄 - 狀態
+    try {
+      const transSheet = ss.getSheetByName(TRANSACTIONS_SHEET);
+      if (transSheet) {
+        const statusRange = transSheet.getRange('J2:J10000');
+        const statusRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList([
+            STATUS_CH.COMPLETED,
+            STATUS_CH.PENDING,
+            STATUS_CH.CANCELLED
+          ], true)
+          .setAllowInvalid(false)
+          .build();
+        statusRange.setDataValidation(statusRule);
+        Logger.log('✅ 交易記錄 - 下拉選單設定完成');
+      }
+    } catch (e) {
+      Logger.log('⚠️ 交易記錄設定失敗: ' + e.toString());
+    }
+    
+    // 3. 提領記錄 - 處理狀態
+    try {
+      const withdrawSheet = ss.getSheetByName(WITHDRAWALS_SHEET);
+      if (withdrawSheet) {
+        const statusRange = withdrawSheet.getRange('U2:U1000');
+        const statusRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList([
+            STATUS_CH.PENDING,
+            STATUS_CH.PROCESSING,
+            STATUS_CH.COMPLETED,
+            STATUS_CH.REJECTED
+          ], true)
+          .setAllowInvalid(false)
+          .build();
+        statusRange.setDataValidation(statusRule);
+        Logger.log('✅ 提領記錄 - 下拉選單設定完成');
+      }
+    } catch (e) {
+      Logger.log('⚠️ 提領記錄設定失敗: ' + e.toString());
+    }
+    
+    // 4. 購買記錄 - 付款方式和狀態
+    try {
+      const purchaseSheet = ss.getSheetByName(PURCHASES_SHEET);
+      if (purchaseSheet) {
+        // 付款方式
+        const paymentRange = purchaseSheet.getRange('H2:H1000');
+        const paymentRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList([
+            PAYMENT_METHOD_CH.CASH,
+            PAYMENT_METHOD_CH.CREDIT_CARD,
+            PAYMENT_METHOD_CH.BANK_TRANSFER,
+            PAYMENT_METHOD_CH.LINE_PAY,
+            PAYMENT_METHOD_CH.OTHER
+          ], true)
+          .setAllowInvalid(false)
+          .build();
+        paymentRange.setDataValidation(paymentRule);
+        
+        // 狀態
+        const statusRange = purchaseSheet.getRange('L2:L1000');
+        const statusRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList([
+            STATUS_CH.PENDING,
+            STATUS_CH.COMPLETED,
+            STATUS_CH.CANCELLED
+          ], true)
+          .setAllowInvalid(false)
+          .build();
+        statusRange.setDataValidation(statusRule);
+        
+        Logger.log('✅ 購買記錄 - 下拉選單設定完成');
+      }
+    } catch (e) {
+      Logger.log('⚠️ 購買記錄設定失敗: ' + e.toString());
+    }
+    
+    // 5. 商城訂單 - 訂單狀態
+    try {
+      const ordersSheet = ss.getSheetByName(MALL_ORDERS_SHEET);
+      if (ordersSheet) {
+        const statusRange = ordersSheet.getRange('O2:O1000');
+        const statusRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList([
+            STATUS_CH.PENDING,
+            STATUS_CH.PROCESSING,
+            STATUS_CH.COMPLETED,
+            STATUS_CH.SHIPPED,
+            STATUS_CH.CANCELLED
+          ], true)
+          .setAllowInvalid(false)
+          .build();
+        statusRange.setDataValidation(statusRule);
+        Logger.log('✅ 商城訂單 - 下拉選單設定完成');
+      }
+    } catch (e) {
+      Logger.log('⚠️ 商城訂單設定失敗: ' + e.toString());
+    }
+    
+    // 6. 會員等級 - 啟用狀態
+    try {
+      const levelSheet = ss.getSheetByName(MEMBER_LEVELS_SHEET);
+      if (levelSheet) {
+        const statusRange = levelSheet.getRange('H2:H100');
+        const statusRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList(['啟用', '停用'], true)
+          .setAllowInvalid(false)
+          .build();
+        statusRange.setDataValidation(statusRule);
+        Logger.log('✅ 會員等級 - 下拉選單設定完成');
+      }
+    } catch (e) {
+      Logger.log('⚠️ 會員等級設定失敗: ' + e.toString());
+    }
+    
+    Logger.log('========== 所有下拉選單設定完成 ==========');
+    
+    Browser.msgBox(
+      '✅ 下拉選單設定完成',
+      '所有工作表的下拉選單已設定完成！\\n\\n' +
+      '包含：\\n' +
+      '• 會員資料（帳號狀態、會員等級）\\n' +
+      '• 交易記錄（狀態）\\n' +
+      '• 提領記錄（處理狀態）\\n' +
+      '• 購買記錄（付款方式、狀態）\\n' +
+      '• 商城訂單（訂單狀態）\\n' +
+      '• 會員等級（啟用狀態）\\n\\n' +
+      '所有狀態都已中文化！',
+      Browser.Buttons.OK
+    );
+    
+    return { success: true, message: '所有下拉選單設定完成' };
+    
+  } catch (error) {
+    Logger.log('❌ 設定失敗：' + error.toString());
+    Browser.msgBox(
+      '❌ 設定失敗',
+      '錯誤訊息：' + error.toString(),
+      Browser.Buttons.OK
+    );
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * 🌟 一鍵初始化所有工作表（推薦使用）
+ * 自動建立所有工作表並設定中文欄位標題和下拉選單
+ */
+function initAllSheetsAtOnce() {
+  try {
+    Logger.log('========== 開始一鍵初始化所有工作表 ==========');
+    
+    const results = [];
+    
+    // 1. 初始化會員資料表
+    try {
+      initMembersSheet();
+      results.push('✅ 會員資料');
+    } catch (e) {
+      results.push('❌ 會員資料: ' + e.toString());
+    }
+    
+    // 2. 初始化交易記錄表
+    try {
+      initTransactionsSheet();
+      results.push('✅ 交易記錄');
+    } catch (e) {
+      results.push('❌ 交易記錄: ' + e.toString());
+    }
+    
+    // 3. 初始化推薦關係表
+    try {
+      initReferralsSheet();
+      results.push('✅ 推薦關係');
+    } catch (e) {
+      results.push('❌ 推薦關係: ' + e.toString());
+    }
+    
+    // 4. 初始化購買記錄表
+    try {
+      initPurchasesSheet();
+      results.push('✅ 購買記錄');
+    } catch (e) {
+      results.push('❌ 購買記錄: ' + e.toString());
+    }
+    
+    // 5. 初始化提領記錄表
+    try {
+      initWithdrawalsSheet();
+      results.push('✅ 提領記錄');
+    } catch (e) {
+      results.push('❌ 提領記錄: ' + e.toString());
+    }
+    
+    // 6. 初始化商城商品表
+    try {
+      initProductsSheet();
+      results.push('✅ 商城商品');
+    } catch (e) {
+      results.push('❌ 商城商品: ' + e.toString());
+    }
+    
+    // 7. 初始化商城訂單表
+    try {
+      initMallOrdersSheet();
+      results.push('✅ 商城訂單');
+    } catch (e) {
+      results.push('❌ 商城訂單: ' + e.toString());
+    }
+    
+    // 8. 初始化會員等級表
+    try {
+      initMemberLevelsSheet();
+      results.push('✅ 會員等級');
+    } catch (e) {
+      results.push('❌ 會員等級: ' + e.toString());
+    }
+    
+    // 9. 初始化活動記錄表
+    try {
+      initActivitiesSheet();
+      results.push('✅ 活動記錄');
+    } catch (e) {
+      results.push('❌ 活動記錄: ' + e.toString());
+    }
+    
+    // 10. 初始化系統設定表
+    try {
+      initSettingsSheet();
+      results.push('✅ 系統設定');
+    } catch (e) {
+      results.push('❌ 系統設定: ' + e.toString());
+    }
+    
+    // 11. 初始化每日統計表
+    try {
+      initDailyStatsSheet();
+      results.push('✅ 每日統計');
+    } catch (e) {
+      results.push('❌ 每日統計: ' + e.toString());
+    }
+    
+    // 12. 設定所有下拉選單
+    try {
+      initAllDropdowns();
+      results.push('✅ 下拉選單設定');
+    } catch (e) {
+      results.push('❌ 下拉選單: ' + e.toString());
+    }
+    
+    Logger.log('========== 初始化完成 ==========');
+    Logger.log(results.join('\n'));
+    
+    Browser.msgBox(
+      '🎉 一鍵初始化完成',
+      '所有工作表已建立並設定完成！\n\n' + results.join('\n'),
+      Browser.Buttons.OK
+    );
+    
+    return { success: true, results: results };
+    
+  } catch (error) {
+    Logger.log('❌ 初始化失敗：' + error.toString());
+    Browser.msgBox(
+      '❌ 初始化失敗',
+      '錯誤訊息：' + error.toString(),
+      Browser.Buttons.OK
+    );
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * 初始化會員資料表
+ */
+function initMembersSheet() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(MEMBERS_SHEET);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(MEMBERS_SHEET);
+  }
+  
+  // 中文欄位標題
+  const headers = [
+    'LINE用戶ID', '姓名', '電話', 'Email', '生日',
+    'LINE暱稱', 'LINE頭像', '點數餘額', '會員等級', '累計獲得',
+    '累計使用', '推薦碼', '帳號狀態', '最後登入', '註冊時間',
+    '更新時間'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  // 設定格式
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#667eea');
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  
+  Logger.log('✅ 會員資料表初始化完成');
+}
+
+/**
+ * 初始化交易記錄表
+ */
+function initTransactionsSheet() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(TRANSACTIONS_SHEET);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(TRANSACTIONS_SHEET);
+  }
+  
+  const headers = [
+    '交易ID', '交易類型', '發送者ID', '接收者ID', '發送者姓名',
+    '接收者姓名', '點數', '訊息', '交易後餘額', '狀態', '交易時間'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#667eea');
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  
+  Logger.log('✅ 交易記錄表初始化完成');
+}
+
+/**
+ * 初始化推薦關係表
+ */
+function initReferralsSheet() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(REFERRALS_SHEET);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(REFERRALS_SHEET);
+  }
+  
+  const headers = [
+    '推薦ID', '推薦碼', '推薦人ID', '推薦人姓名', '推薦人電話',
+    '新會員ID', '新會員姓名', '新會員電話', '推薦人獎勵', '新會員獎勵',
+    '推薦時間', '備註'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#667eea');
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  
+  Logger.log('✅ 推薦關係表初始化完成');
+}
+
+/**
+ * 初始化購買記錄表
+ */
+function initPurchasesSheet() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(PURCHASES_SHEET);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(PURCHASES_SHEET);
+  }
+  
+  const headers = [
+    '購買ID', '訂單編號', '會員ID', '會員姓名', '購買點數',
+    '支付金額', '單價', '付款方式', '推薦人姓名', '推薦人獎勵',
+    '購買前點數', '購買後點數', '狀態', '付款時間', '備註', '建立時間'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#667eea');
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  
+  Logger.log('✅ 購買記錄表初始化完成');
+}
+
+/**
+ * 初始化提領記錄表
+ */
+function initWithdrawalsSheet() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(WITHDRAWALS_SHEET);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(WITHDRAWALS_SHEET);
+  }
+  
+  const headers = [
+    '提領ID', '訂單編號', '會員ID', '會員姓名', '會員電話',
+    '提領點數', '提領金額', '手續費', '實際金額', '銀行代碼',
+    '銀行名稱', '分行名稱', '帳號', '戶名', '推薦人姓名',
+    '推薦人獎勵', '提領前點數', '提領後點數', '申請時間', '完成時間',
+    '處理狀態', '備註'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#667eea');
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  
+  Logger.log('✅ 提領記錄表初始化完成');
+}
+
+/**
+ * 初始化商城商品表
+ */
+function initProductsSheet() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(PRODUCTS_SHEET);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(PRODUCTS_SHEET);
+  }
+  
+  const headers = [
+    '商品ID', '商品代碼', '商品名稱', '商品描述', '商品圖片',
+    '所需點數', '原價', '折扣', '商品分類', '庫存',
+    '已售數量', '上架狀態', '排序', '標籤', '建立時間', '更新時間'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#667eea');
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  
+  Logger.log('✅ 商城商品表初始化完成');
+}
+
+/**
+ * 初始化會員等級表
+ */
+function initMemberLevelsSheet() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(MEMBER_LEVELS_SHEET);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(MEMBER_LEVELS_SHEET);
+  }
+  
+  const headers = [
+    '等級ID', '等級代碼', '等級名稱', '最低點數', '折扣',
+    '圖示', '顏色', '啟用狀態', '建立時間'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#667eea');
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  
+  // 新增預設等級資料
+  const now = new Date().toISOString();
+  sheet.appendRow([1, 'BRONZE', '銅級會員', 0, 0, '🥉', '#CD7F32', true, now]);
+  sheet.appendRow([2, 'SILVER', '銀級會員', 500, 0.05, '🥈', '#C0C0C0', true, now]);
+  sheet.appendRow([3, 'GOLD', '金級會員', 1000, 0.1, '🥇', '#FFD700', true, now]);
+  sheet.appendRow([4, 'PLATINUM', '白金會員', 5000, 0.15, '💎', '#E5E4E2', true, now]);
+  
+  Logger.log('✅ 會員等級表初始化完成（含預設資料）');
+}
+
+/**
+ * 初始化活動記錄表
+ */
+function initActivitiesSheet() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(ACTIVITIES_SHEET);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(ACTIVITIES_SHEET);
+  }
+  
+  const headers = [
+    '活動ID', '會員ID', '活動類型', '點數', '元數據',
+    '完成時間', '建立時間'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#667eea');
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  
+  Logger.log('✅ 活動記錄表初始化完成');
+}
+
+/**
+ * 初始化系統設定表
+ */
+function initSettingsSheet() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(SETTINGS_SHEET);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(SETTINGS_SHEET);
+  }
+  
+  const headers = [
+    '設定鍵', '設定值', '類型', '說明', '分類',
+    '更新者', '更新時間'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#667eea');
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  
+  // 新增預設設定
+  const now = new Date().toISOString();
+  sheet.appendRow(['INITIAL_POINTS', '0', 'number', '新會員註冊贈送點數', '會員', 'system', now]);
+  sheet.appendRow(['REFERRAL_REWARD', '20', 'number', '推薦獎勵百分比', '推薦', 'system', now]);
+  sheet.appendRow(['WITHDRAWAL_FEE', '0', 'number', '提領手續費百分比', '提領', 'system', now]);
+  sheet.appendRow(['MIN_WITHDRAWAL', '100', 'number', '最低提領點數', '提領', 'system', now]);
+  
+  Logger.log('✅ 系統設定表初始化完成（含預設資料）');
+}
+
+/**
+ * 初始化每日統計表
+ */
+function initDailyStatsSheet() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(DAILY_STATS_SHEET);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(DAILY_STATS_SHEET);
+  }
+  
+  const headers = [
+    '日期', '新增會員', '活躍會員', '總交易數', '發放點數',
+    '消耗點數', '建立時間'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#667eea');
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  
+  Logger.log('✅ 每日統計表初始化完成');
+}
+
+/**
+ * 初始化 MallOrders 工作表
+ * 自動建立工作表和欄位結構
+ * 在 Apps Script 編輯器中執行此函數即可
+ */
+function initMallOrdersSheet() {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    
+    // 檢查是否已存在 MallOrders 工作表
+    let sheet = ss.getSheetByName(MALL_ORDERS_SHEET);
+    
+    if (sheet) {
+      const response = Browser.msgBox(
+        '工作表已存在',
+        '已經存在 MallOrders 工作表，是否要重新建立？\\n（警告：這將刪除所有現有資料）',
+        Browser.Buttons.YES_NO
+      );
+      
+      if (response === 'yes') {
+        ss.deleteSheet(sheet);
+        Logger.log('已刪除舊的 MallOrders 工作表');
+      } else {
+        Logger.log('取消操作');
+        return {
+          success: false,
+          message: '用戶取消操作'
+        };
+      }
+    }
+    
+    // 建立新的 MallOrders 工作表
+    sheet = ss.insertSheet(MALL_ORDERS_SHEET);
+    Logger.log('✅ 已建立 MallOrders 工作表');
+    
+    // 設定欄位標題（第一行）- 中文版
+    const headers = [
+      '訂單ID',              // A: orderId
+      '訂單編號',            // B: orderNumber
+      '會員ID',              // C: memberUserId
+      '會員姓名',            // D: memberName
+      '商品ID',              // E: productId
+      '商品代碼',            // F: productCode
+      '商品名稱',            // G: productName
+      '商品圖片',            // H: productImage
+      '使用點數',            // I: pointsUsed
+      '購買前點數',          // J: pointsBefore
+      '購買後點數',          // K: pointsAfter
+      '賣家姓名',            // L: sellerName ⭐
+      '賣家電話',            // M: sellerPhone ⭐
+      '賣家推薦碼',          // N: sellerReferralCode ⭐
+      '訂單狀態',            // O: status
+      '訂單日期',            // P: orderDate
+      '完成時間',            // Q: completedAt
+      '備註',                // R: notes
+      '建立時間'             // S: createdAt
+    ];
+    
+    // 寫入標題列
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    
+    // 設定標題列格式
+    const headerRange = sheet.getRange(1, 1, 1, headers.length);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#667eea');
+    headerRange.setFontColor('#FFFFFF');
+    headerRange.setHorizontalAlignment('center');
+    
+    // 凍結第一行
+    sheet.setFrozenRows(1);
+    
+    // 設定欄寬
+    const columnWidths = {
+      1: 120,   // A: orderId
+      2: 140,   // B: orderNumber
+      3: 150,   // C: memberUserId
+      4: 100,   // D: memberName
+      5: 120,   // E: productId
+      6: 100,   // F: productCode
+      7: 150,   // G: productName
+      8: 200,   // H: productImage
+      9: 80,    // I: pointsUsed
+      10: 80,   // J: pointsBefore
+      11: 80,   // K: pointsAfter
+      12: 100,  // L: sellerName
+      13: 120,  // M: sellerPhone
+      14: 120,  // N: sellerReferralCode
+      15: 100,  // O: status
+      16: 150,  // P: orderDate
+      17: 150,  // Q: completedAt
+      18: 200,  // R: notes
+      19: 150   // S: createdAt
+    };
+    
+    for (let col in columnWidths) {
+      sheet.setColumnWidth(parseInt(col), columnWidths[col]);
+    }
+    
+    // 設定資料驗證（訂單狀態）- 中文選項
+    const statusRange = sheet.getRange('O2:O1000');
+    const statusRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList([
+        STATUS_CH.PENDING,
+        STATUS_CH.PROCESSING,
+        STATUS_CH.COMPLETED,
+        STATUS_CH.SHIPPED,
+        STATUS_CH.CANCELLED
+      ], true)
+      .setAllowInvalid(false)
+      .build();
+    statusRange.setDataValidation(statusRule);
+    
+    // 設定條件式格式（訂單狀態顏色）- 中文狀態
+    const rules = [
+      // 已完成 - 綠色
+      SpreadsheetApp.newConditionalFormatRule()
+        .whenTextEqualTo(STATUS_CH.COMPLETED)
+        .setBackground('#D4EDDA')
+        .setFontColor('#155724')
+        .setRanges([sheet.getRange('O:O')])
+        .build(),
+      // 處理中 - 黃色
+      SpreadsheetApp.newConditionalFormatRule()
+        .whenTextEqualTo(STATUS_CH.PROCESSING)
+        .setBackground('#FFF3CD')
+        .setFontColor('#856404')
+        .setRanges([sheet.getRange('O:O')])
+        .build(),
+      // 待處理 - 灰色
+      SpreadsheetApp.newConditionalFormatRule()
+        .whenTextEqualTo(STATUS_CH.PENDING)
+        .setBackground('#E2E3E5')
+        .setFontColor('#383D41')
+        .setRanges([sheet.getRange('O:O')])
+        .build(),
+      // 已取消 - 紅色
+      SpreadsheetApp.newConditionalFormatRule()
+        .whenTextEqualTo(STATUS_CH.CANCELLED)
+        .setBackground('#F8D7DA')
+        .setFontColor('#721C24')
+        .setRanges([sheet.getRange('O:O')])
+        .build(),
+      // 已出貨 - 藍色
+      SpreadsheetApp.newConditionalFormatRule()
+        .whenTextEqualTo(STATUS_CH.SHIPPED)
+        .setBackground('#D1ECF1')
+        .setFontColor('#0C5460')
+        .setRanges([sheet.getRange('O:O')])
+        .build()
+    ];
+    
+    sheet.setConditionalFormatRules(rules);
+    
+    Logger.log('✅ 欄位標題設定完成');
+    Logger.log('✅ 格式設定完成');
+    Logger.log('✅ 條件式格式設定完成');
+    
+    // 新增說明註解
+    sheet.getRange('A1').setNote(
+      'MallOrders 工作表\n' +
+      '建立時間：' + new Date().toLocaleString('zh-TW') + '\n' +
+      '共 19 個欄位\n' +
+      '包含賣家聯絡資訊（L、M、N 欄）'
+    );
+    
+    Logger.log('========================================');
+    Logger.log('✅ MallOrders 工作表初始化完成！');
+    Logger.log('共建立 ' + headers.length + ' 個欄位');
+    Logger.log('工作表名稱：' + MALL_ORDERS_SHEET);
+    Logger.log('========================================');
+    
+    Browser.msgBox(
+      '✅ 初始化完成',
+      'MallOrders 工作表已成功建立！\\n\\n' +
+      '共建立 19 個欄位\\n' +
+      '包含賣家聯絡資訊（姓名、電話、推薦碼）\\n\\n' +
+      '您現在可以開始使用商城功能了。',
+      Browser.Buttons.OK
+    );
+    
+    return {
+      success: true,
+      message: 'MallOrders 工作表初始化完成',
+      columnCount: headers.length,
+      sheetName: MALL_ORDERS_SHEET
+    };
+    
+  } catch (error) {
+    Logger.log('❌ 初始化失敗：' + error.toString());
+    Browser.msgBox(
+      '❌ 初始化失敗',
+      '錯誤訊息：' + error.toString(),
+      Browser.Buttons.OK
+    );
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * 轉點數給販售者
+ * @param {string} sellerUserId - 販售者ID
+ * @param {number} points - 點數
+ * @param {string} productName - 商品名稱
+ * @param {string} buyerName - 買家名稱
+ * @returns {object} 轉點結果
+ */
+function transferPointsToSeller(sellerUserId, points, productName, buyerName) {
+  try {
+    const membersSheet = getSheet(MEMBERS_SHEET);
+    const data = membersSheet.getDataRange().getValues();
+    
+    // 找到販售者
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === sellerUserId) {
+        const sellerRow = i + 1;
+        const sellerName = data[i][1];
+        const sellerPoints = Number(data[i][7]) || 0;
+        const newSellerPoints = sellerPoints + points;
+        
+        // 增加販售者點數
+        membersSheet.getRange(sellerRow, 8).setValue(newSellerPoints);
+        membersSheet.getRange(sellerRow, 17).setValue(new Date().toISOString());
+        
+        // 記錄販售者收到點數的交易
+        addTransaction({
+          type: 'mall_sale',
+          senderUserId: buyerName, // 買家名稱
+          senderName: buyerName,
+          receiverUserId: sellerUserId,
+          receiverName: sellerName,
+          points: points,
+          message: `商品售出：${productName}`,
+          balanceAfter: newSellerPoints,
+          status: 'completed'
+        });
+        
+        Logger.log(`✅ 販售者 ${sellerName} 收到 ${points} 點`);
+        
+        return {
+          success: true,
+          sellerName: sellerName,
+          points: points,
+          newBalance: newSellerPoints
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      message: '找不到販售者'
+    };
+    
+  } catch (error) {
+    Logger.log('transferPointsToSeller Error: ' + error.toString());
     return {
       success: false,
       message: error.toString()

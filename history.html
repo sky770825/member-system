@@ -188,7 +188,8 @@ async function initLiff() {
         'purchase',              // 購買點數 🔧 新增
         'referral_purchase_reward',  // 推薦購買獎勵 🔧 新增
         'referral_withdraw_reward',  // 推薦提領獎勵 🔧 新增
-        'referral_bonus'         // 推薦註冊獎勵（舊版）
+        'referral_bonus',        // 推薦註冊獎勵（舊版）
+        'mall_sale'              // 商城銷售收入 🔧 新增
       ].includes(item.type);
       
       const displayPoints = Math.abs(item.points);
@@ -232,7 +233,9 @@ function translateType(type) {
     'referral_bonus': '🎁 推薦註冊獎勵',
     'referral_reward': '🎁 推薦獎勵',
     'admin_add': '➕ 管理員加點',
-    'admin_deduct': '➖ 管理員扣點'
+    'admin_deduct': '➖ 管理員扣點',
+    'mall_purchase': '🛒 商城購買',
+    'mall_sale': '💰 商品售出'
   };
   return map[type] || '其他';
 }
@@ -248,6 +251,10 @@ function getTransactionDetail(item) {
     return `<span class="transaction-detail">提領兌現 NT$ ${Math.abs(item.points).toLocaleString()}</span>`;
   } else if (item.type === 'referral_purchase_reward' || item.type === 'referral_withdraw_reward') {
     return `<span class="transaction-detail">${item.message || '推薦獎勵'}</span>`;
+  } else if (item.type === 'mall_purchase') {
+    return `<span class="transaction-detail">${item.message || '購買商城商品'}</span>`;
+  } else if (item.type === 'mall_sale') {
+    return `<span class="transaction-detail">${item.message || '商品售出收入'}</span>`;
   } else if (item.message) {
     return `<span class="transaction-detail">${item.message}</span>`;
   }

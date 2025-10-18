@@ -15,6 +15,7 @@
   </div>
 </div>
 
+<script src="./assets/cache-manager.js"></script>
 <script>
 let currentUserId = '';
 let currentPoints = 0;
@@ -41,32 +42,26 @@ async function initLiff() {
     // 保存當前用戶 ID
     currentUserId = lineUserId;
     
-    // 檢查本地快取
-    const cacheKey = `profile_${lineUserId}`;
-    const cached = getCache(cacheKey);
+    // 🚀 優化：使用統一快取管理器
+    const result = await CacheManager.getOrFetch(
+      `profile_${lineUserId}`,
+      async () => {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec?action=profile&lineUserId=" + lineUserId);
+        return await res.json();
+      },
+      5 * 60 * 1000 // 會員資料快取 5 分鐘
+    );
     
-    // 如果有快取，先顯示快取資料
-    if (cached) {
-      console.log('使用快取資料');
-      currentPoints = cached.points || 0;
-      renderProfile(cached, pictureUrl, displayName);
-    }
-    
-    // 同時發送 API 請求更新最新資料
-    const res = await fetch("https://script.google.com/macros/s/AKfycbwDt0-rOSmo5wJzTRmu0gPq944hQTA5TtAzIyzmSxpLQm-nFKhwZWiaALnQP1zMYdOB/exec?action=profile&lineUserId=" + lineUserId);
-    const data = await res.json();
+    const data = result.data;
     
     // 記錄載入時間
     const loadTime = Date.now() - startTime;
-    console.log(`載入時間: ${loadTime}ms`);
+    console.log(`⚡ 會員中心載入時間: ${loadTime}ms ${result.fromCache ? '(使用快取)' : '(從 API)'}`);
     
     // 保存當前點數
     currentPoints = data.points || 0;
     
-    // 更新快取（5 分鐘有效）
-    setCache(cacheKey, data, 5 * 60 * 1000);
-    
-    // 渲染最新資料
+    // 渲染資料
     renderProfile(data, pictureUrl, displayName);
     
     // 🔧 啟動自動刷新（每 10 秒檢查一次）
@@ -99,7 +94,7 @@ function startAutoRefresh(lineUserId, pictureUrl, displayName) {
     try {
       console.log('🔍 檢查點數更新中...', new Date().toLocaleTimeString());
       
-      const res = await fetch("https://script.google.com/macros/s/AKfycbwDt0-rOSmo5wJzTRmu0gPq944hQTA5TtAzIyzmSxpLQm-nFKhwZWiaALnQP1zMYdOB/exec?action=profile&lineUserId=" + lineUserId);
+      const res = await fetch("https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec?action=profile&lineUserId=" + lineUserId);
       const data = await res.json();
       
       const newPoints = data.points || 0;
@@ -142,7 +137,7 @@ document.addEventListener('visibilitychange', async () => {
     console.log('👁️ 頁面重新可見，立即檢查點數');
     try {
       const profile = await liff.getProfile();
-      const res = await fetch("https://script.google.com/macros/s/AKfycbwDt0-rOSmo5wJzTRmu0gPq944hQTA5TtAzIyzmSxpLQm-nFKhwZWiaALnQP1zMYdOB/exec?action=profile&lineUserId=" + currentUserId);
+      const res = await fetch("https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec?action=profile&lineUserId=" + currentUserId);
       const data = await res.json();
       
       const newPoints = data.points || 0;
@@ -165,7 +160,7 @@ document.addEventListener('visibilitychange', async () => {
 async function showReceivedPointsNotification(lineUserId, pointsDiff) {
   try {
     // 獲取最新的交易記錄
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbwDt0-rOSmo5wJzTRmu0gPq944hQTA5TtAzIyzmSxpLQm-nFKhwZWiaALnQP1zMYdOB/exec?action=transactions&lineUserId=${lineUserId}&limit=5`);
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec?action=transactions&lineUserId=${lineUserId}&limit=5`);
     const data = await res.json();
     
     if (data.success && data.transactions && data.transactions.length > 0) {
@@ -323,6 +318,26 @@ function renderProfile(data, pictureUrl, displayName) {
       </div>
       
       <div class="action-buttons">
+        <button class="btn btn-primary" onclick="goMall()" style="background: linear-gradient(135deg, #667eea, #764ba2); border-color: #667eea;">
+          <span class="btn-icon">🛒</span>
+          公益商城
+        </button>
+        <button class="btn btn-primary" onclick="goPurchase()" style="background: linear-gradient(135deg, #FFB800, #E69500); border-color: #FFB800;">
+          <span class="btn-icon">💰</span>
+          購買公益點數
+        </button>
+        <button class="btn btn-secondary" onclick="goMyOrders()" style="background: linear-gradient(135deg, #667eea, #764ba2); border-color: #667eea; color: white;">
+          <span class="btn-icon">📦</span>
+          我的訂單
+        </button>
+        <button class="btn btn-primary" onclick="goWithdraw()" style="background: linear-gradient(135deg, #FF6B00, #E65100); border-color: #FF6B00;">
+          <span class="btn-icon">💵</span>
+          提領兌現
+        </button>
+        <button class="btn btn-secondary" onclick="goWithdrawalHistory()" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2); border-color: #9C27B0; color: white;">
+          <span class="btn-icon">📋</span>
+          提領記錄
+        </button>
         <button class="btn btn-primary" onclick="goTransfer()">
           <span class="btn-icon">❤️</span>
           分享公益點數
@@ -340,34 +355,26 @@ function renderProfile(data, pictureUrl, displayName) {
   `;
 }
 
-// 簡單的本地快取
-function setCache(key, data, ttl = 5 * 60 * 1000) {
-  const item = {
-    data: data,
-    expiry: Date.now() + ttl
-  };
-  try {
-    localStorage.setItem(key, JSON.stringify(item));
-  } catch (e) {
-    console.warn('快取儲存失敗:', e);
-  }
+// 快取函數已移至 cache-manager.js 統一管理
+
+function goMall() {
+  window.location.href = "mall.html";
 }
 
-function getCache(key) {
-  try {
-    const item = localStorage.getItem(key);
-    if (!item) return null;
-    
-    const parsed = JSON.parse(item);
-    if (Date.now() > parsed.expiry) {
-      localStorage.removeItem(key);
-      return null;
-    }
-    
-    return parsed.data;
-  } catch (e) {
-    return null;
-  }
+function goPurchase() {
+  window.location.href = "purchase.html";
+}
+
+function goMyOrders() {
+  window.location.href = "my-orders.html";
+}
+
+function goWithdraw() {
+  window.location.href = "withdraw.html";
+}
+
+function goWithdrawalHistory() {
+  window.location.href = "withdrawal-history.html";
 }
 
 function goTransfer() {

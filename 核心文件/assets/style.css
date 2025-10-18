@@ -5,18 +5,22 @@
   --secondary-color: #6c757d;
   --danger-color: #dc3545;
   --success-color: #28a745;
+  --charity-color: #FFB800; /* 🔧 公益點數黃色 */
+  --charity-light: #FFF3CD; /* 🔧 公益點數淺黃背景 */
   --text-primary: #222;
   --text-secondary: #777;
   --bg-primary: #fff;
   --bg-secondary: #f9f9f9;
   --border-color: #ddd;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --shadow-sm: 0 1px 4px rgba(0,0,0,0.05);
-  --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
-  --shadow-lg: 0 2px 12px rgba(0,0,0,0.08);
-  --transition: all 0.3s ease;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+  --shadow-xl: 0 12px 32px rgba(0,0,0,0.15);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -25,21 +29,32 @@
 
 body {
   font-family: "Noto Sans TC", Inter, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f5f6fa;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-attachment: fixed;
   margin: 0;
   padding: 0;
   color: var(--text-primary);
   line-height: 1.6;
+  min-height: 100vh;
 }
 
 /* ==================== 容器 ==================== */
 .container {
-  max-width: 900px;
-  margin: 20px auto;
+  max-width: 540px;
+  margin: 0 auto;
   background: var(--bg-primary);
-  padding: 20px;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  padding: 32px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  min-height: 100vh;
+}
+
+@media (min-width: 768px) {
+  .container {
+    margin: 40px auto;
+    min-height: auto;
+    max-width: 480px;
+  }
 }
 
 /* ==================== 標題 ==================== */
@@ -156,25 +171,46 @@ p {
 }
 
 .btn-quick {
-  padding: 10px 20px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #FFF3CD, #FFE69C);
+  border: 2px solid #FFB800;
+  border-radius: 12px;
+  color: #856404;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 184, 0, 0.2);
+  position: relative;
+  overflow: hidden;
   width: auto;
   margin: 0;
 }
 
 .btn-quick:hover {
-  background: var(--primary-color);
-  color: #fff;
-  border-color: var(--primary-color);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(135deg, #FFE69C, #FFD966);
+  border-color: #E69500;
+  color: #856404;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 184, 0, 0.4);
+}
+
+.btn-quick:active {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(255, 184, 0, 0.3);
+}
+
+.btn-clear {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef) !important;
+  border: 2px solid #6c757d !important;
+  color: #495057 !important;
+}
+
+.btn-clear:hover {
+  background: linear-gradient(135deg, #e9ecef, #dee2e6) !important;
+  border-color: #495057 !important;
+  color: #212529 !important;
+  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.3) !important;
 }
 
 /* ==================== 輸入框 ==================== */
@@ -417,18 +453,20 @@ textarea {
 }
 
 .points-card {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-  color: #fff;
+  background: linear-gradient(135deg, #FFF3CD, #FFE69C);
+  color: var(--charity-color);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 24px 20px;
   display: flex;
   align-items: center;
-  gap: 15px;
-  box-shadow: var(--shadow-lg);
+  gap: 16px;
+  box-shadow: var(--shadow-md);
+  border: 2px solid var(--charity-color);
 }
 
 .points-icon {
-  font-size: 48px;
+  font-size: 56px;
+  filter: drop-shadow(0 2px 4px rgba(255, 184, 0, 0.2));
 }
 
 .points-info {
@@ -436,21 +474,24 @@ textarea {
 }
 
 .points-label {
-  font-size: 13px;
-  opacity: 0.9;
+  font-size: 14px;
+  font-weight: 600;
   margin-bottom: 6px;
+  color: var(--charity-color);
 }
 
 .points-value {
-  font-size: 36px;
-  font-weight: 700;
+  font-size: 40px;
+  font-weight: 800;
   margin: 0;
   line-height: 1;
+  color: var(--charity-color);
+  text-shadow: 0 2px 4px rgba(255, 184, 0, 0.1);
 }
 
 .points-value span {
-  font-size: 18px;
-  font-weight: 400;
+  font-size: 20px;
+  font-weight: 600;
   margin-left: 4px;
 }
 
@@ -488,26 +529,29 @@ textarea {
 }
 
 .current-points {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-  color: #fff;
-  border-radius: var(--radius-md);
-  padding: 15px;
+  background: linear-gradient(135deg, #FFF3CD, #FFE69C);
+  color: var(--charity-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
   text-align: center;
-  margin-bottom: 16px;
-  display: inline-block;
-  width: auto;
-  min-width: 200px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-md);
+  border: 2px solid var(--charity-color);
+  width: 100%;
 }
 
 .current-points .points-label {
-  font-size: 13px;
-  opacity: 0.9;
-  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--charity-color);
 }
 
 .current-points .points-value {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--charity-color);
+  text-shadow: 0 2px 4px rgba(255, 184, 0, 0.1);
 }
 
 .transfer-form-grid {
@@ -537,19 +581,37 @@ textarea {
 .quick-amount {
   margin-bottom: 14px;
   grid-column: 1 / -1;
+  background: linear-gradient(135deg, #FFFBF0, #FFF8E1);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #FFE69C;
 }
 
 .quick-amount p {
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 10px;
+  font-weight: 600;
+  color: #856404;
+  margin-bottom: 12px;
   font-size: 14px;
 }
 
 .quick-btns {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+
+/* 平板版：3 列布局 */
+@media (max-width: 768px) {
+  .quick-btns {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 小手機：2 列布局 */
+@media (max-width: 480px) {
+  .quick-btns {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* ==================== Modal ==================== */
@@ -883,31 +945,40 @@ textarea {
 
 @media (max-width: 600px) {
   .container {
-    margin: 15px auto;
-    width: 95%;
-    padding: 16px;
+    margin: 0;
+    width: 100%;
+    padding: 24px 20px;
+    border-radius: 0;
+    min-height: 100vh;
   }
 
   h1 {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   h2 {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .points-card {
-    flex-direction: column;
-    text-align: center;
-    padding: 16px;
+    padding: 20px 16px;
+    gap: 12px;
   }
 
   .points-icon {
-    font-size: 40px;
+    font-size: 48px;
   }
 
   .points-value {
-    font-size: 28px;
+    font-size: 36px;
+  }
+  
+  .current-points {
+    padding: 20px;
+  }
+  
+  .current-points .points-value {
+    font-size: 36px;
   }
 
   .quick-btns {
@@ -915,11 +986,13 @@ textarea {
   }
 
   .modal-content {
-    padding: 16px;
+    padding: 24px;
+    width: 92%;
   }
 
   .modal-buttons {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .logo {
@@ -936,43 +1009,97 @@ textarea {
   }
 
   .welcome-header h1 {
-    font-size: 22px;
+    font-size: 24px;
   }
   
   .profile-header {
     grid-template-columns: 1fr;
     text-align: center;
+    gap: 16px;
   }
   
   .profile-header-center {
     text-align: center;
   }
   
+  .profile-avatar {
+    margin: 0 auto;
+    width: 100px;
+    height: 100px;
+    border: 4px solid var(--charity-light);
+  }
+  
   .profile-info {
     grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 20px;
   }
   
   .transfer-form-grid {
     grid-template-columns: 1fr;
   }
+  
+  .btn-large {
+    padding: 16px 24px;
+    font-size: 17px;
+  }
 }
 
 @media (max-width: 400px) {
   .container {
-    padding: 16px;
+    padding: 20px 16px;
   }
 
   .btn {
     font-size: 15px;
-    padding: 10px 16px;
+    padding: 12px 18px;
   }
 
   .btn-large {
     font-size: 16px;
-    padding: 14px 20px;
+    padding: 16px 22px;
   }
 
   input, select, textarea {
-    font-size: 15px;
+    font-size: 16px; /* 防止 iOS 自動縮放 */
+    padding: 12px 16px;
+  }
+  
+  .points-value {
+    font-size: 32px;
+  }
+  
+  .current-points .points-value {
+    font-size: 32px;
+  }
+}
+
+/* ==================== 平板優化 ==================== */
+@media (min-width: 601px) and (max-width: 900px) {
+  .container {
+    max-width: 600px;
+    margin: 32px auto;
+    padding: 36px;
+  }
+  
+  .points-card, .current-points {
+    padding: 28px 24px;
+  }
+}
+
+/* ==================== 大螢幕優化 ==================== */
+@media (min-width: 901px) {
+  .container {
+    max-width: 540px;
+    margin: 48px auto;
+    padding: 40px;
+  }
+  
+  .points-card, .current-points {
+    padding: 32px 28px;
+  }
+  
+  .btn:hover:not(:disabled) {
+    transform: translateY(-2px);
   }
 }

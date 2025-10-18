@@ -48,18 +48,42 @@
   </div>
 </div>
 
+<script src="./assets/cache-manager.js"></script>
 <script>
-const LIFF_ID = "2008231108-2PDbO5qk"; // 編輯會員資料頁面
-const API_URL = "https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec";
+const LIFF_ID = "2008231108-2PDbO5qk"; // 統一使用主要 LIFF ID
+const API_URL = "https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec";
 
 let lineUserId = '';
+
+// 🔧 安全關閉視窗函數
+function safeCloseWindow() {
+  try {
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        showMessage('✅ 操作完成！請關閉此頁面', 'success');
+      }
+    }
+  } catch (error) {
+    console.warn('關閉視窗失敗:', error);
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      showMessage('✅ 操作完成！請關閉此頁面', 'success');
+    }
+  }
+}
 
 async function initLiff() {
   try {
     await liff.init({ liffId: LIFF_ID });
     
     if (!liff.isLoggedIn()) {
-      liff.login();
+      // 🔧 優化：使用 redirectUri 保留當前頁面
+      liff.login({ redirectUri: window.location.href });
       return;
     }
     
@@ -121,7 +145,7 @@ document.getElementById('editForm').addEventListener('submit', async (e) => {
     if (data.success) {
       showMessage('✅ 修改成功！即將返回...', 'success');
       setTimeout(() => {
-        liff.closeWindow();
+        safeCloseWindow(); // 🔧 使用安全關閉函數
       }, 2000);
     } else {
       showMessage('修改失敗：' + (data.message || '請稍後再試'), 'error');
@@ -150,7 +174,7 @@ function showMessage(msg, type) {
 }
 
 function goBack() {
-  liff.closeWindow();
+  safeCloseWindow(); // 🔧 使用安全關閉函數
 }
 
 initLiff();

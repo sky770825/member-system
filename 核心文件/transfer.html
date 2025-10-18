@@ -12,12 +12,12 @@
   <div class="transfer-card">
     <div class="page-header">
       <button class="btn-back" onclick="goBack()">← 返回</button>
-      <h1>轉點給好友</h1>
+      <h1>❤️ 分享公益點數</h1>
     </div>
     
-    <div class="current-points" id="currentPoints">
-      <p class="points-label">可用點數</p>
-      <p class="points-value">-- <span>點</span></p>
+    <div class="current-points" id="currentPoints" style="border-color: #FFB800;">
+      <p class="points-label" style="color: #856404; font-weight: 600;">❤️ 可用公益點數</p>
+      <p class="points-value" style="color: #FFB800;">-- <span style="color: #856404;">點</span></p>
     </div>
     
     <form id="transferForm">
@@ -29,18 +29,32 @@
         </div>
         
         <div class="form-group">
-          <label for="points">轉點數量 *</label>
-          <input type="number" id="points" name="points" required placeholder="請輸入轉點數量" min="1">
+          <label for="points">❤️ 轉贈公益點數 *</label>
+          <input type="number" id="points" name="points" required placeholder="請輸入公益點數" min="1">
           <small>每次最少轉 1 點</small>
         </div>
         
         <div class="quick-amount">
-          <p>快速選擇：</p>
+          <p style="margin: 0 0 10px 0; color: #666; font-size: 14px; font-weight: 600;">⚡ 快速選擇（可累加）：</p>
           <div class="quick-btns">
-            <button type="button" class="btn-quick" onclick="setAmount(50)">50</button>
-            <button type="button" class="btn-quick" onclick="setAmount(100)">100</button>
-            <button type="button" class="btn-quick" onclick="setAmount(200)">200</button>
-            <button type="button" class="btn-quick" onclick="setAmount(500)">500</button>
+            <button type="button" class="btn-quick" onclick="setAmount(50)">
+              <span style="font-size: 18px; font-weight: 800;">+50</span>
+            </button>
+            <button type="button" class="btn-quick" onclick="setAmount(100)">
+              <span style="font-size: 18px; font-weight: 800;">+100</span>
+            </button>
+            <button type="button" class="btn-quick" onclick="setAmount(200)">
+              <span style="font-size: 18px; font-weight: 800;">+200</span>
+            </button>
+            <button type="button" class="btn-quick" onclick="setAmount(500)">
+              <span style="font-size: 18px; font-weight: 800;">+500</span>
+            </button>
+            <button type="button" class="btn-quick" onclick="setAmount(1000)">
+              <span style="font-size: 18px; font-weight: 800;">+1000</span>
+            </button>
+            <button type="button" class="btn-quick btn-clear" onclick="clearAmount()">
+              <span style="font-size: 18px; font-weight: 800;">清除</span>
+            </button>
           </div>
         </div>
         
@@ -52,8 +66,8 @@
       </div>
       
       <button type="submit" class="btn btn-primary btn-large" id="submitBtn">
-        <span class="btn-icon">💸</span>
-        確認轉點
+        <span class="btn-icon">❤️</span>
+        確認轉贈
       </button>
     </form>
     
@@ -63,45 +77,88 @@
 
 <div id="confirmModal" class="modal">
   <div class="modal-content">
-    <h3>確認轉點</h3>
+    <h3>❤️ 確認轉贈公益點數</h3>
     <div class="confirm-details">
       <p><strong>收款人：</strong><span id="confirmReceiver"></span></p>
-      <p><strong>轉點數量：</strong><span id="confirmPoints"></span> 點</p>
+      <p><strong style="color: #856404;">❤️ 公益點數：</strong><span id="confirmPoints" style="color: #FFB800; font-weight: bold; font-size: 24px;"></span> <span style="color: #856404;">點</span></p>
       <p><strong>留言：</strong><span id="confirmMessage"></span></p>
     </div>
     <div class="modal-buttons">
       <button class="btn btn-outline" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="confirmTransfer()">確認轉出</button>
+      <button class="btn btn-primary" onclick="confirmTransfer()">❤️ 確認轉出</button>
     </div>
   </div>
 </div>
 
+<script src="./assets/cache-manager.js"></script>
 <script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec";
+
 let lineUserId = '';
 let currentPoints = 0;
 let receiverData = null;
 let transferData = null;
+
+// 🔧 添加超時保護函數（放在最前面）
+function fetchWithTimeout(url, options = {}, timeout = 15000) {
+  return Promise.race([
+    fetch(url, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('請求超時，請檢查網路連線')), timeout)
+    )
+  ]);
+}
+
+// 🔧 安全關閉視窗函數（檢查是否在 LIFF 環境）
+function safeCloseWindow() {
+  try {
+    // 檢查是否在 LIFF 環境且已初始化
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      // 不在 LINE 中，返回上一頁或顯示提示
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        showMessage('✅ 操作完成！請關閉此頁面', 'success');
+      }
+    }
+  } catch (error) {
+    console.warn('關閉視窗失敗:', error);
+    // 降級處理：嘗試返回上一頁
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      showMessage('✅ 操作完成！請關閉此頁面', 'success');
+    }
+  }
+}
 
 async function initLiff() {
   try {
     await liff.init({ liffId: "2008231108-2PDbO5qk" });
     
     if (!liff.isLoggedIn()) {
-      liff.login();
+      // 🔧 優化：使用 redirectUri 保留當前頁面
+      liff.login({ redirectUri: window.location.href });
       return;
     }
     
     const profile = await liff.getProfile();
     lineUserId = profile.userId;
     
-    // 取得當前點數
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?action=profile&lineUserId=${lineUserId}`);
+    // 取得當前點數 - 🔧 使用超時保護
+    const res = await fetchWithTimeout(
+      `https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec?action=profile&lineUserId=${lineUserId}`,
+      {},
+      10000 // 10秒超時
+    );
     const data = await res.json();
     
     currentPoints = data.points || 0;
     document.getElementById('currentPoints').innerHTML = `
-      <p class="points-label">可用點數</p>
-      <p class="points-value">${currentPoints} <span>點</span></p>
+      <p class="points-label" style="color: #856404; font-weight: 600;">❤️ 可用公益點數</p>
+      <p class="points-value" style="color: #FFB800;">${currentPoints} <span style="color: #856404;">點</span></p>
     `;
     
     // 設定最大點數
@@ -109,7 +166,7 @@ async function initLiff() {
     
   } catch (error) {
     console.error('LIFF 初始化錯誤:', error);
-    showMessage('系統錯誤，請稍後再試', 'error');
+    showMessage('❌ ' + error.message, 'error');
   }
 }
 
@@ -118,11 +175,19 @@ document.getElementById('receiverPhone').addEventListener('blur', async function
   const phone = this.value;
   if (!phone) return;
   
+  const infoDiv = document.getElementById('receiverInfo');
+  infoDiv.innerHTML = `<span class="receiver-searching">🔍 查詢中...</span>`;
+  infoDiv.style.display = 'block';
+  
   try {
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?action=check-user&phone=${phone}`);
+    // 🔧 使用超時保護
+    const res = await fetchWithTimeout(
+      `https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec?action=check-user&phone=${phone}`,
+      {},
+      10000 // 10秒超時
+    );
     const data = await res.json();
     
-    const infoDiv = document.getElementById('receiverInfo');
     if (data.exists) {
       receiverData = data;
       infoDiv.innerHTML = `<span class="receiver-found">✓ ${data.name}</span>`;
@@ -134,6 +199,9 @@ document.getElementById('receiverPhone').addEventListener('blur', async function
     }
   } catch (error) {
     console.error('查詢錯誤:', error);
+    receiverData = null;
+    infoDiv.innerHTML = `<span class="receiver-error">❌ 查詢失敗，請重試</span>`;
+    infoDiv.style.display = 'block';
   }
 });
 
@@ -159,13 +227,30 @@ document.getElementById('message').addEventListener('input', function() {
   document.getElementById('charCount').textContent = `${count}/100`;
 });
 
-// 快速選擇金額
+// 快速選擇金額（累加模式）
 function setAmount(amount) {
-  if (amount > currentPoints) {
-    showMessage('點數不足', 'error');
+  // 獲取當前欄位的值，如果是空的或無效的就當作 0
+  const currentValue = parseInt(document.getElementById('points').value) || 0;
+  
+  // 累加新的金額
+  const newValue = currentValue + amount;
+  
+  // 檢查是否超過可用點數
+  if (newValue > currentPoints) {
+    showMessage('❤️ 公益點數不足', 'error');
     return;
   }
-  document.getElementById('points').value = amount;
+  
+  // 設定新的值
+  document.getElementById('points').value = newValue;
+  
+  console.log(`➕ 累加金額: ${currentValue} + ${amount} = ${newValue}`);
+}
+
+// 清除金額
+function clearAmount() {
+  document.getElementById('points').value = '';
+  console.log('🗑️ 已清除金額');
 }
 
 // 表單提交
@@ -179,12 +264,12 @@ document.getElementById('transferForm').addEventListener('submit', function(e) {
   
   const points = parseInt(document.getElementById('points').value);
   if (points > currentPoints) {
-    showMessage('點數不足', 'error');
+    showMessage('❤️ 公益點數不足', 'error');
     return;
   }
   
   if (points < 1) {
-    showMessage('最少轉點 1 點', 'error');
+    showMessage('最少轉贈 1 點', 'error');
     return;
   }
   
@@ -221,28 +306,64 @@ async function confirmTransfer() {
       message: transferData.message
     });
     
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec?${params.toString()}`, {
-      method: 'GET',
-      redirect: 'follow'
-    });
+    // 🔧 使用超時保護（15秒）
+    const res = await fetchWithTimeout(
+      `https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec?${params.toString()}`,
+      {
+        method: 'GET',
+        redirect: 'follow'
+      },
+      15000 // 15秒超時
+    );
     
     const data = await res.json();
     
     if (data.success) {
-      showMessage('✅ 轉點成功！', 'success');
-      setTimeout(() => {
-        liff.closeWindow();
-      }, 2000);
+      // 🔧 立即更新本地點數（不等 API，速度更快）
+      const transferredPoints = transferData.points;
+      currentPoints -= transferredPoints;
+      
+      // 立即更新顯示
+      document.getElementById('currentPoints').innerHTML = `
+        <p class="points-label" style="color: #856404; font-weight: 600;">❤️ 可用公益點數</p>
+        <p class="points-value" style="color: #FFB800;">${currentPoints} <span style="color: #856404;">點</span></p>
+      `;
+      
+      // 更新最大值
+      document.getElementById('points').max = currentPoints;
+      
+      // 顯示成功訊息
+      showMessage(`✅ 成功轉贈 ${transferredPoints} 點給 ${receiverData.name}！❤️`, 'success');
+      
+      // 🔧 重置表單，讓用戶可以繼續轉點
+      document.getElementById('receiverPhone').value = '';
+      document.getElementById('points').value = '';
+      document.getElementById('message').value = '';
+      document.getElementById('receiverInfo').style.display = 'none';
+      receiverData = null;
+      
+      // 恢復按鈕
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉贈';
     } else {
       showMessage(data.message || '轉點失敗，請稍後再試', 'error');
       submitBtn.disabled = false;
-      submitBtn.innerHTML = '<span class="btn-icon">💸</span> 確認轉點';
+      submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉贈';
     }
   } catch (error) {
     console.error('轉點錯誤:', error);
-    showMessage('系統錯誤，請稍後再試', 'error');
+    showMessage('❌ ' + error.message, 'error');
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<span class="btn-icon">💸</span> 確認轉點';
+    submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉贈';
+  } finally {
+    // 🔧 確保按鈕一定會恢復
+    setTimeout(() => {
+      if (submitBtn.disabled && submitBtn.innerHTML.includes('轉點中')) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉贈';
+        showMessage('⚠️ 操作超時，請重試', 'error');
+      }
+    }, 16000); // 比超時時間多1秒，作為最後保障
   }
 }
 
@@ -262,7 +383,7 @@ function showMessage(msg, type) {
 }
 
 function goBack() {
-  liff.closeWindow();
+  safeCloseWindow(); // 🔧 使用安全關閉函數
 }
 
 initLiff();

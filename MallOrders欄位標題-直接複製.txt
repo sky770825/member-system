@@ -1,0 +1,65 @@
+====================================
+MallOrders 工作表欄位標題
+直接複製貼上到 Google Sheets 第一行
+====================================
+
+orderId	orderNumber	memberUserId	memberName	productId	productCode	productName	productImage	pointsUsed	pointsBefore	pointsAfter	sellerName	sellerPhone	sellerReferralCode	status	orderDate	completedAt	notes	createdAt
+
+====================================
+測試資料（可選）
+複製到第二行測試
+====================================
+
+1697544890123	MO1697544890123	U1234567890abcdef	王小明	1697544800000	ABC123	精美手工藝品	https://via.placeholder.com/400	500	1000	500	張三	0912-345-678	ABC123	completed	2025-10-17T14:30:00.000Z	2025-10-17T14:30:00.000Z	📱 0912-345-678	2025-10-17T14:30:00.000Z
+
+====================================
+中文對照（不要複製這個）
+====================================
+
+A. orderId - 訂單ID
+B. orderNumber - 訂單編號
+C. memberUserId - 會員ID
+D. memberName - 會員姓名
+E. productId - 商品ID
+F. productCode - 商品代碼
+G. productName - 商品名稱
+H. productImage - 商品圖片
+I. pointsUsed - 使用點數
+J. pointsBefore - 購買前點數
+K. pointsAfter - 購買後點數
+L. sellerName - 賣家姓名 ⭐新增
+M. sellerPhone - 賣家電話 ⭐新增
+N. sellerReferralCode - 賣家推薦碼 ⭐新增
+O. status - 訂單狀態
+P. orderDate - 訂單日期
+Q. completedAt - 完成時間
+R. notes - 備註
+S. createdAt - 建立時間
+
+====================================
+快速操作步驟
+====================================
+
+1. 開啟 Google Sheets
+   網址：https://docs.google.com/spreadsheets/d/1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw/edit
+
+2. 建立新工作表
+   - 點擊左下角「+」
+   - 命名為：MallOrders
+
+3. 貼上標題列
+   - 選取 A1 儲存格
+   - 複製上方「欄位標題」
+   - 貼上（Ctrl+V）
+
+4. （可選）貼上測試資料
+   - 選取 A2 儲存格
+   - 複製上方「測試資料」
+   - 貼上（Ctrl+V）
+
+5. 完成！
+   - 確認共有 19 欄（A-S）
+   - 確認 L、M、N 欄是賣家資訊
+
+====================================
+

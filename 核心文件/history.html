@@ -112,24 +112,56 @@
   </div>
 </div>
 
+<script src="./assets/cache-manager.js"></script>
 <script>
-const LIFF_ID = "2008231108-2PDbO5qk"; // 點數交易記錄頁面
-const API_URL = "https://script.google.com/macros/s/AKfycbwYbhHNlwix-1FQzB63PVKprfiV0Q3CxOLNFuGUWXXnPNPsiN3L5bvkr6id0XyITi_F/exec";
+const LIFF_ID = "2008231108-2PDbO5qk"; // 統一使用主要 LIFF ID
+const API_URL = "https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec";
+
+// 🔧 安全關閉視窗函數
+function safeCloseWindow() {
+  try {
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        alert('請關閉此頁面');
+      }
+    }
+  } catch (error) {
+    console.warn('關閉視窗失敗:', error);
+    if (window.history.length > 1) {
+      window.history.back();
+    }
+  }
+}
 
 async function initLiff() {
   try {
     await liff.init({ liffId: LIFF_ID });
     
     if (!liff.isLoggedIn()) {
-      liff.login();
+      // 🔧 優化：使用 redirectUri 保留當前頁面
+      liff.login({ redirectUri: window.location.href });
       return;
     }
 
     const profile = await liff.getProfile();
     const userId = profile.userId;
 
-    const res = await fetch(`${API_URL}?action=transactions&lineUserId=${userId}&limit=50`);
-    const data = await res.json();
+    // 🚀 優化：使用快取機制
+    const result = await CacheManager.getOrFetch(
+      `transactions_${userId}`,
+      async () => {
+        const res = await fetch(`${API_URL}?action=transactions&lineUserId=${userId}&limit=50`);
+        return await res.json();
+      },
+      2 * 60 * 1000 // 交易記錄快取 2 分鐘
+    );
+    
+    const data = result.data;
+    console.log(result.fromCache ? '📦 使用快取的交易記錄' : '🔄 從 API 載入交易記錄');
 
     const loading = document.getElementById("loading");
     const list = document.getElementById("transactions");
@@ -148,7 +180,18 @@ async function initLiff() {
     }
 
     list.innerHTML = data.transactions.map(item => {
-      const isPositive = ['transfer_in', 'register', 'admin_add'].includes(item.type);
+      // 🔧 更新：包含所有增加點數的交易類型
+      const isPositive = [
+        'transfer_in',           // 收到轉點
+        'register',              // 註冊贈送
+        'admin_add',             // 管理員新增
+        'purchase',              // 購買點數 🔧 新增
+        'referral_purchase_reward',  // 推薦購買獎勵 🔧 新增
+        'referral_withdraw_reward',  // 推薦提領獎勵 🔧 新增
+        'referral_bonus',        // 推薦註冊獎勵（舊版）
+        'mall_sale'              // 商城銷售收入 🔧 新增
+      ].includes(item.type);
+      
       const displayPoints = Math.abs(item.points);
       
       return `
@@ -183,8 +226,16 @@ function translateType(type) {
     'register': '🎁 註冊贈點',
     'transfer_in': '📥 轉入點數',
     'transfer_out': '📤 轉出點數',
+    'purchase': '💰 購買點數',
+    'withdraw': '💵 提領兌現',
+    'referral_purchase_reward': '🎁 推薦購買獎勵',
+    'referral_withdraw_reward': '🎁 推薦提領獎勵',
+    'referral_bonus': '🎁 推薦註冊獎勵',
+    'referral_reward': '🎁 推薦獎勵',
     'admin_add': '➕ 管理員加點',
-    'admin_deduct': '➖ 管理員扣點'
+    'admin_deduct': '➖ 管理員扣點',
+    'mall_purchase': '🛒 商城購買',
+    'mall_sale': '💰 商品售出'
   };
   return map[type] || '其他';
 }
@@ -194,6 +245,16 @@ function getTransactionDetail(item) {
     return `<span class="transaction-detail">來自：${item.senderName}</span>`;
   } else if (item.type === 'transfer_out' && item.receiverName) {
     return `<span class="transaction-detail">轉給：${item.receiverName}</span>`;
+  } else if (item.type === 'purchase') {
+    return `<span class="transaction-detail">購買公益點數</span>`;
+  } else if (item.type === 'withdraw') {
+    return `<span class="transaction-detail">提領兌現 NT$ ${Math.abs(item.points).toLocaleString()}</span>`;
+  } else if (item.type === 'referral_purchase_reward' || item.type === 'referral_withdraw_reward') {
+    return `<span class="transaction-detail">${item.message || '推薦獎勵'}</span>`;
+  } else if (item.type === 'mall_purchase') {
+    return `<span class="transaction-detail">${item.message || '購買商城商品'}</span>`;
+  } else if (item.type === 'mall_sale') {
+    return `<span class="transaction-detail">${item.message || '商品售出收入'}</span>`;
   } else if (item.message) {
     return `<span class="transaction-detail">${item.message}</span>`;
   }
@@ -211,7 +272,7 @@ function formatDate(ts) {
 }
 
 function goBack() {
-  liff.closeWindow();
+  safeCloseWindow(); // 🔧 使用安全關閉函數
 }
 
 initLiff();
