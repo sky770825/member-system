@@ -354,22 +354,45 @@ async function handleLogin(event) {
 // LINE 登入
 async function loginWithLine() {
   try {
+    // 檢查是否在本地環境
+    if (window.location.protocol === 'file:') {
+      showMessage('❌ LINE 登入需要在伺服器環境下運行\n請使用 start-server.bat 啟動本地伺服器', 'error');
+      return;
+    }
+    
     await liff.init({ liffId: "2008231108-2PDbO5qk" });
     
     if (!liff.isLoggedIn()) {
-      liff.login({ redirectUri: window.location.origin + '/member-system/profile.html' });
+      // 修正 redirectUri，移除不必要的路徑前綴
+      const redirectUri = window.location.origin + '/profile.html';
+      console.log('LINE 登入 redirectUri:', redirectUri);
+      liff.login({ redirectUri: redirectUri });
     } else {
       window.location.href = 'profile.html';
     }
   } catch (error) {
     console.error('LINE 登入錯誤:', error);
-    showMessage('LINE 登入失敗', 'error');
+    let errorMsg = 'LINE 登入失敗';
+    
+    // 提供更詳細的錯誤訊息
+    if (error.message) {
+      errorMsg += ': ' + error.message;
+    }
+    
+    if (error.code === 'INVALID_CONFIG') {
+      errorMsg = '❌ LIFF 設定錯誤，請檢查 LIFF ID 是否正確';
+    } else if (error.message && error.message.includes('redirect')) {
+      errorMsg = '❌ 重定向 URL 未在 LINE Developers 中註冊\n請前往 LINE Developers Console 設定 Endpoint URL';
+    }
+    
+    showMessage(errorMsg, 'error');
   }
 }
 
 function showMessage(msg, type) {
   const messageDiv = document.getElementById('message');
-  messageDiv.textContent = msg;
+  // 支持多行訊息
+  messageDiv.innerHTML = msg.replace(/\n/g, '<br>');
   messageDiv.className = `message ${type}`;
   messageDiv.style.display = 'block';
   
