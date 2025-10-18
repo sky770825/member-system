@@ -267,6 +267,21 @@ function doGet(e) {
         result = getMallOrders(lineUserId);
         break;
         
+      case 'upload-product':
+        // 🏪 上架商品
+        result = uploadProduct(lineUserId, e.parameter);
+        break;
+        
+      case 'update-product':
+        // ✏️ 更新商品
+        result = updateProduct(lineUserId, e.parameter);
+        break;
+        
+      case 'my-product':
+        // 📦 查詢我的商品
+        result = getMyProduct(lineUserId);
+        break;
+        
       case 'version':
         // 🔧 檢查版本
         result = {
@@ -3987,6 +4002,290 @@ function generateSerialNumber(productCode) {
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
   const code = (productCode || 'ITEM').substring(0, 4).toUpperCase();
   return `${code}-${timestamp}-${random}`;
+}
+
+// ==================== 🏪 會員上架商品功能 ====================
+
+/**
+ * 會員上架商品（每人限 1 個）
+ * @param {string} lineUserId - 會員ID
+ * @param {object} productData - 商品資料
+ * @returns {object} 上架結果
+ */
+function uploadProduct(lineUserId, productData) {
+  try {
+    Logger.log('========== uploadProduct 開始 ==========');
+    Logger.log('會員: ' + lineUserId);
+    
+    // 1. 檢查會員是否存在並獲取資訊
+    const membersSheet = getSheet(MEMBERS_SHEET);
+    const membersData = membersSheet.getDataRange().getValues();
+    let memberInfo = null;
+    
+    for (let i = 1; i < membersData.length; i++) {
+      if (membersData[i][0] === lineUserId) {
+        memberInfo = {
+          lineUserId: membersData[i][0],
+          name: membersData[i][1],
+          phone: membersData[i][2],
+          email: membersData[i][3],
+          referralCode: membersData[i][11]
+        };
+        break;
+      }
+    }
+    
+    if (!memberInfo) {
+      return {
+        success: false,
+        message: '會員不存在'
+      };
+    }
+    
+    // 2. 檢查是否已經上架過商品（限制 1 個）
+    const productsSheet = getSheet(PRODUCTS_SHEET);
+    const productsData = productsSheet.getDataRange().getValues();
+    
+    for (let i = 1; i < productsData.length; i++) {
+      // productCode 等於會員推薦碼表示是該會員上架的商品
+      if (productsData[i][1] === memberInfo.referralCode) {
+        return {
+          success: false,
+          message: '您已經上架過商品了！每位會員限上架 1 個商品。'
+        };
+      }
+    }
+    
+    // 3. 驗證商品資料
+    if (!productData.productName || productData.productName.length < 2) {
+      return { success: false, message: '商品名稱太短' };
+    }
+    
+    if (!productData.description || productData.description.length < 10) {
+      return { success: false, message: '商品描述太短，請詳細描述' };
+    }
+    
+    if (!productData.imageUrl || !productData.imageUrl.startsWith('http')) {
+      return { success: false, message: '請提供有效的圖片網址' };
+    }
+    
+    const points = parseInt(productData.points);
+    if (isNaN(points) || points < 1 || points > 100000) {
+      return { success: false, message: '售價必須在 1-100000 點之間' };
+    }
+    
+    if (!['physical', 'virtual', 'charity'].includes(productData.category)) {
+      return { success: false, message: '請選擇有效的商品分類' };
+    }
+    
+    const stock = parseInt(productData.stock);
+    if (isNaN(stock) || (stock < -1 || stock === 0)) {
+      return { success: false, message: '庫存數量無效' };
+    }
+    
+    // 4. 新增商品到 Products 表
+    const now = new Date();
+    const productId = 'PROD-' + now.getTime();
+    const originalPrice = parseInt(productData.originalPrice) || 0;
+    
+    // productCode 設為會員的推薦碼，這樣系統會自動匹配賣家資訊
+    const productCode = memberInfo.referralCode;
+    
+    // 計算排序順序（放在最後）
+    const sortOrder = productsData.length;
+    
+    productsSheet.appendRow([
+      productId,                           // 商品ID
+      productCode,                         // 商品代碼（會員推薦碼）
+      productData.productName,             // 商品名稱
+      productData.description,             // 商品描述
+      productData.imageUrl,                // 商品圖片
+      points,                              // 所需點數
+      originalPrice,                       // 原價
+      0,                                   // 折扣（預設無折扣）
+      productData.category,                // 商品分類
+      stock,                               // 庫存
+      0,                                   // 已售數量
+      false,                               // isActive（需審核，預設 false）
+      sortOrder,                           // 排序
+      productData.tags || '',              // 標籤
+      now.toISOString(),                   // 建立時間
+      now.toISOString()                    // 更新時間
+    ]);
+    
+    Logger.log('✅ 商品上架成功: ' + productData.productName);
+    
+    return {
+      success: true,
+      message: '商品上架成功！等待管理員審核後即可在商城顯示。',
+      productId: productId,
+      productCode: productCode,
+      sellerName: memberInfo.name,
+      sellerPhone: memberInfo.phone
+    };
+    
+  } catch (error) {
+    Logger.log('uploadProduct Error: ' + error.toString());
+    return {
+      success: false,
+      message: '上架失敗：' + error.toString()
+    };
+  }
+}
+
+/**
+ * 更新會員的商品
+ * @param {string} lineUserId - 會員ID
+ * @param {object} productData - 商品資料
+ * @returns {object} 更新結果
+ */
+function updateProduct(lineUserId, productData) {
+  try {
+    Logger.log('========== updateProduct 開始 ==========');
+    
+    // 1. 獲取會員推薦碼
+    const membersSheet = getSheet(MEMBERS_SHEET);
+    const membersData = membersSheet.getDataRange().getValues();
+    let referralCode = '';
+    
+    for (let i = 1; i < membersData.length; i++) {
+      if (membersData[i][0] === lineUserId) {
+        referralCode = membersData[i][11];
+        break;
+      }
+    }
+    
+    if (!referralCode) {
+      return { success: false, message: '會員不存在' };
+    }
+    
+    // 2. 找到會員的商品
+    const productsSheet = getSheet(PRODUCTS_SHEET);
+    const productsData = productsSheet.getDataRange().getValues();
+    let productRow = -1;
+    
+    for (let i = 1; i < productsData.length; i++) {
+      if (productsData[i][1] === referralCode) {
+        productRow = i + 1;
+        break;
+      }
+    }
+    
+    if (productRow === -1) {
+      return { success: false, message: '找不到您的商品' };
+    }
+    
+    // 3. 驗證資料
+    const points = parseInt(productData.points);
+    const stock = parseInt(productData.stock);
+    const originalPrice = parseInt(productData.originalPrice) || 0;
+    
+    if (isNaN(points) || points < 1 || points > 100000) {
+      return { success: false, message: '售價無效' };
+    }
+    
+    if (isNaN(stock) || (stock < -1 || stock === 0)) {
+      return { success: false, message: '庫存數量無效' };
+    }
+    
+    // 4. 更新商品資訊
+    const now = new Date();
+    
+    productsSheet.getRange(productRow, 3).setValue(productData.productName);        // 商品名稱
+    productsSheet.getRange(productRow, 4).setValue(productData.description);        // 描述
+    productsSheet.getRange(productRow, 5).setValue(productData.imageUrl);           // 圖片
+    productsSheet.getRange(productRow, 6).setValue(points);                         // 點數
+    productsSheet.getRange(productRow, 7).setValue(originalPrice);                  // 原價
+    productsSheet.getRange(productRow, 9).setValue(productData.category);           // 分類
+    productsSheet.getRange(productRow, 10).setValue(stock);                         // 庫存
+    productsSheet.getRange(productRow, 12).setValue(false);                         // 需重新審核
+    productsSheet.getRange(productRow, 14).setValue(productData.tags || '');        // 標籤
+    productsSheet.getRange(productRow, 16).setValue(now.toISOString());             // 更新時間
+    
+    Logger.log('✅ 商品更新成功');
+    
+    return {
+      success: true,
+      message: '商品更新成功！等待管理員重新審核。'
+    };
+    
+  } catch (error) {
+    Logger.log('updateProduct Error: ' + error.toString());
+    return {
+      success: false,
+      message: '更新失敗：' + error.toString()
+    };
+  }
+}
+
+/**
+ * 查詢會員的商品
+ * @param {string} lineUserId - 會員ID
+ * @returns {object} 商品資訊
+ */
+function getMyProduct(lineUserId) {
+  try {
+    Logger.log('========== getMyProduct 開始 ==========');
+    
+    // 1. 獲取會員推薦碼
+    const membersSheet = getSheet(MEMBERS_SHEET);
+    const membersData = membersSheet.getDataRange().getValues();
+    let referralCode = '';
+    
+    for (let i = 1; i < membersData.length; i++) {
+      if (membersData[i][0] === lineUserId) {
+        referralCode = membersData[i][11];
+        break;
+      }
+    }
+    
+    if (!referralCode) {
+      return { success: false, message: '會員不存在' };
+    }
+    
+    // 2. 查詢商品
+    const productsSheet = getSheet(PRODUCTS_SHEET);
+    const productsData = productsSheet.getDataRange().getValues();
+    
+    for (let i = 1; i < productsData.length; i++) {
+      if (productsData[i][1] === referralCode) {
+        return {
+          success: true,
+          product: {
+            productId: productsData[i][0],
+            productCode: productsData[i][1],
+            productName: productsData[i][2],
+            description: productsData[i][3],
+            imageUrl: productsData[i][4],
+            points: Number(productsData[i][5]) || 0,
+            originalPrice: Number(productsData[i][6]) || 0,
+            discount: Number(productsData[i][7]) || 0,
+            category: productsData[i][8],
+            stock: Number(productsData[i][9]) || 0,
+            soldCount: Number(productsData[i][10]) || 0,
+            isActive: productsData[i][11],
+            sortOrder: Number(productsData[i][12]) || 0,
+            tags: productsData[i][13],
+            createdAt: productsData[i][14],
+            updatedAt: productsData[i][15]
+          }
+        };
+      }
+    }
+    
+    // 沒有找到商品
+    return {
+      success: false,
+      message: '尚未上架商品'
+    };
+    
+  } catch (error) {
+    Logger.log('getMyProduct Error: ' + error.toString());
+    return {
+      success: false,
+      message: error.toString()
+    };
+  }
 }
 
 /**

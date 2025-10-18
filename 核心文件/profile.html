@@ -322,6 +322,10 @@ function renderProfile(data, pictureUrl, displayName) {
           <span class="btn-icon">🛒</span>
           公益商城
         </button>
+        <button class="btn btn-primary" onclick="goUploadProduct()" style="background: linear-gradient(135deg, #11998e, #38ef7d); border-color: #11998e;">
+          <span class="btn-icon">🏪</span>
+          上架商品
+        </button>
         <button class="btn btn-primary" onclick="goPurchase()" style="background: linear-gradient(135deg, #FFB800, #E69500); border-color: #FFB800;">
           <span class="btn-icon">💰</span>
           購買公益點數
@@ -359,6 +363,10 @@ function renderProfile(data, pictureUrl, displayName) {
 
 function goMall() {
   window.location.href = "mall.html";
+}
+
+function goUploadProduct() {
+  window.location.href = "upload-product.html";
 }
 
 function goPurchase() {
