@@ -47,7 +47,7 @@ async function initLiff() {
     const result = await CacheManager.getOrFetch(
       `profile_${lineUserId}`,
       async () => {
-        const res = await fetch("https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?action=profile&lineUserId=" + lineUserId);
+        const res = await fetch("https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?action=profile&lineUserId=" + lineUserId);
         return await res.json();
       },
       5 * 60 * 1000 // 會員資料快取 5 分鐘
@@ -103,7 +103,7 @@ function startAutoRefresh(lineUserId, pictureUrl, displayName) {
     try {
       console.log('🔍 檢查點數更新中...', new Date().toLocaleTimeString());
       
-      const res = await fetch("https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?action=profile&lineUserId=" + lineUserId);
+      const res = await fetch("https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?action=profile&lineUserId=" + lineUserId);
       const data = await res.json();
       
       const newPoints = data.points || 0;
@@ -169,7 +169,7 @@ document.addEventListener('visibilitychange', async () => {
 async function showReceivedPointsNotification(lineUserId, pointsDiff) {
   try {
     // 獲取最新的交易記錄
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?action=transactions&lineUserId=${lineUserId}&limit=5`);
+      const res = await fetch(`https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?action=transactions&lineUserId=${lineUserId}&limit=5`);
     const data = await res.json();
     
     if (data.success && data.transactions && data.transactions.length > 0) {
