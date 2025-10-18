@@ -564,7 +564,7 @@ function registerMember(data) {
       0,                                  // 累計消費
       referralCode,                       // 推薦碼
       data.referralCode || '',            // 被誰推薦 🎯 新增
-      'active',                           // 帳號狀態
+      ACCOUNT_STATUS_CH.ACTIVE,           // 帳號狀態（中文）
       now,                                // 最後登入
       now,                                // 註冊時間
       now                                 // 更新時間
@@ -974,13 +974,13 @@ function getAllMembers() {
         phone: data[i][2],
         email: data[i][3],
         points: Number(data[i][7]),
-        memberLevel: data[i][8] || 'BRONZE',
+        memberLevel: data[i][8] || MEMBER_LEVELS.BRONZE.name,
         totalEarned: Number(data[i][9]) || 0,
         totalSpent: Number(data[i][10]) || 0,
         referralCode: data[i][11],           // 我的推薦碼
         referredBy: data[i][12] || '',       // 被誰推薦 🎯
         referralCount: referralCount,        // 推薦人數 🎯
-        status: data[i][13] || 'active',
+        status: data[i][13] || ACCOUNT_STATUS_CH.ACTIVE,
         lastLoginAt: data[i][14],
         createdAt: data[i][15]
       });
@@ -1277,7 +1277,7 @@ function loginWithPassword(username, password) {
         Logger.log('找到會員: ' + data[i][1]);
         
         // 檢查帳號狀態
-        if (status !== 'active') {
+        if (status !== ACCOUNT_STATUS_CH.ACTIVE && status !== '啟用') {
           Logger.log('帳號狀態異常: ' + status);
           return {
             success: false,
@@ -1412,7 +1412,7 @@ function registerWithPassword(data) {
       0,                                // 累計消費
       referralCode,                     // 推薦碼
       data.referralCode || '',          // 被誰推薦
-      'active',                         // 帳號狀態
+      ACCOUNT_STATUS_CH.ACTIVE,         // 帳號狀態（中文）
       now,                              // 最後登入
       now,                              // 註冊時間
       now,                              // 更新時間
@@ -1576,10 +1576,10 @@ function initializeSheet(sheet, sheetName) {
     
     // 插入預設等級資料
     const now = new Date().toISOString();
-    sheet.appendRow(['1', 'BRONZE', '銅級會員', 0, 0, '🥉', '#CD7F32', true, now]);
-    sheet.appendRow(['2', 'SILVER', '銀級會員', 500, 0.05, '🥈', '#C0C0C0', true, now]);
-    sheet.appendRow(['3', 'GOLD', '金級會員', 1000, 0.1, '🥇', '#FFD700', true, now]);
-    sheet.appendRow(['4', 'PLATINUM', '白金會員', 5000, 0.15, '💎', '#E5E4E2', true, now]);
+    sheet.appendRow(['1', 'BRONZE', '銅級會員', 0, 0, '🥉', '#CD7F32', '啟用', now]);
+    sheet.appendRow(['2', 'SILVER', '銀級會員', 500, 0.05, '🥈', '#C0C0C0', '啟用', now]);
+    sheet.appendRow(['3', 'GOLD', '金級會員', 1000, 0.1, '🥇', '#FFD700', '啟用', now]);
+    sheet.appendRow(['4', 'PLATINUM', '白金會員', 5000, 0.15, '💎', '#E5E4E2', '啟用', now]);
     
   } else if (sheetName === ACTIVITIES_SHEET) {
     sheet.appendRow([
@@ -1854,10 +1854,10 @@ function clearAllData() {
  * 根據點數計算會員等級
  */
 function calculateMemberLevel(points) {
-  if (points >= 5000) return 'PLATINUM';
-  if (points >= 1000) return 'GOLD';
-  if (points >= 500) return 'SILVER';
-  return 'BRONZE';
+  if (points >= 5000) return MEMBER_LEVELS.PLATINUM.name;  // 返回「白金會員」
+  if (points >= 1000) return MEMBER_LEVELS.GOLD.name;      // 返回「金級會員」
+  if (points >= 500) return MEMBER_LEVELS.SILVER.name;     // 返回「銀級會員」
+  return MEMBER_LEVELS.BRONZE.name;                        // 返回「銅級會員」
 }
 
 /**
@@ -2702,7 +2702,7 @@ function migrateExistingMembers() {
       
       // 如果沒有 status (第14欄)，補上
       if (!data[i][13]) {
-        sheet.getRange(row, 14).setValue('active');
+        sheet.getRange(row, 14).setValue(ACCOUNT_STATUS_CH.ACTIVE);
       }
       
       // 如果沒有 lastLoginAt (第15欄)，補上
@@ -2886,7 +2886,7 @@ function recordPurchase(data) {
       now,                           // 購買時間
       now,                           // 完成時間
       data.notes || '',              // 備註
-      data.status || 'active'        // 狀態
+      data.status || ACCOUNT_STATUS_CH.ACTIVE  // 狀態（中文）
     ];
     
     Logger.log('準備寫入 Purchases 表: ' + JSON.stringify(rowData));
@@ -3265,7 +3265,7 @@ function getPurchaseStats(lineUserId = null) {
       }
       
       // 只統計已完成的購買
-      if (data[i][8] === 'paid' && data[i][19] === 'active') {
+      if (data[i][8] === 'paid' && (data[i][19] === ACCOUNT_STATUS_CH.ACTIVE || data[i][19] === '啟用')) {
         totalPurchases++;
         totalAmount += Number(data[i][5]) || 0;
         totalPoints += Number(data[i][4]) || 0;
@@ -4810,10 +4810,10 @@ function initMemberLevelsSheet() {
   
   // 新增預設等級資料
   const now = new Date().toISOString();
-  sheet.appendRow([1, 'BRONZE', '銅級會員', 0, 0, '🥉', '#CD7F32', true, now]);
-  sheet.appendRow([2, 'SILVER', '銀級會員', 500, 0.05, '🥈', '#C0C0C0', true, now]);
-  sheet.appendRow([3, 'GOLD', '金級會員', 1000, 0.1, '🥇', '#FFD700', true, now]);
-  sheet.appendRow([4, 'PLATINUM', '白金會員', 5000, 0.15, '💎', '#E5E4E2', true, now]);
+  sheet.appendRow([1, 'BRONZE', '銅級會員', 0, 0, '🥉', '#CD7F32', '啟用', now]);
+  sheet.appendRow([2, 'SILVER', '銀級會員', 500, 0.05, '🥈', '#C0C0C0', '啟用', now]);
+  sheet.appendRow([3, 'GOLD', '金級會員', 1000, 0.1, '🥇', '#FFD700', '啟用', now]);
+  sheet.appendRow([4, 'PLATINUM', '白金會員', 5000, 0.15, '💎', '#E5E4E2', '啟用', now]);
   
   Logger.log('✅ 會員等級表初始化完成（含預設資料）');
 }
