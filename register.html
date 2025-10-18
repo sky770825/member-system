@@ -126,7 +126,7 @@ async function initLiff() {
     getReferralCodeFromURL();
     
     // 🔧 優化：保留當前網址作為登入後的返回地址
-    await liff.init({ liffId: "2008231108-rZQKp3mn" });
+    await liff.init({ liffId: "2008231108-2PDbO5qk" });
     
     if (!liff.isLoggedIn()) {
       // 🔧 優化：使用 redirectUri 保留當前頁面狀態
@@ -147,7 +147,7 @@ async function initLiff() {
     
     // 檢查是否已註冊 - 🔧 使用超時保護
     const checkRes = await fetchWithTimeout(
-      `https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?action=check&lineUserId=${lineUserId}`,
+      `https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?action=check&lineUserId=${lineUserId}`,
       {},
       10000
     );
@@ -208,7 +208,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   console.log('提交註冊資料:', formData);
   
   try {
-    const url = 'https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?action=register';
+    const url = 'https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?action=register';
     console.log('發送請求到:', url);
     
     // 使用 URL 參數方式避免 CORS 預檢請求
