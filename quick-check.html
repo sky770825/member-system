@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>快速檢查工具</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #f5f5f5;
+  }
+  
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin: 10px 0;
+  }
+  
+  .status {
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-family: monospace;
+    white-space: pre-wrap;
+  }
+  
+  .success { background: #d4edda; border-left: 4px solid #28a745; }
+  .error { background: #f8d7da; border-left: 4px solid #dc3545; }
+  .info { background: #d1ecf1; border-left: 4px solid #0c5460; }
+  
+  button {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 5px;
+    font-size: 14px;
+  }
+  
+  button:hover {
+    background: #5568d3;
+  }
+  
+  button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2 style="color: #667eea; margin-top: 0;">🔍 LINE 登入診斷工具</h2>
+  <div id="result"></div>
+  
+  <div style="margin-top: 20px;">
+    <button onclick="checkAgain()" id="checkBtn">🔄 重新檢查</button>
+    <button onclick="forceRegister()" id="regBtn" style="display: none; background: #28a745;">📝 強制註冊</button>
+    <button onclick="goProfile()" id="profileBtn" style="display: none; background: #17a2b8;">👤 進入會員中心</button>
+  </div>
+</div>
+
+<div class="card" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+  <h3 style="margin-top: 0;">💡 使用說明</h3>
+  <p style="margin: 5px 0;">這個工具會幫您檢查：</p>
+  <ul style="margin: 10px 0;">
+    <li>LINE 是否已登入</li>
+    <li>會員是否已註冊</li>
+    <li>API 連接是否正常</li>
+  </ul>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec';
+let userId = '';
+let userName = '';
+
+async function init() {
+  const resultDiv = document.getElementById('result');
+  resultDiv.innerHTML = '<div class="status info">⏳ 正在初始化 LIFF...</div>';
+  
+  try {
+    await liff.init({ liffId: '2008231108-2PDbO5qk' });
+    
+    if (!liff.isLoggedIn()) {
+      resultDiv.innerHTML = `
+        <div class="status error">
+          ❌ 尚未登入 LINE
+          
+          請稍候，正在跳轉到登入頁面...
+        </div>
+      `;
+      setTimeout(() => {
+        liff.login();
+      }, 2000);
+      return;
+    }
+    
+    const profile = await liff.getProfile();
+    userId = profile.userId;
+    userName = profile.displayName;
+    
+    resultDiv.innerHTML = `
+      <div class="status success">
+        ✅ LINE 登入成功
+        
+        User ID: ${userId}
+        顯示名稱: ${userName}
+      </div>
+    `;
+    
+    // 自動檢查註冊狀態
+    await checkRegistration();
+    
+  } catch (error) {
+    resultDiv.innerHTML = `
+      <div class="status error">
+        ❌ LIFF 初始化失敗
+        
+        錯誤: ${error.message}
+        
+        可能原因：
+        1. LIFF ID 設定錯誤
+        2. 網路連接問題
+        3. LINE 版本過舊
+      </div>
+    `;
+  }
+}
+
+async function checkRegistration() {
+  const resultDiv = document.getElementById('result');
+  
+  resultDiv.innerHTML += '<div class="status info">⏳ 檢查註冊狀態中...</div>';
+  
+  try {
+    console.log('檢查 User ID:', userId);
+    
+    const response = await fetch(`${API_URL}?action=profile&lineUserId=${userId}`);
+    const data = await response.json();
+    
+    console.log('API 回應:', data);
+    
+    if (data.success && data.name) {
+      // 已註冊
+      resultDiv.innerHTML = `
+        <div class="status success">
+          ✅ LINE 登入成功
+          User ID: ${userId}
+          顯示名稱: ${userName}
+        </div>
+        <div class="status success">
+          ✅ 您已經是會員了！
+          
+          會員資料：
+          ├─ 姓名：${data.name}
+          ├─ 手機：${data.phone}
+          ├─ Email：${data.email || '未設定'}
+          ├─ 點數：${data.points} 點
+          ├─ 等級：${data.memberLevel}
+          ├─ 推薦碼：${data.referralCode}
+          └─ 註冊時間：${data.createdAt}
+          
+          🎉 可以直接進入會員中心！
+        </div>
+      `;
+      
+      document.getElementById('profileBtn').style.display = 'inline-block';
+      
+    } else {
+      // 未註冊
+      resultDiv.innerHTML = `
+        <div class="status success">
+          ✅ LINE 登入成功
+          User ID: ${userId}
+          顯示名稱: ${userName}
+        </div>
+        <div class="status error">
+          ❌ 您還不是會員
+          
+          API 回應：
+          ${JSON.stringify(data, null, 2)}
+          
+          📝 請點擊下方「強制註冊」按鈕完成註冊
+        </div>
+      `;
+      
+      document.getElementById('regBtn').style.display = 'inline-block';
+    }
+    
+  } catch (error) {
+    resultDiv.innerHTML += `
+      <div class="status error">
+        ❌ API 檢查失敗
+        
+        錯誤: ${error.message}
+        
+        可能原因：
+        1. API URL 不正確
+        2. 網路連接問題
+        3. CORS 問題
+        4. API 伺服器錯誤
+        
+        建議：
+        - 檢查網路連接
+        - 稍後再試
+        - 聯繫管理員
+      </div>
+    `;
+  }
+}
+
+function checkAgain() {
+  location.reload();
+}
+
+function forceRegister() {
+  if (confirm('確定要前往註冊頁面嗎？\n\n請填寫完整資料以完成註冊。')) {
+    window.location.href = 'register.html';
+  }
+}
+
+function goProfile() {
+  window.location.href = 'profile.html';
+}
+
+init();
+</script>
+
+</body>
+</html>
+

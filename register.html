@@ -161,8 +161,9 @@ async function initLiff() {
         window.location.href = "profile.html";
       }, 2000);
     } else {
-      // 🔧 移除推薦獎勵提示
-      showMessage('歡迎註冊！請填寫資料', 'info');
+      // 🔧 未註冊：顯示歡迎訊息，讓用戶填寫表單
+      console.log('✅ 未註冊，顯示註冊表單');
+      showMessage('歡迎註冊！請填寫下方資料完成註冊 😊', 'info');
     }
   } catch (error) {
     console.error('LIFF 初始化錯誤:', error);
