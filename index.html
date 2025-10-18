@@ -144,17 +144,19 @@
 </head>
 <body>
 <script>
-// 🔧 處理 LIFF 登入回調
+// 🔧 處理 LIFF 登入回調（禁用自動重定向，防止循環）
+/*
 (function() {
   const urlParams = new URLSearchParams(window.location.search);
   const liffState = urlParams.get('liff.state');
   
   if (liffState) {
-    // 如果有 liff.state，重定向到目標頁面
     console.log('檢測到 LIFF 重定向，目標頁面:', liffState);
-    window.location.href = liffState.startsWith('/') ? liffState.substring(1) : liffState;
+    // 暫時禁用自動重定向
+    // window.location.href = liffState.startsWith('/') ? liffState.substring(1) : liffState;
   }
 })();
+*/
 </script>
 <div class="welcome-container">
   <div class="welcome-card">
@@ -219,20 +221,19 @@
 
 <script src="./assets/auth.js"></script>
 <script>
-// 🔧 修復循環登入：只在網頁版自動跳轉，LIFF 環境不跳轉
+// 🔧 暫時禁用所有自動跳轉，防止循環
+/*
 window.addEventListener('load', async () => {
-  // 檢查是否在 LIFF 環境中
   const isInLIFF = window.location.href.includes('liff.line.me');
   
-  // 只在普通網頁環境（非 LIFF）才自動跳轉
   if (!isInLIFF) {
     const isLoggedIn = await AUTH.isLoggedIn();
     if (isLoggedIn) {
-      // 已經登入，直接跳轉到會員中心
       window.location.href = 'profile.html';
     }
   }
 });
+*/
 </script>
 </body>
 </html>
