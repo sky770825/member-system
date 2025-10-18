@@ -152,6 +152,14 @@ async function init() {
     const res = await fetch(`${API_URL}?action=profile&lineUserId=${currentUserId}`);
     const data = await res.json();
     
+    // 🔧 檢查會員是否存在，不存在則跳轉到首頁註冊
+    if (!data || !data.success || data.success === false) {
+      console.log('❌ 會員不存在，跳轉到首頁註冊');
+      alert('您還不是會員，請先註冊！\n\n將為您跳轉到註冊頁面...');
+      window.location.href = 'index.html';
+      return;
+    }
+    
     if (data.success) {
       currentUserName = data.name;
       currentPoints = data.points || 0;
