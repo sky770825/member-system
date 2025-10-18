@@ -156,10 +156,23 @@ async function initLiff() {
     console.log('註冊檢查結果:', checkData);
     
     if (checkData.registered) {
-      showMessage('您已經是會員了！正在跳轉到會員中心...', 'success');
-      setTimeout(() => {
-        window.location.href = "profile.html";
-      }, 2000);
+      // 🔧 修復：已註冊時不自動跳轉，顯示連結
+      showMessage('', 'success');
+      document.getElementById('message').innerHTML = `
+        <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 20px; border-radius: 10px; text-align: center;">
+          <h3 style="color: #155724; margin-top: 0;">✅ 您已經是會員了！</h3>
+          <p style="color: #155724;">請點擊下方按鈕進入會員中心：</p>
+          <a href="https://liff.line.me/2008231108-2PDbO5qk/profile.html" 
+             style="display: inline-block; background: #28a745; color: white; text-decoration: none; 
+                    padding: 15px 30px; border-radius: 10px; font-weight: bold; margin-top: 10px;">
+            👤 進入會員中心
+          </a>
+          <p style="margin-top: 15px; font-size: 12px; color: #666;">
+            💡 建議：把這個連結存到 LINE Keep
+          </p>
+        </div>
+      `;
+      document.getElementById('registerForm').style.display = 'none';
     } else {
       // 🔧 未註冊：顯示歡迎訊息，讓用戶填寫表單
       console.log('✅ 未註冊，顯示註冊表單');
@@ -225,7 +238,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
       referralCode: formData.referralCode || '' // 🎯 傳送推薦碼
     });
     
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?${params.toString()}`, {
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?${params.toString()}`, {
       method: 'GET',
       redirect: 'follow'
     });
@@ -236,7 +249,45 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     console.log('API 回應資料:', data);
     
     if (data.success) {
-      showMessage('🎉 註冊成功！已贈送 100 公益點數 ❤️，正在跳轉...', 'success');
+      // 🔧 修復：註冊成功後不自動跳轉，顯示 LIFF 連結
+      showMessage('', 'success');
+      document.getElementById('message').innerHTML = `
+        <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 3px solid #28a745; 
+                    padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0 5px 20px rgba(40,167,69,0.3);">
+          <div style="font-size: 64px; margin-bottom: 15px;">🎉</div>
+          <h2 style="color: #155724; margin: 0 0 15px 0;">註冊成功！</h2>
+          <p style="color: #155724; font-size: 16px; margin: 10px 0;">
+            恭喜您成為會員！<br>
+            已獲得 <strong style="font-size: 24px; color: #FFB800;">${data.points || 0}</strong> 公益點數 ❤️<br>
+            您的推薦碼：<strong style="font-size: 20px; color: #667eea;">${data.referralCode}</strong>
+          </p>
+          
+          <a href="https://liff.line.me/2008231108-2PDbO5qk/profile.html" 
+             style="display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); 
+                    color: white; text-decoration: none; padding: 18px 40px; 
+                    border-radius: 12px; font-weight: bold; font-size: 18px; margin-top: 20px;
+                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+            👤 進入會員中心
+          </a>
+          
+          <div style="margin-top: 25px; padding: 15px; background: rgba(255,255,255,0.8); border-radius: 10px;">
+            <p style="margin: 0; font-size: 14px; color: #666; font-weight: bold;">
+              💡 重要提示
+            </p>
+            <p style="margin: 10px 0 0 0; font-size: 13px; color: #666; line-height: 1.6;">
+              • 請點擊上方按鈕進入會員中心<br>
+              • 建議把連結存到 LINE Keep<br>
+              • 不要使用瀏覽器的返回鍵
+            </p>
+          </div>
+        </div>
+      `;
+      
+      // 隱藏表單
+      document.getElementById('registerForm').style.display = 'none';
+      submitBtn.disabled = true;
+      return;  // 🔧 不要執行後續的自動跳轉
+      
       setTimeout(() => {
         window.location.href = "profile.html";
       }, 2000);
