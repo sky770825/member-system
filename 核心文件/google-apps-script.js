@@ -391,6 +391,15 @@ function doPost(e) {
         result = adjustPoints(data);
         break;
         
+      case 'add-password':
+        // 🔐 為 LINE 用戶新增帳號密碼
+        result = addPasswordToLineUser({
+          lineUserId: data.lineUserId,
+          username: data.username,
+          password: data.password
+        });
+        break;
+        
       default:
         result = {
           success: false,
@@ -412,19 +421,21 @@ function doPost(e) {
 
 /**
  * 處理 CORS 預檢請求（OPTIONS）
+ * Google Apps Script 會自動處理 CORS，只需返回成功狀態
  */
 function doOptions(e) {
-  return createCorsResponse({});
+  return ContentService
+    .createTextOutput(JSON.stringify({ status: 'ok' }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 /**
- * 建立帶有 CORS 標頭的回應
- * 注意：Google Apps Script 的 Web App 在正確部署後會自動處理 CORS
+ * 建立 JSON 回應
+ * Google Apps Script 在正確部署後會自動添加 CORS headers
  */
 function createCorsResponse(data) {
-  const jsonOutput = JSON.stringify(data);
-  
-  return ContentService.createTextOutput(jsonOutput)
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -1478,6 +1489,109 @@ function registerWithPassword(data) {
     return {
       success: false,
       message: '註冊失敗：' + error.toString()
+    };
+  }
+}
+
+/**
+ * 🔐 為 LINE 用戶新增帳號密碼登入
+ * @param {object} data - { lineUserId, username, password }
+ * @returns {object} 結果
+ */
+function addPasswordToLineUser(data) {
+  try {
+    Logger.log('========== addPasswordToLineUser 開始 ==========');
+    Logger.log('LINE用戶ID: ' + data.lineUserId);
+    Logger.log('設定帳號: ' + data.username);
+    
+    const sheet = getSheet(MEMBERS_SHEET);
+    const allData = sheet.getDataRange().getValues();
+    
+    // 1. 檢查 LINE 用戶是否存在
+    let userRow = -1;
+    let currentLoginType = '';
+    let currentUsername = '';
+    
+    for (let i = 1; i < allData.length; i++) {
+      if (allData[i][0] === data.lineUserId) {
+        userRow = i + 1;
+        currentLoginType = allData[i][19] || 'line';
+        currentUsername = allData[i][17] || '';
+        break;
+      }
+    }
+    
+    if (userRow === -1) {
+      Logger.log('❌ 找不到該用戶');
+      return {
+        success: false,
+        message: '找不到該用戶'
+      };
+    }
+    
+    Logger.log('✅ 找到用戶，目前登入類型: ' + currentLoginType);
+    
+    // 2. 檢查該用戶是否已經有帳號密碼
+    if (currentLoginType === 'both' || currentLoginType === 'password') {
+      Logger.log('⚠️ 用戶已設定過帳號密碼');
+      return {
+        success: false,
+        message: '您已經設定過帳號密碼了',
+        username: currentUsername
+      };
+    }
+    
+    // 3. 檢查帳號是否已被其他人使用
+    for (let i = 1; i < allData.length; i++) {
+      if (i !== userRow - 1 && allData[i][17] === data.username) {
+        Logger.log('❌ 帳號已被使用: ' + data.username);
+        return {
+          success: false,
+          message: '此帳號已被使用，請選擇其他帳號'
+        };
+      }
+    }
+    
+    Logger.log('✅ 帳號可用: ' + data.username);
+    
+    // 4. 密碼加密
+    const passwordHash = hashPassword(data.password);
+    Logger.log('✅ 密碼已加密');
+    
+    // 5. 更新用戶資料
+    const now = new Date().toISOString();
+    sheet.getRange(userRow, 18).setValue(data.username);      // 登入帳號 (欄位 17，索引從1開始所以是18)
+    sheet.getRange(userRow, 19).setValue(passwordHash);       // 密碼雜湊 (欄位 18)
+    sheet.getRange(userRow, 20).setValue('both');             // 登入類型 (欄位 19)
+    sheet.getRange(userRow, 17).setValue(now);                // 更新時間 (欄位 16)
+    
+    Logger.log('✅ 資料庫已更新');
+    
+    // 6. 記錄活動
+    try {
+      logActivity(data.lineUserId, 'add_password', 0, {
+        username: data.username,
+        message: '設定帳號密碼登入'
+      });
+      Logger.log('✅ 活動已記錄');
+    } catch (logError) {
+      Logger.log('⚠️ 記錄活動失敗: ' + logError.toString());
+    }
+    
+    Logger.log('========== addPasswordToLineUser 結束 ==========');
+    
+    return {
+      success: true,
+      message: '帳號密碼設定成功！您現在可以用兩種方式登入',
+      username: data.username,
+      loginType: 'both'
+    };
+    
+  } catch (error) {
+    Logger.log('addPasswordToLineUser Error: ' + error.toString());
+    return {
+      success: false,
+      message: '設定失敗：' + error.toString()
     };
   }
 }

@@ -27,7 +27,7 @@ async function initLiff() {
     // 記錄開始時間
     const startTime = Date.now();
     
-    await liff.init({ liffId: "2008231108-2PDbO5qk" });
+    await liff.init({ liffId: "2008231108-0rAX3R5d" });
     
     if (!liff.isLoggedIn()) {
       // 🔧 優化：使用 redirectUri 保留當前頁面
@@ -388,9 +388,43 @@ function renderProfile(data, pictureUrl, displayName) {
           <span class="btn-icon">✏️</span>
           編輯資料
         </button>
+        <button class="btn btn-outline" id="setPasswordBtn" onclick="goSetPassword()" style="display: none; border-color: #FFB800; color: #FFB800;">
+          <span class="btn-icon">🔐</span>
+          設定帳號密碼
+        </button>
+      </div>
+      
+      <!-- 登入類型顯示 -->
+      <div id="loginTypeStatus" style="text-align: center; margin-top: 16px; padding: 12px; background: #f8f9fa; border-radius: 10px; font-size: 14px; display: none;">
+        <span style="color: #666;">登入方式：</span>
+        <span id="loginTypeText" style="font-weight: 600; color: #667eea;"></span>
       </div>
     </div>
   `;
+  
+  // 根據登入類型顯示相應的提示
+  const loginType = data.loginType || 'line';
+  const loginTypeStatus = document.getElementById('loginTypeStatus');
+  const loginTypeText = document.getElementById('loginTypeText');
+  const setPasswordBtn = document.getElementById('setPasswordBtn');
+  
+  if (loginType === 'line' || !loginType) {
+    // 只有 LINE 登入，顯示設定帳號密碼按鈕
+    setPasswordBtn.style.display = 'block';
+    loginTypeStatus.style.display = 'block';
+    loginTypeText.textContent = '僅 LINE 登入';
+    loginTypeText.style.color = '#666';
+  } else if (loginType === 'both') {
+    // 雙重登入
+    loginTypeStatus.style.display = 'block';
+    loginTypeText.textContent = '✅ LINE + 帳號密碼（雙重登入）';
+    loginTypeText.style.color = '#4CAF50';
+  } else if (loginType === 'password') {
+    // 僅帳號密碼
+    loginTypeStatus.style.display = 'block';
+    loginTypeText.textContent = '帳號密碼登入';
+    loginTypeText.style.color = '#667eea';
+  }
 }
 
 // 快取函數已移至 cache-manager.js 統一管理
@@ -429,6 +463,10 @@ function goHistory() {
 
 function editProfile() {
   window.location.href = "edit.html";
+}
+
+function goSetPassword() {
+  window.location.href = "set-password.html";
 }
 
 // 🎁 複製推薦碼
