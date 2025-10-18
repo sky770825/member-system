@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>檢查 Google Sheets 工作表名稱</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #f5f5f5;
+  }
+  
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  
+  h1 {
+    color: #667eea;
+    margin-top: 0;
+  }
+  
+  h2 {
+    color: #764ba2;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+  }
+  
+  .result {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+    font-family: monospace;
+    white-space: pre-wrap;
+  }
+  
+  .success {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+  }
+  
+  .error {
+    background: #f8d7da;
+    border-left: 4px solid #dc3545;
+  }
+  
+  .warning {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+  }
+  
+  .info {
+    background: #d1ecf1;
+    border-left: 4px solid #0c5460;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+  }
+  
+  th {
+    background: #667eea;
+    color: white;
+    font-weight: bold;
+  }
+  
+  tr:nth-child(even) {
+    background: #f8f9fa;
+  }
+  
+  button {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 5px;
+    font-size: 14px;
+  }
+  
+  button:hover {
+    background: #5568d3;
+  }
+  
+  .code {
+    background: #2d2d2d;
+    color: #f8f8f2;
+    padding: 15px;
+    border-radius: 5px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    margin: 10px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🔍 Google Sheets 工作表名稱檢查</h1>
+  
+  <div class="info">
+    <strong>📝 重要說明：</strong>這個工具會檢查您的 Google Sheets 工作表名稱是否與 Apps Script 中的設定一致。<br>
+    <strong>⚠️ 如果名稱不一致，會導致無法註冊和登入！</strong>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📋 Apps Script 中的設定（預期的名稱）</h2>
+  
+  <table>
+    <tr>
+      <th>常數名稱</th>
+      <th>工作表名稱（中文）</th>
+      <th>說明</th>
+    </tr>
+    <tr>
+      <td>MEMBERS_SHEET</td>
+      <td><strong>會員資料</strong></td>
+      <td>存儲所有會員資訊</td>
+    </tr>
+    <tr>
+      <td>TRANSACTIONS_SHEET</td>
+      <td><strong>交易記錄</strong></td>
+      <td>點數交易歷史</td>
+    </tr>
+    <tr>
+      <td>REFERRALS_SHEET</td>
+      <td><strong>推薦關係</strong></td>
+      <td>會員推薦關係</td>
+    </tr>
+    <tr>
+      <td>PURCHASES_SHEET</td>
+      <td><strong>購買記錄</strong></td>
+      <td>點數購買記錄</td>
+    </tr>
+    <tr>
+      <td>WITHDRAWALS_SHEET</td>
+      <td><strong>提領記錄</strong></td>
+      <td>點數提領記錄</td>
+    </tr>
+    <tr>
+      <td>PRODUCTS_SHEET</td>
+      <td><strong>商城商品</strong></td>
+      <td>商品資訊</td>
+    </tr>
+    <tr>
+      <td>MALL_ORDERS_SHEET</td>
+      <td><strong>商城訂單</strong></td>
+      <td>商城訂單記錄</td>
+    </tr>
+    <tr>
+      <td>MEMBER_LEVELS_SHEET</td>
+      <td><strong>會員等級</strong></td>
+      <td>會員等級設定</td>
+    </tr>
+    <tr>
+      <td>ACTIVITIES_SHEET</td>
+      <td><strong>活動記錄</strong></td>
+      <td>會員活動日誌</td>
+    </tr>
+    <tr>
+      <td>SETTINGS_SHEET</td>
+      <td><strong>系統設定</strong></td>
+      <td>系統參數設定</td>
+    </tr>
+    <tr>
+      <td>DAILY_STATS_SHEET</td>
+      <td><strong>每日統計</strong></td>
+      <td>每日數據統計</td>
+    </tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>🔍 如何檢查您的 Google Sheets</h2>
+  
+  <div class="warning">
+    <strong>⚠️ 請立即執行以下步驟：</strong>
+  </div>
+  
+  <ol style="line-height: 2;">
+    <li>
+      <strong>開啟您的 Google Sheets：</strong>
+      <div class="code">
+https://docs.google.com/spreadsheets/d/1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw/edit
+      </div>
+    </li>
+    
+    <li>
+      <strong>查看底部的工作表標籤名稱</strong>
+      <br>應該看到：<code>會員資料</code>, <code>交易記錄</code>, <code>推薦關係</code> 等
+    </li>
+    
+    <li>
+      <strong>對照上面的表格</strong>
+      <br>確認每個工作表名稱是否完全一致（包括空格）
+    </li>
+  </ol>
+</div>
+
+<div class="card">
+  <h2>❌ 常見的名稱不一致問題</h2>
+  
+  <table>
+    <tr>
+      <th>Apps Script 預期</th>
+      <th>可能的錯誤名稱</th>
+      <th>結果</th>
+    </tr>
+    <tr>
+      <td>會員資料</td>
+      <td>Members / 会员资料 / 會員資料表</td>
+      <td>❌ 找不到工作表</td>
+    </tr>
+    <tr>
+      <td>交易記錄</td>
+      <td>Transactions / 交易记录 / 交易紀錄</td>
+      <td>❌ 找不到工作表</td>
+    </tr>
+    <tr>
+      <td>推薦關係</td>
+      <td>Referrals / 推荐关系 / 推薦关系</td>
+      <td>❌ 找不到工作表</td>
+    </tr>
+  </table>
+  
+  <div class="warning">
+    <strong>⚠️ 注意：</strong>
+    <ul>
+      <li>繁體中文和簡體中文不同</li>
+      <li>有無空格會影響</li>
+      <li>「記錄」和「紀錄」不同</li>
+      <li>「關係」和「关系」不同</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card">
+  <h2>✅ 解決方案</h2>
+  
+  <h3>方案 A：修改 Google Sheets 工作表名稱（推薦）⭐⭐⭐⭐⭐</h3>
+  
+  <p><strong>如果您的工作表是英文名稱或其他名稱：</strong></p>
+  
+  <ol style="line-height: 2;">
+    <li>在 Google Sheets 中</li>
+    <li>右鍵點擊工作表標籤</li>
+    <li>選擇「重新命名」</li>
+    <li>改成上面表格中的中文名稱（完全相同）</li>
+    <li>重複以上步驟修改所有工作表</li>
+  </ol>
+  
+  <div class="success">
+    <strong>✅ 優點：</strong>
+    <ul>
+      <li>不需要修改代碼</li>
+      <li>立即生效</li>
+      <li>最簡單</li>
+    </ul>
+  </div>
+  
+  <hr>
+  
+  <h3>方案 B：修改 Apps Script 中的工作表名稱</h3>
+  
+  <p><strong>如果您想保留英文名稱：</strong></p>
+  
+  <p>修改 <code>google-apps-script.js</code> 第 18-28 行：</p>
+  
+  <div class="code">
+// 如果您的工作表是英文名稱
+const MEMBERS_SHEET = 'Members';           // 改成實際名稱
+const TRANSACTIONS_SHEET = 'Transactions'; // 改成實際名稱
+const REFERRALS_SHEET = 'Referrals';       // 改成實際名稱
+const PURCHASES_SHEET = 'Purchases';       // 改成實際名稱
+const WITHDRAWALS_SHEET = 'Withdrawals';   // 改成實際名稱
+const PRODUCTS_SHEET = 'Products';         // 改成實際名稱
+const MALL_ORDERS_SHEET = 'MallOrders';    // 改成實際名稱
+const MEMBER_LEVELS_SHEET = 'MemberLevels'; // 改成實際名稱
+const ACTIVITIES_SHEET = 'Activities';     // 改成實際名稱
+const SETTINGS_SHEET = 'Settings';         // 改成實際名稱
+const DAILY_STATS_SHEET = 'DailyStats';    // 改成實際名稱
+  </div>
+  
+  <p>然後重新部署 Apps Script（選擇「新版本」）</p>
+  
+  <div class="warning">
+    <strong>⚠️ 缺點：</strong>
+    <ul>
+      <li>需要修改代碼</li>
+      <li>需要重新部署</li>
+      <li>需要等待生效</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card">
+  <h2>🧪 測試 API 是否能找到工作表</h2>
+  
+  <button onclick="testSheetAccess()">🚀 測試工作表訪問</button>
+  
+  <div id="testResult"></div>
+</div>
+
+<div class="card">
+  <h2>📞 需要協助？</h2>
+  
+  <p><strong>請提供以下資訊：</strong></p>
+  
+  <ol>
+    <li>
+      <strong>您的 Google Sheets 工作表名稱</strong>
+      <br>打開 Sheets，底部標籤顯示什麼名稱？
+      <br>例如：Members、會員資料、会员资料？
+    </li>
+    
+    <li>
+      <strong>第一個工作表的第一列標題</strong>
+      <br>第一欄是什麼？
+      <br>例如：lineUserId、LINE用戶ID、LINE用户ID？
+    </li>
+    
+    <li>
+      <strong>有沒有會員資料？</strong>
+      <br>「會員資料」或「Members」工作表中有資料嗎？
+    </li>
+  </ol>
+  
+  <div class="info">
+    <strong>💡 快速判斷：</strong>
+    <br>如果工作表名稱是 <strong>英文</strong>（Members, Transactions...），就是名稱不匹配問題！
+    <br>如果工作表名稱是 <strong>中文</strong>（會員資料、交易記錄...），應該沒問題，可能是其他原因。
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec';
+
+async function testSheetAccess() {
+  const resultDiv = document.getElementById('testResult');
+  resultDiv.innerHTML = '<div class="result info">⏳ 測試中...</div>';
+  
+  try {
+    // 測試註冊一個用戶（會嘗試訪問工作表）
+    const testUserId = 'TEST-SHEET-' + Date.now();
+    const testPhone = '0912-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0') + '-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    
+    const url = `${API_URL}?action=register&lineUserId=${testUserId}&name=工作表測試&phone=${testPhone}&email=&birthday=&lineName=測試&linePicture=&referralCode=`;
+    
+    console.log('測試 URL:', url);
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    console.log('測試結果:', data);
+    
+    if (data.success) {
+      resultDiv.innerHTML = `
+        <div class="result success">
+          ✅ 工作表訪問正常！
+          
+          測試註冊成功：
+          - 點數：${data.points}
+          - 會員等級：${data.memberLevel}
+          - 推薦碼：${data.referralCode}
+          
+          🎉 結論：
+          工作表名稱設定正確！
+          「會員資料」工作表可以正常讀寫。
+          
+          請前往 Google Sheets 確認是否有新記錄：
+          LINE用戶ID: ${testUserId}
+        </div>
+      `;
+    } else {
+      resultDiv.innerHTML = `
+        <div class="result error">
+          ❌ 工作表訪問失敗！
+          
+          錯誤訊息：${data.message}
+          完整回應：
+          ${JSON.stringify(data, null, 2)}
+          
+          🎯 這很可能是工作表名稱不一致造成的！
+          
+          請檢查：
+          1. Google Sheets 中的工作表是否叫「會員資料」
+          2. 如果是英文名稱（Members），請改成中文
+          3. 或修改 Apps Script 改用英文名稱
+        </div>
+      `;
+    }
+  } catch (error) {
+    resultDiv.innerHTML = `
+      <div class="result error">
+        ❌ 測試失敗
+        
+        錯誤：${error.message}
+        
+        可能原因：
+        1. 網路連接問題
+        2. API CORS 問題
+        3. API 伺服器錯誤
+      </div>
+    `;
+  }
+}
+</script>
+
+</body>
+</html>
+
