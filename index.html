@@ -143,6 +143,19 @@
 </style>
 </head>
 <body>
+<script>
+// 🔧 處理 LIFF 登入回調
+(function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const liffState = urlParams.get('liff.state');
+  
+  if (liffState) {
+    // 如果有 liff.state，重定向到目標頁面
+    console.log('檢測到 LIFF 重定向，目標頁面:', liffState);
+    window.location.href = liffState.startsWith('/') ? liffState.substring(1) : liffState;
+  }
+})();
+</script>
 <div class="welcome-container">
   <div class="welcome-card">
     <div class="welcome-header">
