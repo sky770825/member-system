@@ -7,7 +7,7 @@
 
 const API_CONFIG = {
   // ==================== API URL ====================
-  baseURL: 'https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec',
+  baseURL: 'https://script.google.com/macros/s/AKfycbx9WCCV8V8cN9Pdy_nhpOAAtyE5x3qdifoNq98F2xI2bsi2yqLGKT3xquyliiod1eEy/exec',
   
   // ==================== 請求設定 ====================
   timeout: 30000,              // 請求超時時間（毫秒）

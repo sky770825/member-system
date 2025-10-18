@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIFF 設定檢查工具</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 20px;
+  background: #f5f5f5;
+}
+h1 {
+  color: #333;
+  text-align: center;
+}
+.liff-card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.liff-id {
+  font-size: 18px;
+  font-weight: bold;
+  color: #06C755;
+  margin-bottom: 10px;
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+.label {
+  color: #666;
+  font-weight: 600;
+}
+.value {
+  color: #333;
+}
+.status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+.status.active { background: #d4edda; color: #155724; }
+.status.inactive { background: #f8d7da; color: #721c24; }
+.status.unknown { background: #fff3cd; color: #856404; }
+.btn {
+  display: inline-block;
+  padding: 8px 16px;
+  background: #06C755;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  margin: 5px;
+  font-size: 14px;
+}
+.btn:hover {
+  background: #05b34b;
+}
+.recommendation {
+  background: #e8f5e9;
+  border-left: 4px solid #4caf50;
+  padding: 15px;
+  margin: 20px 0;
+}
+</style>
+</head>
+<body>
+
+<h1>🔍 LIFF 設定檢查工具</h1>
+
+<div class="liff-card">
+  <div class="liff-id">主要 LIFF：2008231108-2PDbO5qk</div>
+  <div class="info-row">
+    <span class="label">使用頁面：</span>
+    <span class="value">profile.html, mall.html, withdraw.html, edit.html, history.html, transfer.html, purchase.html</span>
+  </div>
+  <div class="info-row">
+    <span class="label">狀態：</span>
+    <span class="status active">使用中</span>
+  </div>
+  <div class="info-row">
+    <span class="label">建議 Endpoint URL：</span>
+    <span class="value">https://sky770825.github.io/member-system/</span>
+  </div>
+  <div class="info-row">
+    <span class="label">測試連結：</span>
+    <a href="https://liff.line.me/2008231108-2PDbO5qk/profile.html" target="_blank" class="btn">測試會員中心</a>
+    <a href="https://liff.line.me/2008231108-2PDbO5qk/mall.html" target="_blank" class="btn">測試商城</a>
+  </div>
+</div>
+
+<div class="liff-card">
+  <div class="liff-id">LIFF #2：2008231108-b4XE2lGW</div>
+  <div class="info-row">
+    <span class="label">使用頁面：</span>
+    <span class="value">未在代碼中發現</span>
+  </div>
+  <div class="info-row">
+    <span class="label">狀態：</span>
+    <span class="status unknown">未使用</span>
+  </div>
+  <div class="info-row">
+    <span class="label">測試連結：</span>
+    <a href="https://liff.line.me/2008231108-b4XE2lGW" target="_blank" class="btn">測試此 LIFF</a>
+  </div>
+</div>
+
+<div class="liff-card">
+  <div class="liff-id">LIFF #3：2008231108-0rAX3R5d</div>
+  <div class="info-row">
+    <span class="label">使用頁面：</span>
+    <span class="value">未在代碼中發現</span>
+  </div>
+  <div class="info-row">
+    <span class="label">狀態：</span>
+    <span class="status unknown">未使用</span>
+  </div>
+  <div class="info-row">
+    <span class="label">測試連結：</span>
+    <a href="https://liff.line.me/2008231108-0rAX3R5d" target="_blank" class="btn">測試此 LIFF</a>
+  </div>
+</div>
+
+<div class="liff-card">
+  <div class="liff-id">LIFF #4：2008231108-9wgYdPwJ</div>
+  <div class="info-row">
+    <span class="label">使用頁面：</span>
+    <span class="value">未在代碼中發現</span>
+  </div>
+  <div class="info-row">
+    <span class="label">狀態：</span>
+    <span class="status unknown">未使用</span>
+  </div>
+  <div class="info-row">
+    <span class="label">測試連結：</span>
+    <a href="https://liff.line.me/2008231108-9wgYdPwJ" target="_blank" class="btn">測試此 LIFF</a>
+  </div>
+</div>
+
+<div class="recommendation">
+  <h3>💡 建議</h3>
+  <p><strong>目前狀況：</strong></p>
+  <ul>
+    <li>✅ 主要使用：<code>2008231108-2PDbO5qk</code></li>
+    <li>❓ 其他3個 LIFF ID 未在代碼中使用</li>
+  </ul>
+  
+  <p><strong>建議方案：</strong></p>
+  <ol>
+    <li><strong>只使用一個 LIFF</strong>（最簡單）
+      <ul>
+        <li>保留 <code>2008231108-2PDbO5qk</code></li>
+        <li>將 Endpoint URL 改為：<code>https://sky770825.github.io/member-system/</code></li>
+        <li>在 LINE Developers 停用或刪除其他 LIFF</li>
+      </ul>
+    </li>
+    <li><strong>分功能使用多個 LIFF</strong>（進階）
+      <ul>
+        <li>主要功能：<code>2008231108-2PDbO5qk</code></li>
+        <li>管理後台：<code>2008231108-b4XE2lGW</code></li>
+        <li>外部註冊：<code>2008231108-0rAX3R5d</code></li>
+        <li>統計頁面：<code>2008231108-9wgYdPwJ</code></li>
+        <li>但需要修改代碼中的 LIFF ID</li>
+      </ul>
+    </li>
+  </ol>
+</div>
+
+<div class="liff-card">
+  <h3>🔧 修改 LIFF 設定步驟</h3>
+  <ol>
+    <li>前往 <a href="https://developers.line.biz/console/" target="_blank">LINE Developers Console</a></li>
+    <li>選擇你的 Provider 和 Channel</li>
+    <li>點擊左側選單的「LIFF」</li>
+    <li>找到要修改的 LIFF ID</li>
+    <li>點擊編輯（鉛筆圖示）</li>
+    <li>修改 <strong>Endpoint URL</strong> 為：<code>https://sky770825.github.io/member-system/</code></li>
+    <li>點擊「Update」儲存</li>
+    <li>等待 1-2 分鐘讓設定生效</li>
+  </ol>
+</div>
+
+<div class="liff-card">
+  <h3>📱 Rich Menu 連結範例</h3>
+  <p>如果你想在 Rich Menu 中使用這些 LIFF，URL 格式應該是：</p>
+  <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">
+會員中心：https://liff.line.me/2008231108-2PDbO5qk/profile.html
+公益商城：https://liff.line.me/2008231108-2PDbO5qk/mall.html
+提領頁面：https://liff.line.me/2008231108-2PDbO5qk/withdraw.html
+編輯資料：https://liff.line.me/2008231108-2PDbO5qk/edit.html
+點數記錄：https://liff.line.me/2008231108-2PDbO5qk/history.html
+分享點數：https://liff.line.me/2008231108-2PDbO5qk/transfer.html
+  </pre>
+</div>
+
+</body>
+</html>
+

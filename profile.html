@@ -20,6 +20,7 @@
 let currentUserId = '';
 let currentPoints = 0;
 let autoRefreshInterval = null;
+let lastNotifiedTransaction = null; // 🔧 記錄最後通知的交易ID，防止重複彈窗
 
 async function initLiff() {
   try {
@@ -46,7 +47,7 @@ async function initLiff() {
     const result = await CacheManager.getOrFetch(
       `profile_${lineUserId}`,
       async () => {
-        const res = await fetch("https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec?action=profile&lineUserId=" + lineUserId);
+        const res = await fetch("https://script.google.com/macros/s/AKfycbx9WCCV8V8cN9Pdy_nhpOAAtyE5x3qdifoNq98F2xI2bsi2yqLGKT3xquyliiod1eEy/exec?action=profile&lineUserId=" + lineUserId);
         return await res.json();
       },
       5 * 60 * 1000 // 會員資料快取 5 分鐘
@@ -102,7 +103,7 @@ function startAutoRefresh(lineUserId, pictureUrl, displayName) {
     try {
       console.log('🔍 檢查點數更新中...', new Date().toLocaleTimeString());
       
-      const res = await fetch("https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec?action=profile&lineUserId=" + lineUserId);
+      const res = await fetch("https://script.google.com/macros/s/AKfycbx9WCCV8V8cN9Pdy_nhpOAAtyE5x3qdifoNq98F2xI2bsi2yqLGKT3xquyliiod1eEy/exec?action=profile&lineUserId=" + lineUserId);
       const data = await res.json();
       
       const newPoints = data.points || 0;
@@ -145,7 +146,7 @@ document.addEventListener('visibilitychange', async () => {
     console.log('👁️ 頁面重新可見，立即檢查點數');
     try {
       const profile = await liff.getProfile();
-      const res = await fetch("https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec?action=profile&lineUserId=" + currentUserId);
+      const res = await fetch("https://script.google.com/macros/s/AKfycbx9WCCV8V8cN9Pdy_nhpOAAtyE5x3qdifoNq98F2xI2bsi2yqLGKT3xquyliiod1eEy/exec?action=profile&lineUserId=" + currentUserId);
       const data = await res.json();
       
       const newPoints = data.points || 0;
@@ -168,16 +169,41 @@ document.addEventListener('visibilitychange', async () => {
 async function showReceivedPointsNotification(lineUserId, pointsDiff) {
   try {
     // 獲取最新的交易記錄
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbzjGZOfhfd792G7hv-6wbyClTxcvD1n5zsxRQC6yfJatjKG5fTayhyz3EdhUNDDNQ96/exec?action=transactions&lineUserId=${lineUserId}&limit=5`);
+    const res = await fetch(`https://script.google.com/macros/s/AKfycbx9WCCV8V8cN9Pdy_nhpOAAtyE5x3qdifoNq98F2xI2bsi2yqLGKT3xquyliiod1eEy/exec?action=transactions&lineUserId=${lineUserId}&limit=5`);
     const data = await res.json();
     
     if (data.success && data.transactions && data.transactions.length > 0) {
-      // 找出最新的轉入記錄
-      const latestTransfer = data.transactions.find(t => t.type === 'transfer_in');
+      // 找出最新的轉入記錄（或任何增加點數的交易）
+      const latestTransaction = data.transactions.find(t => 
+        t.type === 'transfer_in' || 
+        t.type === 'referral_purchase_reward' || 
+        t.type === 'referral_withdraw_reward' ||
+        t.type === 'mall_sale'
+      );
       
-      let senderName = '某位好友';
-      if (latestTransfer && latestTransfer.senderName) {
-        senderName = latestTransfer.senderName;
+      // 🔧 防止重複通知：檢查是否已經通知過這筆交易
+      if (latestTransaction && latestTransaction.id === lastNotifiedTransaction) {
+        console.log('⏸️ 這筆交易已經通知過了，跳過');
+        return;
+      }
+      
+      let senderName = '系統';
+      if (latestTransaction) {
+        // 記錄這筆交易ID
+        lastNotifiedTransaction = latestTransaction.id;
+        
+        if (latestTransaction.senderName) {
+          senderName = latestTransaction.senderName;
+        }
+        
+        // 根據交易類型顯示不同訊息
+        if (latestTransaction.type === 'referral_purchase_reward') {
+          senderName = latestTransaction.senderName + '（推薦購買獎勵）';
+        } else if (latestTransaction.type === 'referral_withdraw_reward') {
+          senderName = latestTransaction.senderName + '（推薦提領獎勵）';
+        } else if (latestTransaction.type === 'mall_sale') {
+          senderName = latestTransaction.senderName + '（商品售出）';
+        }
       }
       
       // 顯示通知
