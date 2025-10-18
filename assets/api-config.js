@@ -1,13 +1,13 @@
 /**
  * API 配置文件
  * 統一管理所有 API 相關設定
- * @version 1.0.0
- * @date 2025-10-17
+ * @version 1.1.0
+ * @date 2025-10-18
  */
 
 const API_CONFIG = {
   // ==================== API URL ====================
-  baseURL: 'https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec',
+  baseURL: 'https://script.google.com/macros/s/AKfycbyeE3heWVv3Uuv_7kR46G1R6KyL3sAunWtUv83LolGyVj_3wmobzo_daTIjA58T1Hrd/exec',
   
   // ==================== 請求設定 ====================
   timeout: 30000,              // 請求超時時間（毫秒）
