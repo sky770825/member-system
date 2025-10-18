@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>簡易 API 測試</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 20px;
+    background: #f5f5f5;
+  }
+  
+  .test-card {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  
+  h2 {
+    color: #667eea;
+    margin-top: 0;
+  }
+  
+  button {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 5px;
+  }
+  
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  }
+  
+  .result {
+    background: #f8f9fa;
+    border-left: 4px solid #667eea;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 5px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  
+  .success {
+    border-left-color: #28a745;
+    background: #d4edda;
+  }
+  
+  .error {
+    border-left-color: #dc3545;
+    background: #f8d7da;
+  }
+  
+  .warning {
+    border-left-color: #ffc107;
+    background: #fff3cd;
+  }
+</style>
+</head>
+<body>
+
+<div class="test-card">
+  <h2>🧪 步驟 1：測試 API 基本連接（GET）</h2>
+  <button onclick="testBasicAPI()">🚀 測試基本 API</button>
+  <div id="result1"></div>
+  
+  <div style="margin-top: 15px; padding: 10px; background: #e7f3ff; border-radius: 5px;">
+    <strong>📝 說明：</strong>這會測試 API 是否可以訪問。即使返回「未知的操作」也是正常的，表示連接成功。
+  </div>
+</div>
+
+<div class="test-card">
+  <h2>🧪 步驟 2：測試 LINE 註冊（GET）</h2>
+  <button onclick="testLINERegister()">📱 測試 LINE 註冊</button>
+  <div id="result2"></div>
+  
+  <div style="margin-top: 15px; padding: 10px; background: #e7f3ff; border-radius: 5px;">
+    <strong>📝 說明：</strong>這會使用 GET 方法測試註冊功能。如果成功，代表 Sheets 連接正常。
+  </div>
+</div>
+
+<div class="test-card">
+  <h2>🧪 步驟 3：測試帳號密碼註冊（POST）</h2>
+  <button onclick="testPasswordRegister()">🔐 測試密碼註冊</button>
+  <div id="result3"></div>
+  
+  <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px;">
+    <strong>⚠️ 說明：</strong>這會使用 POST 方法。如果失敗並顯示「Failed to fetch」，就是 CORS 問題。
+  </div>
+</div>
+
+<div class="test-card">
+  <h2>📊 當前配置</h2>
+  <div class="result">
+API URL:
+https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec
+
+Sheet ID:
+1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw
+
+預期工作表名稱:
+會員資料, 交易記錄, 推薦關係...
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec';
+
+async function testBasicAPI() {
+  const resultDiv = document.getElementById('result1');
+  resultDiv.innerHTML = '<div class="result">⏳ 測試中...</div>';
+  
+  try {
+    const response = await fetch(API_URL);
+    const data = await response.json();
+    
+    resultDiv.innerHTML = `
+      <div class="result success">
+        ✅ API 連接成功！
+        
+HTTP 狀態: ${response.status} ${response.statusText}
+回應: ${JSON.stringify(data, null, 2)}
+
+結論: API 部署正常，可以訪問。
+${data.message === '未知的操作' ? '\n✅ 這個訊息是正常的！表示 API 正在運作。' : ''}
+      </div>
+    `;
+  } catch (error) {
+    resultDiv.innerHTML = `
+      <div class="result error">
+        ❌ API 連接失敗
+        
+錯誤: ${error.message}
+
+可能原因:
+1. API URL 不正確
+2. 網路連接問題
+3. API 沒有正確部署
+      </div>
+    `;
+  }
+}
+
+async function testLINERegister() {
+  const resultDiv = document.getElementById('result2');
+  resultDiv.innerHTML = '<div class="result">⏳ 測試中...</div>';
+  
+  const timestamp = Date.now();
+  const testData = {
+    lineUserId: `TEST-${timestamp}`,
+    name: `測試用戶${timestamp}`,
+    phone: `0912-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+    email: `test${timestamp}@example.com`,
+    lineName: '測試用戶',
+    linePicture: '',
+    referralCode: ''
+  };
+  
+  try {
+    const url = `${API_URL}?action=register&` + 
+                `lineUserId=${encodeURIComponent(testData.lineUserId)}&` +
+                `name=${encodeURIComponent(testData.name)}&` +
+                `phone=${encodeURIComponent(testData.phone)}&` +
+                `email=${encodeURIComponent(testData.email)}&` +
+                `lineName=${encodeURIComponent(testData.lineName)}&` +
+                `linePicture=${encodeURIComponent(testData.linePicture)}&` +
+                `referralCode=${encodeURIComponent(testData.referralCode)}`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.success) {
+      resultDiv.innerHTML = `
+        <div class="result success">
+          ✅ LINE 註冊成功！
+          
+測試資料:
+- LINE ID: ${testData.lineUserId}
+- 姓名: ${testData.name}
+- 手機: ${testData.phone}
+
+API 回應:
+${JSON.stringify(data, null, 2)}
+
+🎉 結論: 
+1. API 正常運作
+2. Google Sheets 連接正常
+3. 可以寫入資料
+
+請前往 Google Sheets 確認是否有新記錄：
+https://docs.google.com/spreadsheets/d/1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw/edit
+        </div>
+      `;
+    } else {
+      resultDiv.innerHTML = `
+        <div class="result error">
+          ⚠️ 註冊失敗
+          
+錯誤訊息: ${data.message}
+
+完整回應:
+${JSON.stringify(data, null, 2)}
+
+可能原因:
+1. 手機號碼已存在
+2. Google Sheets 權限問題
+3. 工作表名稱不符
+        </div>
+      `;
+    }
+  } catch (error) {
+    resultDiv.innerHTML = `
+      <div class="result error">
+        ❌ 請求失敗
+        
+錯誤: ${error.message}
+
+可能原因:
+1. CORS 問題
+2. 網路連接問題
+3. API 錯誤
+      </div>
+    `;
+  }
+}
+
+async function testPasswordRegister() {
+  const resultDiv = document.getElementById('result3');
+  resultDiv.innerHTML = '<div class="result">⏳ 測試中...</div>';
+  
+  const timestamp = Date.now();
+  const testData = {
+    action: 'register-password',
+    name: `測試用戶${timestamp}`,
+    phone: `0912-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+    email: `test${timestamp}@example.com`,
+    birthday: '1990-01-01',
+    username: `test${timestamp}`,
+    password: 'Test1234',
+    referralCode: ''
+  };
+  
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(testData)
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      resultDiv.innerHTML = `
+        <div class="result success">
+          ✅ 密碼註冊成功！
+          
+測試資料:
+- 帳號: ${testData.username}
+- 姓名: ${testData.name}
+- 手機: ${testData.phone}
+
+API 回應:
+${JSON.stringify(data, null, 2)}
+
+🎉 結論: 
+1. POST 請求正常
+2. CORS 設定正確
+3. 帳號密碼註冊功能正常
+4. Google Sheets 寫入正常
+        </div>
+      `;
+    } else {
+      resultDiv.innerHTML = `
+        <div class="result warning">
+          ⚠️ 註冊失敗
+          
+錯誤訊息: ${data.message}
+
+完整回應:
+${JSON.stringify(data, null, 2)}
+
+可能原因:
+1. 手機號碼已存在（${testData.phone}）
+2. 帳號已存在（${testData.username}）
+3. 驗證錯誤
+        </div>
+      `;
+    }
+  } catch (error) {
+    resultDiv.innerHTML = `
+      <div class="result error">
+        ❌ POST 請求失敗！
+        
+錯誤: ${error.message}
+
+🎯 這就是問題所在！
+
+如果錯誤是 "Failed to fetch"，表示:
+1. ❌ CORS 問題 - API 部署設定錯誤
+2. ❌ POST 請求被阻擋
+
+解決方案:
+1. 前往 Google Apps Script
+2. 部署 → 管理部署
+3. 編輯部署
+4. 確認「具有存取權的使用者」選擇「所有人」
+5. 確認「版本」選擇「新版本」
+6. 重新部署
+7. 等待 2 分鐘
+8. 再次測試
+      </div>
+    `;
+  }
+}
+</script>
+
+</body>
+</html>
+
