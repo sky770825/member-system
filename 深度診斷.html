@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>深度診斷工具</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #f5f5f5;
+  }
+  
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin: 15px 0;
+  }
+  
+  h1 { color: #667eea; margin-top: 0; }
+  h2 { color: #764ba2; font-size: 18px; border-bottom: 2px solid #667eea; padding-bottom: 8px; }
+  
+  .status {
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 13px;
+  }
+  
+  .success { background: #d4edda; border-left: 4px solid #28a745; }
+  .error { background: #f8d7da; border-left: 4px solid #dc3545; }
+  .info { background: #d1ecf1; border-left: 4px solid #0c5460; }
+  .warning { background: #fff3cd; border-left: 4px solid #ffc107; }
+  
+  button {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 5px;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  
+  button:hover { background: #5568d3; }
+  button:disabled { background: #ccc; cursor: not-allowed; }
+  
+  .btn-success { background: #28a745; }
+  .btn-success:hover { background: #218838; }
+  
+  .btn-danger { background: #dc3545; }
+  .btn-danger:hover { background: #c82333; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🔍 深度診斷工具</h1>
+  <div class="info">
+    <strong>📝 說明：</strong>這個工具會完整檢查您的 LINE 登入、會員狀態、API 連接等所有環節。
+  </div>
+  <button onclick="startDiagnosis()">🚀 開始完整診斷</button>
+</div>
+
+<div id="results"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec';
+let diagResults = [];
+
+function addResult(title, content, type = 'info') {
+  const resultsDiv = document.getElementById('results');
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <h2>${title}</h2>
+    <div class="status ${type}">${content}</div>
+  `;
+  resultsDiv.appendChild(card);
+  
+  diagResults.push({ title, content, type });
+}
+
+async function startDiagnosis() {
+  document.getElementById('results').innerHTML = '';
+  diagResults = [];
+  
+  addResult('🔍 診斷開始', '開始執行完整系統診斷...', 'info');
+  
+  await step1_CheckLIFF();
+  await delay(500);
+  await step2_CheckAPI();
+  await delay(500);
+  await step3_CheckMember();
+  await delay(500);
+  await step4_TestRegister();
+  await delay(500);
+  
+  generateReport();
+}
+
+async function step1_CheckLIFF() {
+  addResult('📱 步驟 1：檢查 LIFF 初始化', '正在檢查...', 'info');
+  
+  try {
+    await liff.init({ liffId: '2008231108-2PDbO5qk' });
+    
+    if (!liff.isLoggedIn()) {
+      addResult(
+        '❌ LIFF 登入狀態',
+        '尚未登入 LINE\n\n請稍後，正在跳轉到登入頁面...',
+        'error'
+      );
+      setTimeout(() => liff.login(), 3000);
+      throw new Error('未登入');
+    }
+    
+    const profile = await liff.getProfile();
+    window.lineUserId = profile.userId;
+    window.lineProfile = profile;
+    
+    addResult(
+      '✅ LIFF 初始化成功',
+      `LINE User ID: ${profile.userId}\n` +
+      `顯示名稱: ${profile.displayName}\n` +
+      `頭像: ${profile.pictureUrl ? '有' : '無'}\n` +
+      `\n🎉 LIFF 完全正常！`,
+      'success'
+    );
+    
+    return true;
+  } catch (error) {
+    addResult(
+      '❌ LIFF 初始化失敗',
+      `錯誤: ${error.message}\n\n` +
+      `可能原因:\n` +
+      `1. LIFF ID 錯誤\n` +
+      `2. Endpoint URL 未設定\n` +
+      `3. LINE 版本過舊`,
+      'error'
+    );
+    return false;
+  }
+}
+
+async function step2_CheckAPI() {
+  addResult('🔌 步驟 2：檢查 API 連接', '正在測試 API...', 'info');
+  
+  try {
+    const response = await fetch(API_URL);
+    const data = await response.json();
+    
+    if (data.message === '未知的操作') {
+      addResult(
+        '✅ API 連接正常',
+        `HTTP 狀態: 200 OK\n` +
+        `回應: ${JSON.stringify(data)}\n` +
+        `\n🎉 API 完全正常！`,
+        'success'
+      );
+      return true;
+    } else {
+      addResult(
+        '⚠️ API 回應異常',
+        `回應: ${JSON.stringify(data, null, 2)}`,
+        'warning'
+      );
+      return false;
+    }
+  } catch (error) {
+    addResult(
+      '❌ API 連接失敗',
+      `錯誤: ${error.message}\n\n` +
+      `可能原因:\n` +
+      `1. API URL 錯誤\n` +
+      `2. 網路問題\n` +
+      `3. CORS 問題`,
+      'error'
+    );
+    return false;
+  }
+}
+
+async function step3_CheckMember() {
+  if (!window.lineUserId) {
+    addResult('⏭️ 跳過會員檢查', '因為 LIFF 未登入', 'warning');
+    return false;
+  }
+  
+  addResult('👤 步驟 3：檢查會員狀態', `檢查 User ID: ${window.lineUserId}`, 'info');
+  
+  try {
+    const response = await fetch(`${API_URL}?action=profile&lineUserId=${window.lineUserId}`);
+    const data = await response.json();
+    
+    console.log('會員檢查 API 回應:', data);
+    
+    if (data.success && data.name) {
+      addResult(
+        '✅ 您已經是會員！',
+        `姓名: ${data.name}\n` +
+        `手機: ${data.phone}\n` +
+        `Email: ${data.email || '未設定'}\n` +
+        `點數: ${data.points} 點\n` +
+        `會員等級: ${data.memberLevel}\n` +
+        `推薦碼: ${data.referralCode}\n` +
+        `註冊時間: ${data.createdAt}\n` +
+        `\n🎉 會員資料正常！可以直接使用系統！`,
+        'success'
+      );
+      
+      document.getElementById('results').innerHTML += `
+        <div class="card">
+          <button onclick="window.location.href='profile.html'" class="btn-success">
+            👤 前往會員中心
+          </button>
+        </div>
+      `;
+      
+      return true;
+    } else {
+      addResult(
+        '❌ 您還不是會員',
+        `API 回應: ${JSON.stringify(data, null, 2)}\n` +
+        `\n🎯 這就是循環的原因！\n` +
+        `您需要完成註冊流程。`,
+        'warning'
+      );
+      
+      return false;
+    }
+  } catch (error) {
+    addResult(
+      '❌ 會員檢查失敗',
+      `錯誤: ${error.message}\n\n` +
+      `可能原因:\n` +
+      `1. API 請求失敗\n` +
+      `2. 網路問題\n` +
+      `3. 工作表訪問錯誤`,
+      'error'
+    );
+    return false;
+  }
+}
+
+async function step4_TestRegister() {
+  if (!window.lineUserId) {
+    addResult('⏭️ 跳過註冊測試', '因為 LIFF 未登入', 'warning');
+    return;
+  }
+  
+  addResult('📝 步驟 4：測試註冊功能', '測試是否能正常註冊...', 'info');
+  
+  const testPhone = '0912-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0') + '-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  
+  try {
+    const url = `${API_URL}?action=register&` +
+                `lineUserId=TEST-${Date.now()}&` +
+                `name=診斷測試&` +
+                `phone=${testPhone}&` +
+                `email=test@example.com&` +
+                `birthday=&` +
+                `lineName=測試&` +
+                `linePicture=&` +
+                `referralCode=`;
+    
+    console.log('測試註冊 URL:', url);
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    console.log('註冊測試回應:', data);
+    
+    if (data.success) {
+      addResult(
+        '✅ 註冊功能正常',
+        `測試註冊成功！\n` +
+        `點數: ${data.points}\n` +
+        `會員等級: ${data.memberLevel}\n` +
+        `推薦碼: ${data.referralCode}\n` +
+        `\n🎉 API 可以正常寫入 Google Sheets！\n` +
+        `工作表「會員資料」可以正常讀寫！`,
+        'success'
+      );
+    } else {
+      addResult(
+        '⚠️ 註冊測試失敗',
+        `錯誤: ${data.message}\n` +
+        `完整回應: ${JSON.stringify(data, null, 2)}`,
+        'warning'
+      );
+    }
+  } catch (error) {
+    addResult(
+      '❌ 註冊測試失敗',
+      `錯誤: ${error.message}`,
+      'error'
+    );
+  }
+}
+
+function generateReport() {
+  const resultsDiv = document.getElementById('results');
+  
+  const successCount = diagResults.filter(r => r.type === 'success').length;
+  const errorCount = diagResults.filter(r => r.type === 'error').length;
+  const warningCount = diagResults.filter(r => r.type === 'warning').length;
+  
+  let diagnosis = '';
+  let solution = '';
+  
+  if (successCount === 4) {
+    diagnosis = '✅ 所有檢查都通過！系統完全正常！';
+    solution = '您可以正常使用所有功能。如果還有問題，請清除瀏覽器快取後重試。';
+  } else if (errorCount > 0) {
+    diagnosis = '❌ 發現嚴重問題！';
+    solution = '請查看上方紅色的錯誤訊息，根據提示解決問題。';
+  } else if (warningCount > 0) {
+    diagnosis = '⚠️ 發現潛在問題';
+    solution = '您可能還沒註冊，或註冊資料有問題。請使用下方按鈕完成註冊。';
+  }
+  
+  resultsDiv.innerHTML += `
+    <div class="card" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+      <h2 style="color: white; border-color: white;">📊 診斷總結</h2>
+      <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; margin: 10px 0;">
+        <strong>檢查項目：</strong> ${diagResults.length}<br>
+        <strong>✅ 通過：</strong> ${successCount}<br>
+        <strong>❌ 失敗：</strong> ${errorCount}<br>
+        <strong>⚠️ 警告：</strong> ${warningCount}
+      </div>
+      <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; margin: 10px 0;">
+        <strong>診斷結果：</strong><br>${diagnosis}
+      </div>
+      <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; margin: 10px 0;">
+        <strong>建議方案：</strong><br>${solution}
+      </div>
+    </div>
+  `;
+  
+  // 根據結果顯示操作按鈕
+  if (warningCount > 0 && window.lineUserId) {
+    resultsDiv.innerHTML += `
+      <div class="card">
+        <h2>🎯 建議操作</h2>
+        <button onclick="goRegister()" class="btn-success" style="font-size: 16px; padding: 15px 30px;">
+          📝 前往註冊頁面
+        </button>
+        <button onclick="checkSheets()" style="font-size: 16px; padding: 15px 30px;">
+          📊 檢查 Google Sheets
+        </button>
+      </div>
+    `;
+  }
+}
+
+function goRegister() {
+  if (confirm('確定要前往註冊頁面嗎？\n\n請確實填寫完整資料並完成註冊流程。')) {
+    window.location.href = 'register.html';
+  }
+}
+
+function checkSheets() {
+  window.open('https://docs.google.com/spreadsheets/d/1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw/edit', '_blank');
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// 自動開始診斷
+window.onload = function() {
+  setTimeout(startDiagnosis, 500);
+};
+</script>
+
+</body>
+</html>
+
