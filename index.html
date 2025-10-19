@@ -206,13 +206,35 @@
 
 <script src="./assets/auth.js"></script>
 <script>
-// 檢查是否已登入，自動跳轉
-window.addEventListener('load', async () => {
-  const isLoggedIn = await AUTH.isLoggedIn();
-  if (isLoggedIn) {
-    // 已經登入，直接跳轉到會員中心
-    window.location.href = 'profile.html';
+// 🔧 修復：移除自動檢查登入，避免 LINE 登入彈窗
+// 用戶需要主動點擊按鈕才會登入
+
+// LINE 快速登入按鈕處理
+document.querySelector('.btn-line')?.addEventListener('click', async () => {
+  // 使用 LINE LIFF 登入
+  if (typeof liff !== 'undefined') {
+    try {
+      await liff.init({ liffId: "2008231108-0rAX3R5d" });
+      if (!liff.isLoggedIn()) {
+        liff.login({ redirectUri: window.location.origin + '/member-system/profile.html' });
+      } else {
+        window.location.href = 'profile.html';
+      }
+    } catch (error) {
+      console.error('LINE 登入錯誤:', error);
+      alert('LINE 登入失敗，請稍後再試');
+    }
   }
+});
+
+// 帳號密碼登入按鈕
+document.querySelector('.btn-password')?.addEventListener('click', () => {
+  window.location.href = 'login.html';
+});
+
+// 註冊按鈕
+document.querySelector('.btn-register')?.addEventListener('click', () => {
+  window.location.href = 'register.html';
 });
 </script>
 </body>
