@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔍 商城問題診斷</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Microsoft JhengHei', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+h1 {
+  color: #667eea;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  transition: all 0.3s;
+}
+
+.btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #4CAF50, #388E3C);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+}
+
+.result {
+  background: #f8f9fa;
+  border: 3px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 16px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 500px;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.result.success {
+  border-color: #4CAF50;
+  background: #E8F5E9;
+}
+
+.result.error {
+  border-color: #f44336;
+  background: #FFEBEE;
+}
+
+.result.warning {
+  border-color: #FF9800;
+  background: #FFF3E0;
+}
+
+.step {
+  background: #E3F2FD;
+  border-left: 4px solid #2196F3;
+  padding: 16px;
+  margin: 16px 0;
+  border-radius: 8px;
+}
+
+.step h3 {
+  color: #1976D2;
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.check-item {
+  padding: 12px;
+  margin: 8px 0;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.check-item.ok {
+  border-color: #4CAF50;
+  background: #E8F5E9;
+}
+
+.check-item.fail {
+  border-color: #f44336;
+  background: #FFEBEE;
+}
+
+pre {
+  background: #2d2d2d;
+  color: #f8f8f2;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.info {
+  background: #FFF9C4;
+  border: 2px solid #FBC02D;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <h1>🔍 商城問題診斷工具</h1>
+    
+    <div class="info">
+      <strong>📝 這個工具會幫您檢查：</strong><br>
+      ✓ API 是否正常<br>
+      ✓ 商品資料是否存在<br>
+      ✓ 工作表設定是否正確<br>
+      ✓ 提供解決方案
+    </div>
+    
+    <button class="btn btn-success" onclick="startDiagnosis()">🚀 開始診斷</button>
+    <button class="btn" onclick="testAPI()">🧪 測試 API</button>
+    <button class="btn btn-danger" onclick="clearAllCache()">🗑️ 清除所有快取</button>
+    
+    <div id="diagnosisResult"></div>
+  </div>
+  
+  <div class="card">
+    <h2>📋 快速新增測試商品</h2>
+    
+    <div class="step">
+      <h3>步驟 1：複製欄位標題</h3>
+      <p>點擊下方文字框會自動全選，然後按 Ctrl+C 複製：</p>
+      <textarea readonly onclick="this.select()" style="width: 100%; height: 60px; padding: 10px; font-family: monospace; font-size: 12px; margin-top: 8px;">productId	productName	description	imageUrl	points	originalPrice	stock	category	sellerId	sellerName	sellerPhone	sellerReferralCode	isActive	soldCount	tags	createdAt	updatedAt</textarea>
+      <p style="margin-top: 8px; color: #666; font-size: 13px;">貼到 Google Sheets「商城商品」工作表的第1行（A1格開始）</p>
+    </div>
+    
+    <div class="step">
+      <h3>步驟 2：複製商品資料</h3>
+      <p>點擊下方文字框會自動全選，然後按 Ctrl+C 複製：</p>
+      <textarea readonly onclick="this.select()" style="width: 100%; height: 80px; padding: 10px; font-family: monospace; font-size: 12px; margin-top: 8px;">X7Z5P3	拍新聞	獲得拍新聞虛擬商品序號	https://i.postimg.cc/3R5j7t6k/Pi-News-GIF2.gif	3600	3600	-1	virtual			USER001	TRUE	0	虛擬商品,序號	2025-10-18	2025-10-18</textarea>
+      <p style="margin-top: 8px; color: #666; font-size: 13px;">貼到 Google Sheets「商城商品」工作表的第2行（A2格開始）</p>
+    </div>
+    
+    <button class="btn btn-success" onclick="copyHeaders()">📋 一鍵複製欄位標題</button>
+    <button class="btn btn-success" onclick="copyProduct()">📋 一鍵複製商品資料</button>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec';
+
+async function startDiagnosis() {
+  const resultDiv = document.getElementById('diagnosisResult');
+  resultDiv.innerHTML = '<div class="result">🔍 診斷中，請稍候...</div>';
+  
+  let report = '═══════════════════════════════════\n';
+  report += '🔍 商城問題診斷報告\n';
+  report += '═══════════════════════════════════\n\n';
+  
+  let hasError = false;
+  
+  // 檢查 1：API 連線
+  report += '【檢查 1】API 連線測試\n';
+  report += '-----------------------------------\n';
+  
+  try {
+    const testUrl = `${API_URL}?action=test`;
+    const testRes = await fetch(testUrl);
+    
+    if (testRes.ok) {
+      report += '✅ API 連線正常\n';
+      report += `   URL: ${API_URL}\n\n`;
+    } else {
+      report += `❌ API 回應異常 (${testRes.status})\n\n`;
+      hasError = true;
+    }
+  } catch (error) {
+    report += `❌ API 連線失敗\n`;
+    report += `   錯誤: ${error.message}\n\n`;
+    hasError = true;
+  }
+  
+  // 檢查 2：商品 API
+  report += '【檢查 2】商品 API 測試\n';
+  report += '-----------------------------------\n';
+  
+  try {
+    const url = `${API_URL}?action=mall-products`;
+    const res = await fetch(url);
+    const data = await res.json();
+    
+    report += `請求 URL: ${url}\n\n`;
+    
+    if (data.success) {
+      const products = data.products || [];
+      
+      if (products.length > 0) {
+        report += `✅ 成功載入 ${products.length} 個商品\n\n`;
+        report += '商品列表：\n';
+        products.forEach((p, i) => {
+          report += `\n${i + 1}. ${p.productName || '未命名'}\n`;
+          report += `   ID: ${p.productId}\n`;
+          report += `   點數: ${p.points}\n`;
+          report += `   狀態: ${p.isActive ? '✅ 上架中' : '❌ 已下架'}\n`;
+          report += `   庫存: ${p.stock === -1 ? '不限量' : p.stock}\n`;
+        });
+        report += '\n';
+      } else {
+        report += '⚠️ API 正常，但商品列表是空的！\n\n';
+        report += '可能原因：\n';
+        report += '1. 「商城商品」工作表沒有資料\n';
+        report += '2. isActive 欄位不是 TRUE\n';
+        report += '3. 資料格式不正確\n\n';
+        report += '💡 解決方法：\n';
+        report += '請使用下方的「複製商品資料」功能\n';
+        report += '將資料貼到 Google Sheets 的「商城商品」工作表\n\n';
+        hasError = true;
+      }
+    } else {
+      report += `❌ API 回應失敗\n`;
+      report += `   訊息: ${data.message || '未知錯誤'}\n\n`;
+      report += '可能原因：\n';
+      report += '1. 「商城商品」工作表不存在\n';
+      report += '2. 工作表名稱拼寫錯誤（要用中文：商城商品）\n';
+      report += '3. Apps Script 沒有處理 mall-products action\n\n';
+      hasError = true;
+    }
+    
+    report += '完整 API 回應：\n';
+    report += JSON.stringify(data, null, 2) + '\n\n';
+    
+  } catch (error) {
+    report += `❌ 請求失敗\n`;
+    report += `   錯誤: ${error.message}\n\n`;
+    hasError = true;
+  }
+  
+  // 檢查 3：快取狀態
+  report += '【檢查 3】快取狀態\n';
+  report += '-----------------------------------\n';
+  
+  const cacheKey = 'mall_products';
+  const cached = localStorage.getItem(cacheKey);
+  
+  if (cached) {
+    try {
+      const cacheData = JSON.parse(cached);
+      report += `⚠️ 發現商品快取\n`;
+      report += `   建立時間: ${new Date(cacheData.expiry - 3*60*1000).toLocaleString()}\n`;
+      report += `   過期時間: ${new Date(cacheData.expiry).toLocaleString()}\n\n`;
+      report += `💡 建議：清除快取後重新測試\n\n`;
+    } catch (e) {
+      report += `⚠️ 快取資料損壞\n\n`;
+    }
+  } else {
+    report += `✅ 無舊快取\n\n`;
+  }
+  
+  // 總結
+  report += '═══════════════════════════════════\n';
+  report += '📊 診斷總結\n';
+  report += '═══════════════════════════════════\n\n';
+  
+  if (!hasError) {
+    report += '✅ 所有檢查都通過！\n';
+    report += '   商城應該可以正常顯示商品\n\n';
+    report += '💡 如果還是看不到：\n';
+    report += '   1. 清除 LINE 快取\n';
+    report += '   2. 重新開啟商城頁面\n';
+    resultDiv.innerHTML = `<div class="result success">${report}</div>`;
+  } else {
+    report += '⚠️ 發現問題！\n';
+    report += '   請參考上方的解決方法\n';
+    resultDiv.innerHTML = `<div class="result error">${report}</div>`;
+  }
+}
+
+async function testAPI() {
+  const resultDiv = document.getElementById('diagnosisResult');
+  resultDiv.innerHTML = '<div class="result">🧪 測試中...</div>';
+  
+  try {
+    const url = `${API_URL}?action=mall-products`;
+    console.log('測試 URL:', url);
+    
+    const res = await fetch(url);
+    const data = await res.json();
+    
+    let report = '🧪 API 測試結果\n\n';
+    report += `請求 URL:\n${url}\n\n`;
+    report += `回應狀態: ${res.status} ${res.statusText}\n\n`;
+    report += `完整回應：\n`;
+    report += JSON.stringify(data, null, 2);
+    
+    if (data.success && data.products && data.products.length > 0) {
+      resultDiv.innerHTML = `<div class="result success">${report}</div>`;
+    } else if (data.success && (!data.products || data.products.length === 0)) {
+      resultDiv.innerHTML = `<div class="result warning">${report}\n\n⚠️ API 正常但沒有商品資料！\n請使用下方功能新增商品。</div>`;
+    } else {
+      resultDiv.innerHTML = `<div class="result error">${report}</div>`;
+    }
+  } catch (error) {
+    resultDiv.innerHTML = `<div class="result error">❌ 測試失敗\n\n錯誤: ${error.message}\n\n可能原因：\n1. API URL 不正確\n2. CORS 問題\n3. Apps Script 未正確部署</div>`;
+  }
+}
+
+function clearAllCache() {
+  const keys = Object.keys(localStorage);
+  const removed = [];
+  
+  keys.forEach(key => {
+    if (key.includes('mall') || key.includes('product')) {
+      localStorage.removeItem(key);
+      removed.push(key);
+    }
+  });
+  
+  if (removed.length > 0) {
+    alert(`✅ 已清除 ${removed.length} 個快取項目：\n\n${removed.join('\n')}\n\n請重新載入頁面！`);
+    location.reload();
+  } else {
+    alert('✅ 沒有商城相關快取');
+  }
+}
+
+function copyHeaders() {
+  const text = 'productId\tproductName\tdescription\timageUrl\tpoints\toriginalPrice\tstock\tcategory\tsellerId\tsellerName\tsellerPhone\tsellerReferralCode\tisActive\tsoldCount\ttags\tcreatedAt\tupdatedAt';
+  
+  navigator.clipboard.writeText(text).then(() => {
+    alert('✅ 欄位標題已複製！\n\n請到 Google Sheets「商城商品」工作表\n點選 A1 格，按 Ctrl+V 貼上');
+  }).catch(() => {
+    prompt('請手動複製（Ctrl+C）：', text);
+  });
+}
+
+function copyProduct() {
+  const text = 'X7Z5P3\t拍新聞\t獲得拍新聞虛擬商品序號\thttps://i.postimg.cc/3R5j7t6k/Pi-News-GIF2.gif\t3600\t3600\t-1\tvirtual\t\t\t\tUSER001\tTRUE\t0\t虛擬商品,序號\t2025-10-18\t2025-10-18';
+  
+  navigator.clipboard.writeText(text).then(() => {
+    alert('✅ 商品資料已複製！\n\n請到 Google Sheets「商城商品」工作表\n點選 A2 格，按 Ctrl+V 貼上');
+  }).catch(() => {
+    prompt('請手動複製（Ctrl+C）：', text);
+  });
+}
+
+// 自動檢測
+window.addEventListener('load', () => {
+  console.log('🔍 商城診斷工具已載入');
+  console.log('API URL:', API_URL);
+});
+</script>
+
+</body>
+</html>
+

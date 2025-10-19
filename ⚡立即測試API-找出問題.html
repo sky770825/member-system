@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ 立即測試 API - 找出問題</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Microsoft JhengHei', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+h1 {
+  color: #667eea;
+  margin-bottom: 20px;
+  font-size: 28px;
+}
+.btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  margin: 10px 10px 10px 0;
+  transition: all 0.3s;
+  width: 100%;
+  max-width: 300px;
+}
+.btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+.result {
+  background: #f8f9fa;
+  border: 3px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+  font-family: 'Consolas', monospace;
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+.result.success { border-color: #4CAF50; background: #E8F5E9; }
+.result.error { border-color: #f44336; background: #FFEBEE; }
+.result.warning { border-color: #FF9800; background: #FFF3E0; }
+.step {
+  background: #E3F2FD;
+  border-left: 4px solid #2196F3;
+  padding: 16px;
+  margin: 20px 0;
+  border-radius: 8px;
+}
+.step h3 { color: #1976D2; margin-bottom: 12px; }
+.important {
+  background: #FFF9C4;
+  border: 3px solid #FBC02D;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  font-size: 16px;
+}
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 12px;
+  resize: vertical;
+  margin-top: 10px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>⚡ 商城載入問題 - 立即診斷</h1>
+  
+  <div class="important">
+    <strong>🎯 您的問題：手機載入商品一直轉圈</strong><br><br>
+    <strong>📋 可能原因：</strong><br>
+    1️⃣ Google Sheets「商城商品」工作表沒有資料<br>
+    2️⃣ API 回應錯誤<br>
+    3️⃣ 資料格式不對<br><br>
+    <strong>⚡ 立即測試找出原因！</strong>
+  </div>
+  
+  <button class="btn" onclick="testAPI()">🧪 步驟1：測試 API</button>
+  <button class="btn" onclick="showSheetGuide()">📋 步驟2：新增商品資料</button>
+  
+  <div id="result"></div>
+  
+  <div class="step" style="margin-top: 30px;">
+    <h3>📝 如果 API 沒有商品資料</h3>
+    <p><strong>複製下面的資料到 Google Sheets：</strong></p>
+    
+    <p style="margin-top: 15px;"><strong>第1行（欄位標題）：</strong></p>
+    <textarea readonly onclick="this.select()" rows="2">productId	productName	description	imageUrl	points	originalPrice	stock	category	sellerId	sellerName	sellerPhone	sellerReferralCode	isActive	soldCount	tags	createdAt	updatedAt</textarea>
+    <button class="btn" onclick="copyText(this.previousElementSibling.value, '欄位標題')" style="margin-top: 10px; max-width: 200px; padding: 10px;">📋 複製標題</button>
+    
+    <p style="margin-top: 15px;"><strong>第2行（拍新聞商品）：</strong></p>
+    <textarea readonly onclick="this.select()" rows="2">X7Z5P3	拍新聞	獲得拍新聞虛擬商品序號	https://i.postimg.cc/3R5j7t6k/Pi-News-GIF2.gif	3600	3600	-1	virtual			USER001	TRUE	0	虛擬商品,序號	2025-10-18	2025-10-18</textarea>
+    <button class="btn" onclick="copyText(this.previousElementSibling.value, '商品資料')" style="margin-top: 10px; max-width: 200px; padding: 10px;">📋 複製商品</button>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec';
+
+async function testAPI() {
+  const resultDiv = document.getElementById('result');
+  resultDiv.innerHTML = '<div class="result"><div class="loading"></div>🧪 測試中，請稍候...</div>';
+  
+  try {
+    const url = `${API_URL}?action=mall-products`;
+    console.log('測試 URL:', url);
+    
+    const startTime = Date.now();
+    const res = await fetch(url);
+    const loadTime = Date.now() - startTime;
+    
+    const data = await res.json();
+    
+    let report = '═══════════════════════════════════\n';
+    report += '🧪 API 測試結果\n';
+    report += '═══════════════════════════════════\n\n';
+    
+    report += `⏱️ 回應時間: ${loadTime}ms\n`;
+    report += `📡 狀態碼: ${res.status} ${res.statusText}\n\n`;
+    
+    report += '📋 API 回應：\n';
+    report += '-----------------------------------\n';
+    report += JSON.stringify(data, null, 2);
+    report += '\n\n';
+    
+    // 分析結果
+    report += '═══════════════════════════════════\n';
+    report += '📊 診斷結果\n';
+    report += '═══════════════════════════════════\n\n';
+    
+    if (data.success) {
+      const products = data.products || [];
+      
+      if (products.length > 0) {
+        report += `✅ 成功！找到 ${products.length} 個商品\n\n`;
+        
+        products.forEach((p, i) => {
+          report += `${i + 1}. ${p.productName || '未命名'}\n`;
+          report += `   ID: ${p.productId}\n`;
+          report += `   點數: ${p.points}\n`;
+          report += `   狀態: ${p.isActive ? '✅ 上架' : '❌ 下架'}\n`;
+          report += `   庫存: ${p.stock === -1 ? '不限' : p.stock}\n\n`;
+        });
+        
+        report += '✅ API 正常！商品資料正確！\n\n';
+        report += '💡 如果手機還是轉圈：\n';
+        report += '1. 清除 LINE 快取（設定→聊天→刪除快取）\n';
+        report += '2. 等待 2-3 分鐘讓 GitHub 部署完成\n';
+        report += '3. 重新開啟商城\n';
+        
+        resultDiv.innerHTML = `<div class="result success">${report}</div>`;
+      } else {
+        report += '⚠️ API 正常，但沒有商品資料！\n\n';
+        report += '❌ 問題原因：「商城商品」工作表是空的\n\n';
+        report += '✅ 解決方法：\n';
+        report += '1. 開啟 Google Sheets\n';
+        report += '2. 找到「商城商品」工作表（底部標籤）\n';
+        report += '3. 複製下方的「欄位標題」到第1行（A1）\n';
+        report += '4. 複製下方的「商品資料」到第2行（A2）\n';
+        report += '5. 重新測試\n';
+        
+        resultDiv.innerHTML = `<div class="result warning">${report}</div>`;
+      }
+    } else {
+      report += '❌ API 回應失敗\n\n';
+      report += `錯誤訊息: ${data.message || '未知錯誤'}\n\n`;
+      report += '可能原因：\n';
+      report += '1. 「商城商品」工作表不存在\n';
+      report += '2. 工作表名稱錯誤（必須是中文「商城商品」）\n';
+      report += '3. Apps Script 沒有處理 mall-products\n\n';
+      report += '解決方法：\n';
+      report += '1. 檢查 Google Sheets 有沒有「商城商品」工作表\n';
+      report += '2. 如果沒有，新增一個工作表並命名為「商城商品」\n';
+      report += '3. 使用下方的複製功能貼上資料\n';
+      
+      resultDiv.innerHTML = `<div class="result error">${report}</div>`;
+    }
+    
+  } catch (error) {
+    let report = '═══════════════════════════════════\n';
+    report += '❌ API 請求失敗\n';
+    report += '═══════════════════════════════════\n\n';
+    report += `錯誤: ${error.message}\n\n`;
+    report += '可能原因：\n';
+    report += '1. 網路連線問題\n';
+    report += '2. API URL 不正確\n';
+    report += '3. CORS 跨域問題\n';
+    report += '4. Apps Script 未正確部署\n\n';
+    report += `API URL: ${API_URL}\n`;
+    
+    resultDiv.innerHTML = `<div class="result error">${report}</div>`;
+  }
+}
+
+function showSheetGuide() {
+  const resultDiv = document.getElementById('result');
+  
+  let guide = '═══════════════════════════════════\n';
+  guide += '📋 新增商品資料到 Google Sheets\n';
+  guide += '═══════════════════════════════════\n\n';
+  
+  guide += '步驟 1：開啟 Google Sheets\n';
+  guide += '-----------------------------------\n';
+  guide += 'https://docs.google.com/spreadsheets/d/\n';
+  guide += '1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw/edit\n\n';
+  
+  guide += '步驟 2：找到「商城商品」工作表\n';
+  guide += '-----------------------------------\n';
+  guide += '在 Google Sheets 底部找到「商城商品」標籤\n';
+  guide += '（如果沒有，請新增一個工作表並命名為「商城商品」）\n\n';
+  
+  guide += '步驟 3：複製欄位標題\n';
+  guide += '-----------------------------------\n';
+  guide += '1. 點擊上方「📋 複製標題」按鈕\n';
+  guide += '2. 到 Google Sheets 點選 A1 格\n';
+  guide += '3. 按 Ctrl+V 貼上\n\n';
+  
+  guide += '步驟 4：複製商品資料\n';
+  guide += '-----------------------------------\n';
+  guide += '1. 點擊上方「📋 複製商品」按鈕\n';
+  guide += '2. 到 Google Sheets 點選 A2 格\n';
+  guide += '3. 按 Ctrl+V 貼上\n\n';
+  
+  guide += '步驟 5：測試\n';
+  guide += '-----------------------------------\n';
+  guide += '點擊「🧪 步驟1：測試 API」按鈕\n';
+  guide += '應該看到「找到 1 個商品」\n\n';
+  
+  guide += '完成！✅\n';
+  
+  resultDiv.innerHTML = `<div class="result">${guide}</div>`;
+}
+
+function copyText(text, type) {
+  navigator.clipboard.writeText(text).then(() => {
+    alert(`✅ ${type}已複製！\n\n請到 Google Sheets 貼上`);
+  }).catch(() => {
+    alert('❌ 複製失敗，請手動選取並複製');
+  });
+}
+
+// 頁面載入時自動測試
+window.addEventListener('load', () => {
+  console.log('⚡ 診斷工具已載入');
+  // 自動測試
+  setTimeout(() => {
+    testAPI();
+  }, 500);
+});
+</script>
+
+</body>
+</html>
+

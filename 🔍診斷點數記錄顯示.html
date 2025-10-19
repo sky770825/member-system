@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>診斷點數記錄顯示</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+th { background-color: #667eea; color: white; }
+.correct { background-color: #e8f5e9; }
+.wrong { background-color: #ffebee; }
+.warning { background-color: #fff3e0; }
+.positive { color: green; font-weight: bold; }
+.negative { color: red; font-weight: bold; }
+h3 { margin-top: 30px; }
+</style>
+</head>
+<body>
+<h1>🔍 點數記錄診斷工具</h1>
+<p>這個工具會顯示您的交易記錄，並標示出可能有問題的記錄。</p>
+
+<div id="userInfo"></div>
+<div id="output"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec";
+
+async function diagnose() {
+  try {
+    await liff.init({ liffId: "2008231108-0rAX3R5d" });
+    
+    if (!liff.isLoggedIn()) {
+      liff.login({ redirectUri: window.location.href });
+      return;
+    }
+
+    const profile = await liff.getProfile();
+    const currentUserId = profile.userId;
+    const displayName = profile.displayName;
+
+    document.getElementById('userInfo').innerHTML = `
+      <h3>👤 當前用戶</h3>
+      <p><strong>姓名：</strong>${displayName}</p>
+      <p><strong>User ID：</strong>${currentUserId}</p>
+    `;
+
+    const res = await fetch(`${API_URL}?action=transactions&lineUserId=${currentUserId}&limit=50`);
+    const result = await res.json();
+    
+    console.log('完整交易記錄:', result);
+    
+    if (!result.success || !result.transactions || result.transactions.length === 0) {
+      document.getElementById('output').innerHTML = '<p>沒有交易記錄</p>';
+      return;
+    }
+      
+    let html = '<h3>📊 交易記錄詳細分析</h3>';
+    html += '<table>';
+    html += '<tr>';
+    html += '<th>序號</th>';
+    html += '<th>時間</th>';
+    html += '<th>交易類型</th>';
+    html += '<th>原始點數</th>';
+    html += '<th>當前用戶角色</th>';
+    html += '<th>前端顯示</th>';
+    html += '<th>是否正確</th>';
+    html += '<th>詳情</th>';
+    html += '</tr>';
+    
+    let problemCount = 0;
+    
+    result.transactions.forEach((item, index) => {
+      // 判斷當前用戶是發送者還是接收者
+      const isSender = item.senderUserId === currentUserId;
+      const isReceiver = item.receiverUserId === currentUserId;
+      
+      let userRole = '';
+      if (isSender && isReceiver) {
+        userRole = '自己轉給自己';
+      } else if (isSender) {
+        userRole = '發送者（轉出）';
+      } else if (isReceiver) {
+        userRole = '接收者（轉入）';
+      } else {
+        userRole = '❓ 未知（可能有問題）';
+      }
+      
+      // 前端的顯示邏輯
+      const isPositive = [
+        'transfer_in',
+        'register',
+        'admin_add',
+        'purchase',
+        'referral_purchase_reward',
+        'referral_withdraw_reward',
+        'referral_bonus',
+        'referral_reward',
+        'mall_sale'
+      ].includes(item.type);
+      
+      const displayPoints = Math.abs(item.points);
+      const displaySign = isPositive ? '+' : '-';
+      const frontendDisplay = `${displaySign}${displayPoints}`;
+      
+      // 判斷是否正確
+      let isCorrect = false;
+      let correctReason = '';
+      let rowClass = '';
+      
+      if (item.type === 'transfer_out') {
+        // 轉出應該顯示為負數
+        if (displaySign === '-') {
+          isCorrect = true;
+          correctReason = '✅ 正確';
+          rowClass = 'correct';
+        } else {
+          isCorrect = false;
+          correctReason = '❌ 錯誤：轉出應該是 -';
+          rowClass = 'wrong';
+          problemCount++;
+        }
+      } else if (item.type === 'transfer_in') {
+        // 轉入應該顯示為正數
+        if (displaySign === '+') {
+          isCorrect = true;
+          correctReason = '✅ 正確';
+          rowClass = 'correct';
+        } else {
+          isCorrect = false;
+          correctReason = '❌ 錯誤：轉入應該是 +';
+          rowClass = 'wrong';
+          problemCount++;
+        }
+      } else if (item.type === 'withdraw' || item.type === 'mall_purchase') {
+        // 提領和購買應該是負數
+        if (displaySign === '-') {
+          isCorrect = true;
+          correctReason = '✅ 正確';
+          rowClass = 'correct';
+        } else {
+          isCorrect = false;
+          correctReason = '❌ 錯誤：支出應該是 -';
+          rowClass = 'wrong';
+          problemCount++;
+        }
+      } else {
+        // 其他收入類型應該是正數
+        if (displaySign === '+') {
+          isCorrect = true;
+          correctReason = '✅ 正確';
+          rowClass = 'correct';
+        } else {
+          correctReason = '⚠️ 可能有問題';
+          rowClass = 'warning';
+        }
+      }
+      
+      // 檢查類型與用戶角色是否匹配
+      if (item.type === 'transfer_out' && !isSender) {
+        correctReason += ' | ⚠️ transfer_out 但用戶不是發送者';
+        rowClass = 'wrong';
+        problemCount++;
+      }
+      if (item.type === 'transfer_in' && !isReceiver) {
+        correctReason += ' | ⚠️ transfer_in 但用戶不是接收者';
+        rowClass = 'wrong';
+        problemCount++;
+      }
+      
+      const timestamp = new Date(item.createdAt);
+      const timeStr = timestamp.toLocaleString('zh-TW');
+      
+      html += `<tr class="${rowClass}">`;
+      html += `<td>${index + 1}</td>`;
+      html += `<td>${timeStr}</td>`;
+      html += `<td>${item.type}</td>`;
+      html += `<td class="${item.points >= 0 ? 'positive' : 'negative'}">${item.points}</td>`;
+      html += `<td>${userRole}</td>`;
+      html += `<td class="${displaySign === '+' ? 'positive' : 'negative'}">${frontendDisplay}</td>`;
+      html += `<td>${correctReason}</td>`;
+      html += `<td>${item.senderName || ''} → ${item.receiverName || ''}</td>`;
+      html += '</tr>';
+    });
+    
+    html += '</table>';
+    
+    html += `<h3>📌 診斷總結</h3>`;
+    html += `<p>總共檢查了 <strong>${result.transactions.length}</strong> 筆交易記錄</p>`;
+    if (problemCount === 0) {
+      html += `<p style="color: green; font-weight: bold;">✅ 沒有發現問題！所有記錄顯示正確。</p>`;
+    } else {
+      html += `<p style="color: red; font-weight: bold;">❌ 發現 ${problemCount} 筆可能有問題的記錄！</p>`;
+      html += `<p>請檢查標記為紅色或橙色的記錄。</p>`;
+    }
+    
+    document.getElementById('output').innerHTML = html;
+    
+  } catch (error) {
+    document.getElementById('output').innerHTML = '<p style="color:red;">錯誤: ' + error.message + '</p>';
+    console.error('診斷錯誤:', error);
+  }
+}
+
+diagnose();
+</script>
+</body>
+</html>
+

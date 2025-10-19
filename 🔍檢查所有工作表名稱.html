@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔍 檢查所有工作表名稱</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Microsoft JhengHei', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+h1 {
+  color: #667eea;
+  margin-bottom: 20px;
+  font-size: 28px;
+}
+.alert {
+  background: #FFF3CD;
+  border: 3px solid #FFC107;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  font-size: 16px;
+  line-height: 1.8;
+}
+.alert strong {
+  color: #856404;
+  font-size: 18px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+thead {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+th {
+  padding: 16px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 16px;
+}
+td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 15px;
+}
+tbody tr:hover {
+  background: #f8f9fa;
+}
+.status {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.status.required {
+  background: #FFEBEE;
+  color: #C62828;
+}
+.status.optional {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+.btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin: 10px 10px 10px 0;
+  transition: all 0.3s;
+}
+.btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+.btn-success {
+  background: linear-gradient(135deg, #4CAF50, #388E3C);
+}
+.section {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+}
+.section h3 {
+  color: #667eea;
+  margin-bottom: 15px;
+}
+pre {
+  background: #2d2d2d;
+  color: #f8f8f2;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.check-item {
+  padding: 12px;
+  margin: 8px 0;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.check-item.ok {
+  border-color: #4CAF50;
+  background: #E8F5E9;
+}
+.check-item.fail {
+  border-color: #f44336;
+  background: #FFEBEE;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🔍 檢查所有工作表名稱</h1>
+  
+  <div class="alert">
+    <strong>⚠️ 您的問題：</strong><br>
+    • 商城商品一直轉圈載入<br>
+    • 提領記錄沒有內容<br><br>
+    <strong>❌ 原因：Google Sheets 工作表名稱不對或沒有資料</strong><br><br>
+    <strong>✅ 解決：確認並建立所有必要的工作表</strong>
+  </div>
+  
+  <button class="btn btn-success" onclick="openGoogleSheets()">📊 開啟 Google Sheets</button>
+  <button class="btn" onclick="testAllAPIs()">🧪 測試所有 API</button>
+  
+  <div class="section">
+    <h3>📋 您的系統需要的工作表（中文名稱）</h3>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>工作表名稱（中文）</th>
+          <th>用途</th>
+          <th>重要性</th>
+          <th>API Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>會員資料</strong></td>
+          <td>儲存會員基本資料</td>
+          <td><span class="status required">必要</span></td>
+          <td>register, profile</td>
+        </tr>
+        <tr>
+          <td><strong>交易記錄</strong></td>
+          <td>點數轉移記錄</td>
+          <td><span class="status required">必要</span></td>
+          <td>transactions, transfer</td>
+        </tr>
+        <tr>
+          <td><strong>推薦關係</strong></td>
+          <td>推薦人關係</td>
+          <td><span class="status optional">選用</span></td>
+          <td>referral-stats</td>
+        </tr>
+        <tr>
+          <td><strong>購買記錄</strong></td>
+          <td>一般購買記錄</td>
+          <td><span class="status optional">選用</span></td>
+          <td>-</td>
+        </tr>
+        <tr style="background: #FFF9C4;">
+          <td><strong>提領記錄</strong></td>
+          <td>提領申請記錄 ⚠️</td>
+          <td><span class="status required">必要</span></td>
+          <td>withdrawals</td>
+        </tr>
+        <tr style="background: #FFF9C4;">
+          <td><strong>商城商品</strong></td>
+          <td>商城商品列表 ⚠️</td>
+          <td><span class="status required">必要</span></td>
+          <td>mall-products</td>
+        </tr>
+        <tr>
+          <td><strong>商城訂單</strong></td>
+          <td>商城購買訂單</td>
+          <td><span class="status optional">選用</span></td>
+          <td>mall-orders</td>
+        </tr>
+        <tr>
+          <td><strong>會員等級</strong></td>
+          <td>會員等級設定</td>
+          <td><span class="status optional">選用</span></td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td><strong>活動記錄</strong></td>
+          <td>會員活動記錄</td>
+          <td><span class="status optional">選用</span></td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td><strong>系統設定</strong></td>
+          <td>系統參數設定</td>
+          <td><span class="status optional">選用</span></td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td><strong>每日統計</strong></td>
+          <td>每日數據統計</td>
+          <td><span class="status optional">選用</span></td>
+          <td>-</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <p style="color: #666; margin-top: 15px; font-size: 14px;">
+      ⚠️ 黃色標記的工作表是您目前遇到問題的
+    </p>
+  </div>
+  
+  <div class="section">
+    <h3>✅ 立即檢查步驟</h3>
+    
+    <div style="background: white; padding: 20px; border-radius: 8px; margin: 15px 0;">
+      <h4 style="color: #667eea; margin-bottom: 12px;">步驟 1：開啟 Google Sheets</h4>
+      <p>點擊上方「📊 開啟 Google Sheets」按鈕</p>
+      <p style="margin-top: 8px; font-size: 14px; color: #666;">
+        或複製網址：<br>
+        <code style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+          https://docs.google.com/spreadsheets/d/1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw/edit
+        </code>
+      </p>
+    </div>
+    
+    <div style="background: white; padding: 20px; border-radius: 8px; margin: 15px 0;">
+      <h4 style="color: #667eea; margin-bottom: 12px;">步驟 2：檢查底部工作表標籤</h4>
+      <p>在 Google Sheets 底部，您應該看到這些工作表標籤：</p>
+      <pre style="margin-top: 10px;">會員資料  |  交易記錄  |  推薦關係  |  提領記錄  |  商城商品  |  ...</pre>
+    </div>
+    
+    <div style="background: white; padding: 20px; border-radius: 8px; margin: 15px 0;">
+      <h4 style="color: #667eea; margin-bottom: 12px;">步驟 3：確認重點工作表</h4>
+      
+      <div class="check-item">
+        <span style="font-size: 24px;">📋</span>
+        <div style="flex: 1;">
+          <strong>商城商品</strong> - 必須存在且有資料（標題+商品）
+        </div>
+      </div>
+      
+      <div class="check-item">
+        <span style="font-size: 24px;">💰</span>
+        <div style="flex: 1;">
+          <strong>提領記錄</strong> - 必須存在（可以空的）
+        </div>
+      </div>
+      
+      <div class="check-item">
+        <span style="font-size: 24px;">👥</span>
+        <div style="flex: 1;">
+          <strong>會員資料</strong> - 必須存在（有您的會員資料）
+        </div>
+      </div>
+      
+      <div class="check-item">
+        <span style="font-size: 24px;">💸</span>
+        <div style="flex: 1;">
+          <strong>交易記錄</strong> - 必須存在（可以空的）
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h3>🛠️ 如果工作表不存在或名稱錯誤</h3>
+    
+    <div style="background: white; padding: 20px; border-radius: 8px; margin: 15px 0;">
+      <h4 style="color: #f44336; margin-bottom: 12px;">❌ 常見錯誤</h4>
+      <ul style="line-height: 2;">
+        <li>工作表名稱是英文（例如：Products、Withdrawals）</li>
+        <li>工作表名稱有錯字（例如：商城商品表、提領紀錄）</li>
+        <li>工作表根本不存在</li>
+      </ul>
+    </div>
+    
+    <div style="background: white; padding: 20px; border-radius: 8px; margin: 15px 0;">
+      <h4 style="color: #4CAF50; margin-bottom: 12px;">✅ 正確做法</h4>
+      
+      <p><strong>新增工作表：</strong></p>
+      <ol style="line-height: 2; margin: 10px 0;">
+        <li>點擊 Google Sheets 底部左下角的「<strong>+</strong>」按鈕</li>
+        <li>新工作表出現後，右鍵點選該工作表</li>
+        <li>選擇「重新命名」</li>
+        <li>輸入正確的中文名稱（例如：<strong>商城商品</strong>）</li>
+        <li>按 Enter 確認</li>
+      </ol>
+      
+      <p style="margin-top: 15px;"><strong>重新命名現有工作表：</strong></p>
+      <ol style="line-height: 2; margin: 10px 0;">
+        <li>右鍵點選要改名的工作表標籤</li>
+        <li>選擇「重新命名」</li>
+        <li>改成正確的中文名稱</li>
+        <li>按 Enter 確認</li>
+      </ol>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h3>📋 快速新增「商城商品」資料</h3>
+    
+    <p style="margin-bottom: 15px;">確認有「商城商品」工作表後，新增以下資料：</p>
+    
+    <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+      <strong>第 1 行（欄位標題）：</strong>
+      <textarea readonly onclick="this.select()" style="width: 100%; height: 60px; padding: 10px; font-family: monospace; font-size: 12px; margin-top: 8px; border: 2px solid #e0e0e0; border-radius: 8px;">productId	productName	description	imageUrl	points	originalPrice	stock	category	sellerId	sellerName	sellerPhone	sellerReferralCode	isActive	soldCount	tags	createdAt	updatedAt</textarea>
+      <button class="btn" onclick="copyHeaders()" style="margin-top: 10px; padding: 10px 20px; font-size: 14px;">📋 複製標題</button>
+    </div>
+    
+    <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+      <strong>第 2 行（拍新聞商品）：</strong>
+      <textarea readonly onclick="this.select()" style="width: 100%; height: 60px; padding: 10px; font-family: monospace; font-size: 12px; margin-top: 8px; border: 2px solid #e0e0e0; border-radius: 8px;">X7Z5P3	拍新聞	獲得拍新聞虛擬商品序號	https://i.postimg.cc/3R5j7t6k/Pi-News-GIF2.gif	3600	3600	-1	virtual			USER001	TRUE	0	虛擬商品,序號	2025-10-18	2025-10-18</textarea>
+      <button class="btn" onclick="copyProduct()" style="margin-top: 10px; padding: 10px 20px; font-size: 14px;">📋 複製商品</button>
+    </div>
+  </div>
+  
+  <div id="testResult"></div>
+</div>
+
+<script>
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1EdLfJQzYroQ9WMqVEqcDuMpGwiTPj8gxLaMnGp3umDw/edit';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec';
+
+function openGoogleSheets() {
+  window.open(SHEET_URL, '_blank');
+}
+
+async function testAllAPIs() {
+  const resultDiv = document.getElementById('testResult');
+  resultDiv.innerHTML = '<div class="section"><h3>🧪 API 測試結果</h3><p>測試中...</p></div>';
+  
+  const tests = [
+    { name: '商城商品', action: 'mall-products', key: 'products' },
+    { name: '提領記錄', action: 'withdrawals', key: 'withdrawals' },
+    { name: '交易記錄', action: 'transactions', key: 'transactions' }
+  ];
+  
+  let html = '<div class="section"><h3>🧪 API 測試結果</h3>';
+  
+  for (const test of tests) {
+    try {
+      const url = `${API_URL}?action=${test.action}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      const items = data[test.key] || [];
+      const count = items.length;
+      
+      if (data.success) {
+        if (count > 0) {
+          html += `<div class="check-item ok">
+            <span style="font-size: 24px;">✅</span>
+            <div style="flex: 1;">
+              <strong>${test.name}</strong> - 正常（${count} 筆資料）
+            </div>
+          </div>`;
+        } else {
+          html += `<div class="check-item fail">
+            <span style="font-size: 24px;">⚠️</span>
+            <div style="flex: 1;">
+              <strong>${test.name}</strong> - 工作表存在但無資料
+            </div>
+          </div>`;
+        }
+      } else {
+        html += `<div class="check-item fail">
+          <span style="font-size: 24px;">❌</span>
+          <div style="flex: 1;">
+            <strong>${test.name}</strong> - 失敗：${data.message || '未知錯誤'}
+          </div>
+        </div>`;
+      }
+    } catch (error) {
+      html += `<div class="check-item fail">
+        <span style="font-size: 24px;">❌</span>
+        <div style="flex: 1;">
+          <strong>${test.name}</strong> - 請求失敗：${error.message}
+        </div>
+      </div>`;
+    }
+  }
+  
+  html += '</div>';
+  resultDiv.innerHTML = html;
+}
+
+function copyHeaders() {
+  const text = 'productId\tproductName\tdescription\timageUrl\tpoints\toriginalPrice\tstock\tcategory\tsellerId\tsellerName\tsellerPhone\tsellerReferralCode\tisActive\tsoldCount\ttags\tcreatedAt\tupdatedAt';
+  navigator.clipboard.writeText(text).then(() => {
+    alert('✅ 欄位標題已複製！\n\n請到 Google Sheets「商城商品」工作表\n點選 A1 格，按 Ctrl+V 貼上');
+  });
+}
+
+function copyProduct() {
+  const text = 'X7Z5P3\t拍新聞\t獲得拍新聞虛擬商品序號\thttps://i.postimg.cc/3R5j7t6k/Pi-News-GIF2.gif\t3600\t3600\t-1\tvirtual\t\t\t\tUSER001\tTRUE\t0\t虛擬商品,序號\t2025-10-18\t2025-10-18';
+  navigator.clipboard.writeText(text).then(() => {
+    alert('✅ 商品資料已複製！\n\n請到 Google Sheets「商城商品」工作表\n點選 A2 格，按 Ctrl+V 貼上');
+  });
+}
+</script>
+
+</body>
+</html>
+

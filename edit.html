@@ -50,32 +50,39 @@
 
 <script src="./assets/cache-manager.js"></script>
 <script>
-const LIFF_ID = "2008231108-0rAX3R5d"; // 使用會員中心的 LIFF ID
-const API_URL = "https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec";
+const LIFF_ID = "2008231108-2PDbO5qk"; // 統一使用主要 LIFF ID
+const API_URL = "https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec";
 
 let lineUserId = '';
 
+// 🔧 安全關閉視窗函數
 function safeCloseWindow() {
   try {
     if (typeof liff !== 'undefined' && liff.isInClient()) {
-      // 在 LINE 中使用 closeWindow
       liff.closeWindow();
     } else {
-      // 🔧 電腦版：直接跳轉回 profile.html
-      window.location.href = './profile.html';
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        showMessage('✅ 操作完成！請關閉此頁面', 'success');
+      }
     }
   } catch (error) {
     console.warn('關閉視窗失敗:', error);
-    // 發生錯誤時，跳轉回 profile.html
-    window.location.href = './profile.html';
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      showMessage('✅ 操作完成！請關閉此頁面', 'success');
+    }
   }
 }
 
 async function initLiff() {
   try {
-    await liff.init({ liffId: LIFF_ID }); // 使用統一的 LIFF ID
+    await liff.init({ liffId: LIFF_ID });
     
     if (!liff.isLoggedIn()) {
+      // 🔧 優化：使用 redirectUri 保留當前頁面
       liff.login({ redirectUri: window.location.href });
       return;
     }
@@ -83,9 +90,11 @@ async function initLiff() {
     const profile = await liff.getProfile();
     lineUserId = profile.userId;
     
+    // 取得現有資料
     const res = await fetch(`${API_URL}?action=profile&lineUserId=${lineUserId}`);
     const data = await res.json();
     
+    // 🔧 檢查會員是否存在，不存在則跳轉到首頁註冊
     if (!data || !data.success || data.success === false) {
       console.log('❌ 會員不存在，跳轉到首頁註冊');
       alert('您還不是會員，請先註冊！\n\n將為您跳轉到註冊頁面...');
@@ -98,6 +107,7 @@ async function initLiff() {
       document.getElementById('email').value = data.email || '';
       document.getElementById('birthday').value = data.birthday || '';
       
+      // 顯示表單，隱藏載入中
       document.getElementById('loading').style.display = 'none';
       document.getElementById('editForm').style.display = 'block';
     } else {
@@ -125,6 +135,7 @@ document.getElementById('editForm').addEventListener('submit', async (e) => {
   };
   
   try {
+    // 使用 URL 參數方式避免 CORS 預檢請求
     const params = new URLSearchParams({
       action: 'update-profile',
       lineUserId: payload.lineUserId,
@@ -142,7 +153,7 @@ document.getElementById('editForm').addEventListener('submit', async (e) => {
     if (data.success) {
       showMessage('✅ 修改成功！即將返回...', 'success');
       setTimeout(() => {
-        safeCloseWindow();
+        safeCloseWindow(); // 🔧 使用安全關閉函數
       }, 2000);
     } else {
       showMessage('修改失敗：' + (data.message || '請稍後再試'), 'error');
@@ -171,10 +182,11 @@ function showMessage(msg, type) {
 }
 
 function goBack() {
-  safeCloseWindow();
+  safeCloseWindow(); // 🔧 使用安全關閉函數
 }
 
 initLiff();
 </script>
 </body>
 </html>
+

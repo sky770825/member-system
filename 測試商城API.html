@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>測試商城 API</title>
+<style>
+body {
+  font-family: 'Microsoft JhengHei', sans-serif;
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #f5f5f5;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+h1 {
+  color: #667eea;
+  margin: 0 0 20px 0;
+}
+
+.btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.result {
+  background: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+  font-family: 'Consolas', monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.success {
+  border-color: #4CAF50;
+  background: #E8F5E9;
+}
+
+.error {
+  border-color: #f44336;
+  background: #FFEBEE;
+}
+
+.info {
+  background: #E3F2FD;
+  border: 2px solid #2196F3;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: 'Consolas', monospace;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🧪 測試商城 API</h1>
+  
+  <div class="info">
+    <strong>📝 使用說明：</strong><br>
+    1. 輸入您的 Apps Script URL<br>
+    2. 點擊「測試載入商品」<br>
+    3. 查看是否有商品資料<br>
+    4. 如果沒有，使用下方工具新增測試商品
+  </div>
+  
+  <label>您的 Apps Script URL：</label>
+  <input type="text" id="apiUrl" 
+         placeholder="https://script.google.com/macros/s/AKfycbz.../exec"
+         value="https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec">
+  
+  <button class="btn" onclick="testMallProducts()">🧪 測試載入商品</button>
+  <button class="btn" onclick="testAddProduct()">➕ 新增拍新聞商品</button>
+  <button class="btn" onclick="clearCache()">🗑️ 清除快取</button>
+  
+  <div id="result"></div>
+</div>
+
+<div class="card">
+  <h2>📦 新增測試商品</h2>
+  
+  <label>商品資料（JSON 格式）：</label>
+  <textarea id="productData">{
+  "productId": "X7Z5P3",
+  "productName": "拍新聞",
+  "description": "獲得拍新聞虛擬商品序號",
+  "imageUrl": "https://i.postimg.cc/3R5j7t6k/Pi-News-GIF2.gif",
+  "points": 3600,
+  "originalPrice": 3600,
+  "stock": -1,
+  "category": "virtual",
+  "isActive": true,
+  "soldCount": 0,
+  "tags": "虛擬商品,序號"
+}</textarea>
+  
+  <button class="btn" onclick="addProduct()">➕ 新增這個商品到 Sheets</button>
+  
+  <div id="addResult"></div>
+</div>
+
+<div class="card">
+  <h2>📋 手動複製到 Google Sheets</h2>
+  
+  <p><strong>如果 API 方式無法使用，請手動複製：</strong></p>
+  
+  <label>欄位標題（第一行）：</label>
+  <textarea readonly onclick="this.select()">productId	productName	description	imageUrl	points	originalPrice	stock	category	sellerId	sellerName	sellerPhone	sellerReferralCode	isActive	soldCount	tags	createdAt	updatedAt</textarea>
+  
+  <label>商品資料（第二行）：</label>
+  <textarea readonly onclick="this.select()">X7Z5P3	拍新聞	獲得拍新聞虛擬商品序號	https://i.postimg.cc/3R5j7t6k/Pi-News-GIF2.gif	3600	3600	-1	virtual			USER001	TRUE	0	虛擬商品,序號	2025-10-18	2025-10-18</textarea>
+  
+  <div style="background: #FFF3E0; padding: 12px; border-radius: 8px; margin-top: 12px;">
+    <strong>💡 提示：</strong><br>
+    點擊上方文字框會自動全選，然後按 Ctrl+C 複製，到 Google Sheets 按 Ctrl+V 貼上即可！
+  </div>
+</div>
+
+<script>
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec';
+
+async function testMallProducts() {
+  const apiUrl = document.getElementById('apiUrl').value || DEFAULT_API;
+  const resultDiv = document.getElementById('result');
+  
+  resultDiv.innerHTML = '🔍 測試中...';
+  resultDiv.className = 'result';
+  
+  try {
+    const url = `${apiUrl}?action=mall-products`;
+    console.log('測試 URL:', url);
+    
+    const res = await fetch(url);
+    const data = await res.json();
+    
+    console.log('回應資料:', data);
+    
+    if (data.success) {
+      const products = data.products || [];
+      resultDiv.className = 'result success';
+      resultDiv.innerHTML = `
+✅ API 測試成功！
+
+找到 ${products.length} 個商品
+
+${products.length > 0 ? '商品列表：\n' + JSON.stringify(products, null, 2) : '⚠️ 商品列表是空的！\n\n請在 Google Sheets 的 MallProducts 工作表新增商品資料'}
+      `;
+    } else {
+      resultDiv.className = 'result error';
+      resultDiv.innerHTML = `
+❌ API 回應失敗
+
+錯誤訊息：${data.message || '未知錯誤'}
+
+可能原因：
+1. MallProducts 工作表不存在
+2. 工作表名稱拼寫錯誤
+3. Apps Script 沒有處理 mall-products action
+
+完整回應：
+${JSON.stringify(data, null, 2)}
+      `;
+    }
+  } catch (error) {
+    resultDiv.className = 'result error';
+    resultDiv.innerHTML = `
+❌ 測試失敗
+
+錯誤：${error.message}
+
+可能原因：
+1. Apps Script URL 不正確
+2. CORS 問題
+3. Apps Script 未正確部署
+
+請檢查：
+• Apps Script 是否已部署
+• 部署設定「具有應用程式存取權的使用者」= 所有人
+    `;
+  }
+}
+
+async function testAddProduct() {
+  alert('⚠️ 此功能需要 Apps Script 支援 add-product action\n\n建議使用手動複製貼上的方式！\n\n請看下方「手動複製到 Google Sheets」區塊');
+}
+
+async function addProduct() {
+  const apiUrl = document.getElementById('apiUrl').value || DEFAULT_API;
+  const productDataText = document.getElementById('productData').value;
+  const resultDiv = document.getElementById('addResult');
+  
+  try {
+    const product = JSON.parse(productDataText);
+    
+    resultDiv.innerHTML = '📤 新增中...';
+    resultDiv.className = 'result';
+    
+    // 建構URL參數
+    const params = new URLSearchParams({
+      action: 'add-mall-product',
+      productId: product.productId,
+      productName: product.productName,
+      description: product.description,
+      imageUrl: product.imageUrl,
+      points: product.points,
+      originalPrice: product.originalPrice,
+      stock: product.stock,
+      category: product.category,
+      isActive: product.isActive,
+      tags: product.tags
+    });
+    
+    const res = await fetch(`${apiUrl}?${params.toString()}`);
+    const data = await res.json();
+    
+    if (data.success) {
+      resultDiv.className = 'result success';
+      resultDiv.innerHTML = `
+✅ 商品新增成功！
+
+商品ID：${product.productId}
+商品名稱：${product.productName}
+
+現在可以在商城看到這個商品了！
+      `;
+      
+      // 清除快取
+      localStorage.removeItem('mall_products');
+    } else {
+      resultDiv.className = 'result error';
+      resultDiv.innerHTML = `
+❌ 新增失敗
+
+錯誤：${data.message || '未知錯誤'}
+
+建議：請使用手動複製貼上的方式（見下方）
+      `;
+    }
+  } catch (error) {
+    resultDiv.className = 'result error';
+    resultDiv.innerHTML = `
+❌ 新增失敗
+
+錯誤：${error.message}
+
+建議：
+1. 檢查 JSON 格式是否正確
+2. 或使用手動複製貼上的方式（見下方）
+    `;
+  }
+}
+
+function clearCache() {
+  localStorage.clear();
+  alert('✅ 快取已清除！');
+  location.reload();
+}
+</script>
+
+</body>
+</html>
+

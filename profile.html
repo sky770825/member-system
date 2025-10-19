@@ -27,7 +27,7 @@ async function initLiff() {
     // 記錄開始時間
     const startTime = Date.now();
     
-    await liff.init({ liffId: "2008231108-j2MEXkz4" });
+    await liff.init({ liffId: "2008231108-2PDbO5qk" });
     
     if (!liff.isLoggedIn()) {
       // 🔧 優化：使用 redirectUri 保留當前頁面
@@ -47,7 +47,7 @@ async function initLiff() {
     const result = await CacheManager.getOrFetch(
       `profile_${lineUserId}`,
       async () => {
-        const res = await fetch("https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?action=profile&lineUserId=" + lineUserId);
+        const res = await fetch("https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?action=profile&lineUserId=" + lineUserId);
         return await res.json();
       },
       5 * 60 * 1000 // 會員資料快取 5 分鐘
@@ -55,11 +55,25 @@ async function initLiff() {
     
     const data = result.data;
     
-    // 🔧 檢查會員是否存在，不存在則跳轉到首頁註冊
+    // 🔧 简化：不强制跳转，让用户看到错误信息
     if (!data || !data.success || data.success === false) {
-      console.log('❌ 會員不存在，跳轉到首頁註冊');
-      alert('您還不是會員，請先註冊！\n\n將為您跳轉到註冊頁面...');
-      window.location.href = 'index.html';
+      console.log('⚠️ 會員資料載入失敗:', data);
+      // 不自动跳转，显示错误信息让用户决定
+      document.getElementById("profile").innerHTML = `
+        <div class="error-card" style="text-align: center; padding: 40px;">
+          <div class="error-icon" style="font-size: 64px; margin-bottom: 20px;">⚠️</div>
+          <h3 style="color: #856404;">無法載入會員資料</h3>
+          <p style="color: #666; margin: 20px 0;">
+            ${data && data.message ? data.message : '找不到會員資料，您可能尚未註冊'}
+          </p>
+          <a href="register.html" class="btn btn-primary" style="display: inline-block; margin: 10px; padding: 15px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+            📝 前往註冊
+          </a>
+          <button class="btn btn-secondary" onclick="location.reload()" style="display: inline-block; margin: 10px; padding: 15px 30px; background: #6c757d; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+            🔄 重新載入
+          </button>
+        </div>
+      `;
       return;
     }
     
@@ -103,7 +117,7 @@ function startAutoRefresh(lineUserId, pictureUrl, displayName) {
     try {
       console.log('🔍 檢查點數更新中...', new Date().toLocaleTimeString());
       
-      const res = await fetch("https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?action=profile&lineUserId=" + lineUserId);
+      const res = await fetch("https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?action=profile&lineUserId=" + lineUserId);
       const data = await res.json();
       
       const newPoints = data.points || 0;
@@ -169,7 +183,7 @@ document.addEventListener('visibilitychange', async () => {
 async function showReceivedPointsNotification(lineUserId, pointsDiff) {
   try {
     // 獲取最新的交易記錄
-    const res = await fetch(`https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?action=transactions&lineUserId=${lineUserId}&limit=5`);
+      const res = await fetch(`https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?action=transactions&lineUserId=${lineUserId}&limit=5`);
     const data = await res.json();
     
     if (data.success && data.transactions && data.transactions.length > 0) {

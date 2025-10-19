@@ -1,1 +1,429 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.location.replace('maintenance.html');</script></head><body><p>跳轉中...</p></body></html> 
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登入 - 公益慈善會員系統</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<!-- 🔐 安全工具庫 -->
+<script src="./assets/security-utils.js"></script>
+<script src="./assets/api-config.js"></script>
+<script src="./assets/session-manager.js"></script>
+<style>
+  body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  
+  .login-container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    max-width: 420px;
+    width: 100%;
+    overflow: hidden;
+  }
+  
+  .login-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  
+  .login-header h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+  }
+  
+  .login-header p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.95;
+  }
+  
+  .login-body {
+    padding: 32px 24px;
+  }
+  
+  .login-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 4px;
+  }
+  
+  .login-tab {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: #666;
+  }
+  
+  .login-tab.active {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .login-form {
+    display: none;
+  }
+  
+  .login-form.active {
+    display: block;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+  }
+  
+  .form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: all 0.3s;
+  }
+  
+  .form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+  
+  .login-button {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 8px;
+  }
+  
+  .login-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+  
+  .login-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .divider {
+    display: flex;
+    align-items: center;
+    margin: 24px 0;
+    color: #999;
+    font-size: 14px;
+  }
+  
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e0e0e0;
+  }
+  
+  .divider span {
+    padding: 0 16px;
+  }
+  
+  .register-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .register-link a {
+    color: #667eea;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  
+  .register-link a:hover {
+    text-decoration: underline;
+  }
+  
+  .line-login-button {
+    width: 100%;
+    padding: 14px;
+    background: #06C755;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .line-login-button:hover {
+    background: #05b34c;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(6, 199, 85, 0.4);
+  }
+  
+  .message {
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    display: none;
+  }
+  
+  .message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+  
+  .message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+</style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <h1>❤️ 公益慈善會員</h1>
+      <p>傳遞愛心，讓善意延續</p>
+    </div>
+    
+    <div class="login-body">
+      <div id="message" class="message"></div>
+      
+      <!-- 登入方式選擇 -->
+      <div class="login-tabs">
+        <button class="login-tab active" onclick="switchTab('password')">
+          🔐 帳號登入
+        </button>
+        <button class="login-tab" onclick="switchTab('line')">
+          💚 LINE 登入
+        </button>
+      </div>
+      
+      <!-- 帳號密碼登入表單 -->
+      <div id="passwordLogin" class="login-form active">
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="username">帳號</label>
+            <input type="text" id="username" placeholder="手機號碼或 Email" required autocomplete="username">
+          </div>
+          
+          <div class="form-group">
+            <label for="password">密碼</label>
+            <input type="password" id="password" placeholder="請輸入密碼" required autocomplete="current-password">
+          </div>
+          
+          <button type="submit" class="login-button" id="loginBtn">
+            登入
+          </button>
+        </form>
+        
+        <div class="register-link">
+          還沒有帳號？<a href="web-register.html">立即註冊</a>
+        </div>
+      </div>
+      
+      <!-- LINE 登入 -->
+      <div id="lineLogin" class="login-form">
+        <p style="text-align: center; color: #666; margin-bottom: 20px;">
+          使用 LINE 帳號快速登入
+        </p>
+        
+        <button class="line-login-button" onclick="loginWithLine()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+          </svg>
+          LINE 登入
+        </button>
+        
+        <div class="register-link" style="margin-top: 20px;">
+          還沒有帳號？<a href="web-register.html">立即註冊</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// 使用統一的 API 配置
+// const API_URL 已由 api-config.js 提供
+
+// 切換登入方式
+function switchTab(type) {
+  // 更新 tab 狀態
+  document.querySelectorAll('.login-tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  event.currentTarget.classList.add('active');
+  
+  // 更新表單顯示
+  document.querySelectorAll('.login-form').forEach(form => {
+    form.classList.remove('active');
+  });
+  
+  if (type === 'password') {
+    document.getElementById('passwordLogin').classList.add('active');
+  } else {
+    document.getElementById('lineLogin').classList.add('active');
+  }
+}
+
+// 帳號密碼登入
+async function handleLogin(event) {
+  event.preventDefault();
+  
+  // 🔐 清理輸入
+  const username = SecurityUtils.sanitize.trim(document.getElementById('username').value);
+  const password = document.getElementById('password').value;
+  
+  if (!username || !password) {
+    showMessage('請輸入帳號和密碼', 'error');
+    return;
+  }
+  
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.textContent = '登入中...';
+  
+  try {
+    // 🔐 使用 API 工具（自動處理 POST 請求和重試）
+    const data = await API.login(username, password);
+    
+    if (data.success) {
+      // 🔐 使用 SessionManager 儲存 Session
+      SessionManager.set(data.sessionToken, data.user, 'password');
+      
+      showMessage('登入成功！正在跳轉...', 'success');
+      
+      setTimeout(() => {
+        window.location.href = 'profile.html';
+      }, 1000);
+    } else {
+      showMessage(data.message || '登入失敗', 'error');
+      btn.disabled = false;
+      btn.textContent = '登入';
+    }
+  } catch (error) {
+    console.error('登入錯誤:', error);
+    // 🔐 使用統一的錯誤處理
+    const errorMessage = SecurityUtils.handleError(error, '登入');
+    showMessage(errorMessage, 'error');
+    btn.disabled = false;
+    btn.textContent = '登入';
+  }
+}
+
+// LINE 登入
+async function loginWithLine() {
+  try {
+    // 檢查是否在本地環境
+    if (window.location.protocol === 'file:') {
+      showMessage('❌ LINE 登入需要在伺服器環境下運行\n請使用 start-server.bat 啟動本地伺服器', 'error');
+      return;
+    }
+    
+    await liff.init({ liffId: "2008231108-2PDbO5qk" });
+    
+    if (!liff.isLoggedIn()) {
+      // 修正 redirectUri，移除不必要的路徑前綴
+      const redirectUri = window.location.origin + '/profile.html';
+      console.log('LINE 登入 redirectUri:', redirectUri);
+      liff.login({ redirectUri: redirectUri });
+    } else {
+      window.location.href = 'profile.html';
+    }
+  } catch (error) {
+    console.error('LINE 登入錯誤:', error);
+    let errorMsg = 'LINE 登入失敗';
+    
+    // 提供更詳細的錯誤訊息
+    if (error.message) {
+      errorMsg += ': ' + error.message;
+    }
+    
+    if (error.code === 'INVALID_CONFIG') {
+      errorMsg = '❌ LIFF 設定錯誤，請檢查 LIFF ID 是否正確';
+    } else if (error.message && error.message.includes('redirect')) {
+      errorMsg = '❌ 重定向 URL 未在 LINE Developers 中註冊\n請前往 LINE Developers Console 設定 Endpoint URL';
+    }
+    
+    showMessage(errorMsg, 'error');
+  }
+}
+
+function showMessage(msg, type) {
+  const messageDiv = document.getElementById('message');
+  // 支持多行訊息
+  messageDiv.innerHTML = msg.replace(/\n/g, '<br>');
+  messageDiv.className = `message ${type}`;
+  messageDiv.style.display = 'block';
+  
+  if (type === 'success') {
+    setTimeout(() => {
+      messageDiv.style.display = 'none';
+    }, 3000);
+  }
+}
+
+// 頁面載入時檢查是否已登入
+window.addEventListener('load', async () => {
+  // 🔐 使用 SessionManager 檢查登入狀態
+  if (SessionManager.isLoggedIn()) {
+    // 已經登入，直接跳轉
+    window.location.href = 'profile.html';
+    return;
+  }
+  
+  // 檢查 LINE 登入狀態
+  try {
+    await liff.init({ liffId: "2008231108-2PDbO5qk" });
+    if (liff.isLoggedIn()) {
+      window.location.href = 'profile.html';
+    }
+  } catch (error) {
+    // LINE LIFF 未初始化，使用帳號密碼登入
+    console.log('非 LINE 環境');
+  }
+});
+</script>
+</body>
+</html>
+
