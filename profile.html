@@ -531,9 +531,8 @@ function shareReferralLink(code) {
     return;
   }
   
-  // 🔗 生成推薦連結（請替換為你的實際網址）
-  const baseUrl = window.location.origin + window.location.pathname.replace('profile.html', '');
-  const referralLink = `${baseUrl}register.html?ref=${code}`;
+  // 🔗 生成推薦連結（使用完整 LIFF URL）
+  const referralLink = `https://liff.line.me/2008231108-2PDbO5qk/register.html?ref=${code}`;
   
   // 分享訊息（公益慈善版）
   const shareMessage = `❤️ 邀請你一起做公益！\n\n` +
