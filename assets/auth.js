@@ -4,8 +4,8 @@
 
 const AUTH = {
   // 配置
-  LIFF_ID: "2008231108-0rAX3R5d", // 使用會員中心的正確 LIFF ID
-  API_URL: 'https://script.google.com/macros/s/AKfycbykdqE9yr_7ObkhOUTvQvjW0G1QtB9rOGKw4U2EzfN5Vw5Fn7FreFTf_4xlXbUbz3Q/exec',
+  LIFF_ID: "2008231108-2PDbO5qk", // 統一使用主要 LIFF ID
+  API_URL: 'https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec',
   
   // 初始化認證（自動檢測登入方式）
   async init(options = {}) {
