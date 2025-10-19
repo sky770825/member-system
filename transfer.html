@@ -99,7 +99,6 @@ let currentPoints = 0;
 let receiverData = null;
 let transferData = null;
 
-// 🔧 添加超時保護函數（放在最前面）
 function fetchWithTimeout(url, options = {}, timeout = 15000) {
   return Promise.race([
     fetch(url, options),
@@ -109,37 +108,27 @@ function fetchWithTimeout(url, options = {}, timeout = 15000) {
   ]);
 }
 
-// 🔧 安全關閉視窗函數（檢查是否在 LIFF 環境）
 function safeCloseWindow() {
   try {
-    // 檢查是否在 LIFF 環境且已初始化
     if (typeof liff !== 'undefined' && liff.isInClient()) {
+      // 在 LINE 中使用 closeWindow
       liff.closeWindow();
     } else {
-      // 不在 LINE 中，返回上一頁或顯示提示
-      if (window.history.length > 1) {
-        window.history.back();
-      } else {
-        showMessage('✅ 操作完成！請關閉此頁面', 'success');
-      }
+      // 🔧 電腦版：直接跳轉回 profile.html
+      window.location.href = './profile.html';
     }
   } catch (error) {
     console.warn('關閉視窗失敗:', error);
-    // 降級處理：嘗試返回上一頁
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      showMessage('✅ 操作完成！請關閉此頁面', 'success');
-    }
+    // 發生錯誤時，跳轉回 profile.html
+    window.location.href = './profile.html';
   }
 }
 
 async function initLiff() {
   try {
-    await liff.init({ liffId: "2008231108-WXD0q6Yz" });
+    await liff.init({ liffId: "2008231108-0rAX3R5d" }); // 使用會員中心的 LIFF ID
     
     if (!liff.isLoggedIn()) {
-      // 🔧 優化：使用 redirectUri 保留當前頁面
       liff.login({ redirectUri: window.location.href });
       return;
     }
@@ -147,11 +136,10 @@ async function initLiff() {
     const profile = await liff.getProfile();
     lineUserId = profile.userId;
     
-    // 取得當前點數 - 🔧 使用超時保護
     const res = await fetchWithTimeout(
       `https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?action=profile&lineUserId=${lineUserId}`,
       {},
-      10000 // 10秒超時
+      10000
     );
     const data = await res.json();
     
@@ -161,7 +149,6 @@ async function initLiff() {
       <p class="points-value" style="color: #FFB800;">${currentPoints} <span style="color: #856404;">點</span></p>
     `;
     
-    // 設定最大點數
     document.getElementById('points').max = currentPoints;
     
   } catch (error) {
@@ -170,7 +157,6 @@ async function initLiff() {
   }
 }
 
-// 檢查收款人
 document.getElementById('receiverPhone').addEventListener('blur', async function() {
   const phone = this.value;
   if (!phone) return;
@@ -180,11 +166,10 @@ document.getElementById('receiverPhone').addEventListener('blur', async function
   infoDiv.style.display = 'block';
   
   try {
-    // 🔧 使用超時保護
     const res = await fetchWithTimeout(
       `https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?action=check-user&phone=${phone}`,
       {},
-      10000 // 10秒超時
+      10000
     );
     const data = await res.json();
     
@@ -205,7 +190,6 @@ document.getElementById('receiverPhone').addEventListener('blur', async function
   }
 });
 
-// 手機號碼格式化
 document.getElementById('receiverPhone').addEventListener('input', function(e) {
   let value = e.target.value.replace(/\D/g, '');
   if (value.length > 10) value = value.slice(0, 10);
@@ -221,39 +205,29 @@ document.getElementById('receiverPhone').addEventListener('input', function(e) {
   document.getElementById('receiverInfo').style.display = 'none';
 });
 
-// 留言字數統計
 document.getElementById('message').addEventListener('input', function() {
   const count = this.value.length;
   document.getElementById('charCount').textContent = `${count}/100`;
 });
 
-// 快速選擇金額（累加模式）
 function setAmount(amount) {
-  // 獲取當前欄位的值，如果是空的或無效的就當作 0
   const currentValue = parseInt(document.getElementById('points').value) || 0;
-  
-  // 累加新的金額
   const newValue = currentValue + amount;
   
-  // 檢查是否超過可用點數
   if (newValue > currentPoints) {
     showMessage('❤️ 公益點數不足', 'error');
     return;
   }
   
-  // 設定新的值
   document.getElementById('points').value = newValue;
-  
   console.log(`➕ 累加金額: ${currentValue} + ${amount} = ${newValue}`);
 }
 
-// 清除金額
 function clearAmount() {
   document.getElementById('points').value = '';
   console.log('🗑️ 已清除金額');
 }
 
-// 表單提交
 document.getElementById('transferForm').addEventListener('submit', function(e) {
   e.preventDefault();
   
@@ -281,14 +255,12 @@ document.getElementById('transferForm').addEventListener('submit', function(e) {
     message: document.getElementById('message').value
   };
   
-  // 顯示確認視窗
   document.getElementById('confirmReceiver').textContent = receiverData.name;
   document.getElementById('confirmPoints').textContent = points;
   document.getElementById('confirmMessage').textContent = transferData.message || '無';
   document.getElementById('confirmModal').style.display = 'flex';
 });
 
-// 確認轉點
 async function confirmTransfer() {
   closeModal();
   
@@ -297,7 +269,6 @@ async function confirmTransfer() {
   submitBtn.innerHTML = '<span class="spinner-small"></span> 轉點中...';
   
   try {
-    // 使用 URL 參數方式避免 CORS 預檢請求
     const params = new URLSearchParams({
       action: 'transfer',
       senderUserId: transferData.senderUserId,
@@ -306,43 +277,36 @@ async function confirmTransfer() {
       message: transferData.message
     });
     
-    // 🔧 使用超時保護（15秒）
     const res = await fetchWithTimeout(
       `https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?${params.toString()}`,
       {
         method: 'GET',
         redirect: 'follow'
       },
-      15000 // 15秒超時
+      15000
     );
     
     const data = await res.json();
     
     if (data.success) {
-      // 🔧 立即更新本地點數（不等 API，速度更快）
       const transferredPoints = transferData.points;
       currentPoints -= transferredPoints;
       
-      // 立即更新顯示
       document.getElementById('currentPoints').innerHTML = `
         <p class="points-label" style="color: #856404; font-weight: 600;">❤️ 可用公益點數</p>
         <p class="points-value" style="color: #FFB800;">${currentPoints} <span style="color: #856404;">點</span></p>
       `;
       
-      // 更新最大值
       document.getElementById('points').max = currentPoints;
       
-      // 顯示成功訊息
       showMessage(`✅ 成功轉贈 ${transferredPoints} 點給 ${receiverData.name}！❤️`, 'success');
       
-      // 🔧 重置表單，讓用戶可以繼續轉點
       document.getElementById('receiverPhone').value = '';
       document.getElementById('points').value = '';
       document.getElementById('message').value = '';
       document.getElementById('receiverInfo').style.display = 'none';
       receiverData = null;
       
-      // 恢復按鈕
       submitBtn.disabled = false;
       submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉贈';
     } else {
@@ -355,15 +319,6 @@ async function confirmTransfer() {
     showMessage('❌ ' + error.message, 'error');
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉贈';
-  } finally {
-    // 🔧 確保按鈕一定會恢復
-    setTimeout(() => {
-      if (submitBtn.disabled && submitBtn.innerHTML.includes('轉點中')) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span class="btn-icon">❤️</span> 確認轉贈';
-        showMessage('⚠️ 操作超時，請重試', 'error');
-      }
-    }, 16000); // 比超時時間多1秒，作為最後保障
   }
 }
 
@@ -383,7 +338,7 @@ function showMessage(msg, type) {
 }
 
 function goBack() {
-  safeCloseWindow(); // 🔧 使用安全關閉函數
+  safeCloseWindow();
 }
 
 initLiff();

@@ -114,35 +114,30 @@
 
 <script src="./assets/cache-manager.js"></script>
 <script>
-const LIFF_ID = "2008231108-2PDbO5qk"; // 統一使用主要 LIFF ID
+const LIFF_ID = "2008231108-0rAX3R5d"; // 使用會員中心的 LIFF ID
 const API_URL = "https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec";
 
-// 🔧 安全關閉視窗函數
 function safeCloseWindow() {
   try {
     if (typeof liff !== 'undefined' && liff.isInClient()) {
+      // 在 LINE 中使用 closeWindow
       liff.closeWindow();
     } else {
-      if (window.history.length > 1) {
-        window.history.back();
-      } else {
-        alert('請關閉此頁面');
-      }
+      // 🔧 電腦版：直接跳轉回 profile.html
+      window.location.href = './profile.html';
     }
   } catch (error) {
     console.warn('關閉視窗失敗:', error);
-    if (window.history.length > 1) {
-      window.history.back();
-    }
+    // 發生錯誤時，跳轉回 profile.html
+    window.location.href = './profile.html';
   }
 }
 
 async function initLiff() {
   try {
-    await liff.init({ liffId: LIFF_ID });
+    await liff.init({ liffId: LIFF_ID }); // 使用統一的 LIFF ID
     
     if (!liff.isLoggedIn()) {
-      // 🔧 優化：使用 redirectUri 保留當前頁面
       liff.login({ redirectUri: window.location.href });
       return;
     }
@@ -150,14 +145,13 @@ async function initLiff() {
     const profile = await liff.getProfile();
     const userId = profile.userId;
 
-    // 🚀 優化：使用快取機制
     const result = await CacheManager.getOrFetch(
       `transactions_${userId}`,
       async () => {
         const res = await fetch(`${API_URL}?action=transactions&lineUserId=${userId}&limit=50`);
         return await res.json();
       },
-      2 * 60 * 1000 // 交易記錄快取 2 分鐘
+      2 * 60 * 1000
     );
     
     const data = result.data;
@@ -180,16 +174,15 @@ async function initLiff() {
     }
 
     list.innerHTML = data.transactions.map(item => {
-      // 🔧 更新：包含所有增加點數的交易類型
       const isPositive = [
-        'transfer_in',           // 收到轉點
-        'register',              // 註冊贈送
-        'admin_add',             // 管理員新增
-        'purchase',              // 購買點數 🔧 新增
-        'referral_purchase_reward',  // 推薦購買獎勵 🔧 新增
-        'referral_withdraw_reward',  // 推薦提領獎勵 🔧 新增
-        'referral_bonus',        // 推薦註冊獎勵（舊版）
-        'mall_sale'              // 商城銷售收入 🔧 新增
+        'transfer_in',
+        'register',
+        'admin_add',
+        'purchase',
+        'referral_purchase_reward',
+        'referral_withdraw_reward',
+        'referral_bonus',
+        'mall_sale'
       ].includes(item.type);
       
       const displayPoints = Math.abs(item.points);
@@ -272,11 +265,10 @@ function formatDate(ts) {
 }
 
 function goBack() {
-  safeCloseWindow(); // 🔧 使用安全關閉函數
+  safeCloseWindow();
 }
 
 initLiff();
 </script>
 </body>
 </html>
-

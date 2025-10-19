@@ -1,1 +1,556 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.location.replace('maintenance.html');</script></head><body><p>跳轉中...</p></body></html> 
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的訂單</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h1>📦 我的訂單</h1>
+      <p style="color: #667eea; font-weight: 600;">查看所有兌換記錄</p>
+    </div>
+    
+    <!-- 訂單統計 -->
+    <div id="orderStats" class="order-stats">
+      <div class="stat-item">
+        <div class="stat-value">--</div>
+        <div class="stat-label">總訂單</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">--</div>
+        <div class="stat-label">處理中</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">--</div>
+        <div class="stat-label">已完成</div>
+      </div>
+    </div>
+    
+    <!-- 訂單列表 -->
+    <div id="ordersContainer">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p style="margin-top: 15px; color: #666;">載入訂單中...</p>
+      </div>
+    </div>
+    
+    <button class="btn btn-back" onclick="goBack()">
+      ← 返回會員中心
+    </button>
+  </div>
+</div>
+
+<style>
+.order-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.stat-item {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  color: white;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.order-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.order-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.order-number {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+}
+
+.order-date {
+  font-size: 12px;
+  color: #999;
+}
+
+.order-content {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.order-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f5f5f5;
+  flex-shrink: 0;
+}
+
+.order-info {
+  flex: 1;
+}
+
+.order-product-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 8px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.order-detail {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.order-points {
+  font-size: 20px;
+  font-weight: 800;
+  color: #FFB800;
+}
+
+.order-points span {
+  font-size: 13px;
+  color: #856404;
+}
+
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.order-status {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.order-status.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.order-status.processing {
+  background: #cfe2ff;
+  color: #084298;
+}
+
+.order-status.completed {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.order-status.shipped {
+  background: #d3d3f5;
+  color: #4c1d95;
+}
+
+.order-status.cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.order-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 6px 12px;
+  border: 1px solid #667eea;
+  background: white;
+  color: #667eea;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  background: #667eea;
+  color: white;
+}
+
+.empty-orders {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+}
+
+.serial-number {
+  background: linear-gradient(135deg, #FFF3CD, #FFE69C);
+  border: 2px solid #FFB800;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+  font-family: 'Courier New', monospace;
+}
+
+.serial-number-label {
+  font-size: 12px;
+  color: #856404;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.serial-number-code {
+  font-size: 16px;
+  font-weight: 800;
+  color: #333;
+  letter-spacing: 2px;
+  word-break: break-all;
+}
+
+.copy-serial-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 8px;
+  background: #FFB800;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+}
+</style>
+
+<script src="./assets/cache-manager.js"></script>
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec';
+
+let currentUserId = '';
+let allOrders = [];
+
+async function initLiff() {
+  try {
+    await liff.init({ liffId: "2008231108-X6QlVD1N" });
+    
+    if (!liff.isLoggedIn()) {
+      liff.login({ redirectUri: window.location.href });
+      return;
+    }
+    
+    const profile = await liff.getProfile();
+    currentUserId = profile.userId;
+    
+    // 載入訂單
+    await loadOrders();
+    
+  } catch (error) {
+    console.error('LIFF 初始化錯誤:', error);
+    showError('載入失敗，請重新整理頁面');
+  }
+}
+
+// 載入訂單列表（優化版：使用快取）
+async function loadOrders() {
+  try {
+    // 🚀 優化：使用快取機制
+    const result = await CacheManager.getOrFetch(
+      `mall_orders_${currentUserId}`,
+      async () => {
+        const res = await fetch(`${API_URL}?action=mall-orders&lineUserId=${currentUserId}`);
+        return await res.json();
+      },
+      1 * 60 * 1000 // 訂單快取 1 分鐘（較短，確保即時性）
+    );
+    
+    const data = result.data;
+    console.log(result.fromCache ? '📦 使用快取的訂單' : '🔄 從 API 載入訂單');
+    
+    if (data.success) {
+      allOrders = data.orders || [];
+      updateStats(allOrders);
+      renderOrders(allOrders);
+    } else {
+      showError('載入訂單失敗');
+    }
+  } catch (error) {
+    console.error('載入訂單錯誤:', error);
+    showError('載入訂單失敗: ' + error.message);
+  }
+}
+
+// 更新統計數據
+function updateStats(orders) {
+  const total = orders.length;
+  const processing = orders.filter(o => o.status === 'pending' || o.status === 'processing').length;
+  const completed = orders.filter(o => o.status === 'completed' || o.status === 'shipped').length;
+  
+  document.getElementById('orderStats').innerHTML = `
+    <div class="stat-item">
+      <div class="stat-value">${total}</div>
+      <div class="stat-label">總訂單</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">${processing}</div>
+      <div class="stat-label">處理中</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">${completed}</div>
+      <div class="stat-label">已完成</div>
+    </div>
+  `;
+}
+
+// 渲染訂單列表
+function renderOrders(orders) {
+  const container = document.getElementById('ordersContainer');
+  
+  if (!orders || orders.length === 0) {
+    container.innerHTML = `
+      <div class="empty-orders">
+        <div class="empty-icon">📦</div>
+        <h3>暫無訂單</h3>
+        <p>快去商城兌換商品吧！</p>
+        <button class="btn btn-primary" onclick="goMall()" style="margin-top: 20px;">
+          <span class="btn-icon">🛒</span>
+          前往商城
+        </button>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = orders.map(order => {
+    const orderDate = new Date(order.orderDate || order.createdAt);
+    const dateStr = orderDate.toLocaleString('zh-TW', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    
+    let statusText = '待處理';
+    let statusClass = 'pending';
+    
+    if (order.status === 'processing') {
+      statusText = '處理中';
+      statusClass = 'processing';
+    } else if (order.status === 'completed') {
+      statusText = '已完成';
+      statusClass = 'completed';
+    } else if (order.status === 'shipped') {
+      statusText = '已出貨';
+      statusClass = 'shipped';
+    } else if (order.status === 'cancelled') {
+      statusText = '已取消';
+      statusClass = 'cancelled';
+    }
+    
+    // 🔧 顯示賣家聯絡資訊
+    let sellerInfoHtml = '';
+    if (order.sellerName) {
+      sellerInfoHtml = `
+        <div style="background: linear-gradient(135deg, #E8EAF6, #C5CAE9); border: 2px solid #667eea; border-radius: 8px; padding: 12px; margin-top: 12px;">
+          <div style="font-size: 12px; color: #667eea; font-weight: 600; margin-bottom: 8px;">👤 賣家聯絡資訊</div>
+          
+          <div style="background: rgba(255,255,255,0.7); padding: 10px; border-radius: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="color: #666; font-size: 13px;">姓名</span>
+              <span style="font-weight: 700; color: #667eea; font-size: 14px;">${order.sellerName}</span>
+            </div>
+            
+            ${order.sellerPhone ? `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="color: #666; font-size: 13px;">📱 電話</span>
+              <a href="tel:${order.sellerPhone}" style="font-weight: 700; color: #667eea; font-size: 14px; text-decoration: none;">${order.sellerPhone}</a>
+            </div>
+            ` : ''}
+            
+            ${order.sellerReferralCode ? `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: #666; font-size: 13px;">推薦碼</span>
+              <span style="font-weight: 700; color: #764ba2; font-size: 13px; font-family: monospace;">${order.sellerReferralCode}</span>
+            </div>
+            ` : ''}
+          </div>
+          
+          ${order.sellerPhone ? `
+          <a href="tel:${order.sellerPhone}" style="display: block; width: 100%; margin-top: 8px; padding: 10px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; text-align: center; text-decoration: none;">
+📞 聯絡賣家
+          </a>
+          ` : ''}
+        </div>
+      `;
+    }
+    
+    return `
+      <div class="order-card">
+        <div class="order-header">
+          <div>
+            <div class="order-number">訂單編號：${order.orderNumber}</div>
+            <div class="order-date">${dateStr}</div>
+          </div>
+          <span class="order-status ${statusClass}">${statusText}</span>
+        </div>
+        
+        <div class="order-content">
+          <img src="${order.productImage || 'https://via.placeholder.com/80'}" 
+               alt="${order.productName}" 
+               class="order-image"
+               onerror="this.src='https://via.placeholder.com/80'">
+          <div class="order-info">
+            <h3 class="order-product-name">${order.productName}</h3>
+            <div class="order-detail">數量：${order.quantity || 1} 件</div>
+            ${order.productCode ? `<div class="order-detail">商品編號：${order.productCode}</div>` : ''}
+            <div class="order-points">${order.pointsUsed} <span>點</span></div>
+          </div>
+        </div>
+        
+        ${sellerInfoHtml}
+        
+        ${order.notes ? `
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-top: 12px;">
+          <div style="font-size: 12px; color: #666; margin-bottom: 4px;">📝 備註</div>
+          <div style="font-size: 13px; color: #333;">${order.notes}</div>
+        </div>
+        ` : ''}
+        
+        <div class="order-footer">
+          <div class="order-actions">
+            <button class="action-btn" onclick="viewOrderDetail('${order.orderId}')">
+              查看詳情
+            </button>
+            ${order.status === 'completed' && !order.reviewed ? `
+            <button class="action-btn" onclick="reviewOrder('${order.orderId}')">
+              評價
+            </button>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 🔧 移除序號複製功能（已改為賣家聯絡資訊）
+
+// 查看訂單詳情
+function viewOrderDetail(orderId) {
+  const order = allOrders.find(o => o.orderId === orderId);
+  if (!order) return;
+  
+  let statusText = '待處理';
+  if (order.status === 'processing') statusText = '處理中';
+  else if (order.status === 'completed') statusText = '已完成';
+  else if (order.status === 'shipped') statusText = '已出貨';
+  else if (order.status === 'cancelled') statusText = '已取消';
+  
+  const orderDate = new Date(order.orderDate || order.createdAt);
+  const dateStr = orderDate.toLocaleString('zh-TW');
+  
+  // 🔧 顯示賣家資訊而非序號
+  let sellerInfo = '';
+  if (order.sellerName) {
+    sellerInfo = `\n\n👤 賣家資訊\n`;
+    sellerInfo += `姓名：${order.sellerName}\n`;
+    if (order.sellerPhone) sellerInfo += `電話：${order.sellerPhone}\n`;
+    if (order.sellerReferralCode) sellerInfo += `推薦碼：${order.sellerReferralCode}`;
+  }
+  
+  alert(
+    `📦 訂單詳情\n\n` +
+    `訂單編號：${order.orderNumber}\n` +
+    `商品名稱：${order.productName}\n` +
+    `使用點數：${order.pointsUsed} 點\n` +
+    `數量：${order.quantity || 1} 件\n` +
+    `訂單狀態：${statusText}\n` +
+    `訂單時間：${dateStr}` +
+    sellerInfo +
+    (order.notes ? `\n\n📝 備註：${order.notes}` : '')
+  );
+}
+
+// 評價訂單
+function reviewOrder(orderId) {
+  const rating = prompt('請為此商品評分（1-5 星）：');
+  if (!rating) return;
+  
+  const ratingNum = parseInt(rating);
+  if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+    alert('請輸入 1-5 之間的數字');
+    return;
+  }
+  
+  const comment = prompt('請留下您的評價（選填）：');
+  
+  alert('感謝您的評價！⭐'.repeat(ratingNum));
+  // TODO: 實作評價 API
+}
+
+function showError(message) {
+  document.getElementById('ordersContainer').innerHTML = `
+    <div class="error-card">
+      <div class="error-icon">❌</div>
+      <h3>${message}</h3>
+      <button class="btn btn-primary" onclick="loadOrders()">重新載入</button>
+    </div>
+  `;
+}
+
+function goBack() {
+  window.location.href = 'profile.html';
+}
+
+function goMall() {
+  window.location.href = 'mall.html';
+}
+
+initLiff();
+</script>
+</body>
+</html>
+
