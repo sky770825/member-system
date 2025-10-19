@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>系統維護中 - 公益慈善會員系統</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, "Microsoft JhengHei", sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  
+  .maintenance-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    padding: 60px 40px;
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+    animation: fadeIn 0.5s ease-in;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .icon {
+    font-size: 120px;
+    margin-bottom: 30px;
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+  }
+  
+  h1 {
+    color: #333;
+    font-size: 32px;
+    margin-bottom: 20px;
+    font-weight: 700;
+  }
+  
+  .subtitle {
+    color: #667eea;
+    font-size: 20px;
+    margin-bottom: 30px;
+    font-weight: 600;
+  }
+  
+  .message {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.8;
+    margin-bottom: 40px;
+  }
+  
+  .info-box {
+    background: #f8f9ff;
+    border-left: 4px solid #667eea;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 30px 0;
+    text-align: left;
+  }
+  
+  .info-box h3 {
+    color: #667eea;
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+  
+  .info-box p {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 8px 0;
+  }
+  
+  .status {
+    display: inline-block;
+    background: #ffc107;
+    color: #fff;
+    padding: 10px 30px;
+    border-radius: 25px;
+    font-weight: bold;
+    font-size: 16px;
+    margin-top: 20px;
+  }
+  
+  .footer {
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 1px solid #eee;
+    color: #999;
+    font-size: 14px;
+  }
+  
+  @media (max-width: 600px) {
+    .maintenance-card {
+      padding: 40px 20px;
+    }
+    
+    .icon {
+      font-size: 80px;
+    }
+    
+    h1 {
+      font-size: 24px;
+    }
+    
+    .subtitle {
+      font-size: 18px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="maintenance-card">
+  <div class="icon">🔧</div>
+  
+  <h1>系統維護中</h1>
+  <div class="subtitle">公益慈善會員系統</div>
+  
+  <div class="status">⏸️ 暫停服務</div>
+  
+  <div class="message">
+    <p>親愛的會員您好，</p>
+    <p>系統目前正在進行優化調整，暫時無法提供服務。</p>
+    <p>我們正在努力改善，預計很快恢復正常。</p>
+  </div>
+  
+  <div class="info-box">
+    <h3>🔍 維護原因</h3>
+    <p>• 修復 LINE 登入循環問題</p>
+    <p>• 優化系統流程</p>
+    <p>• 簡化操作邏輯</p>
+    <p>• 提升使用體驗</p>
+  </div>
+  
+  <div class="info-box">
+    <h3>⏰ 預計恢復時間</h3>
+    <p>我們正在加緊處理，請稍後再試。</p>
+    <p>如有緊急需求，請聯繫客服。</p>
+  </div>
+  
+  <div class="footer">
+    <p>感謝您的耐心等待 ❤️</p>
+    <p style="margin-top: 10px; font-size: 12px;">
+      維護開始時間：2025-10-19
+    </p>
+  </div>
+</div>
+
+<script>
+// 每 30 秒自动刷新检查是否恢复
+setTimeout(() => {
+  location.reload();
+}, 30000);
+
+console.log('系統維護中，30秒後自動重新檢查');
+</script>
+
+</body>
+</html>

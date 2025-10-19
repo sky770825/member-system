@@ -3,237 +3,188 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>公益慈善會員系統</title>
-<link rel="stylesheet" href="./assets/style.css">
+<title>系統維護中 - 公益慈善會員系統</title>
 <style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
   body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, "Microsoft JhengHei", sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
-    padding: 20px;
-  }
-  
-  .welcome-container {
-    max-width: 520px;
-    margin: 0 auto;
-  }
-  
-  .welcome-card {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-    overflow: hidden;
-  }
-  
-  .welcome-header {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    padding: 48px 24px;
-    text-align: center;
-  }
-  
-  .logo {
-    font-size: 64px;
-    margin-bottom: 16px;
-  }
-  
-  .welcome-header h1 {
-    margin: 0 0 8px 0;
-    font-size: 32px;
-  }
-  
-  .welcome-header p {
-    margin: 0;
-    font-size: 16px;
-    opacity: 0.95;
-  }
-  
-  .login-options {
-    padding: 32px 24px;
-  }
-  
-  .login-option {
-    display: block;
-    width: 100%;
-    padding: 16px 24px;
-    margin-bottom: 12px;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-decoration: none;
-    text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    padding: 20px;
   }
   
-  .login-option.primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-  }
-  
-  .login-option.primary:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-  }
-  
-  .login-option.line {
-    background: #06C755;
-    color: white;
-  }
-  
-  .login-option.line:hover {
-    background: #05b34c;
-    transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(6, 199, 85, 0.4);
-  }
-  
-  .login-option.outline {
+  .maintenance-card {
     background: white;
-    color: #667eea;
-    border: 2px solid #667eea;
-  }
-  
-  .login-option.outline:hover {
-    background: #f8f9ff;
-  }
-  
-  .features {
-    padding: 0 24px 32px;
-  }
-  
-  .features h3 {
-    color: #333;
-    font-size: 18px;
-    margin-bottom: 16px;
-  }
-  
-  .feature-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  
-  .feature-card {
-    background: #f8f9fa;
-    padding: 16px;
-    border-radius: 12px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    padding: 60px 40px;
+    max-width: 600px;
+    width: 100%;
     text-align: center;
+    animation: fadeIn 0.5s ease-in;
   }
   
-  .feature-card .icon {
-    font-size: 32px;
-    margin-bottom: 8px;
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   
-  .feature-card .title {
-    font-weight: 600;
+  .icon {
+    font-size: 120px;
+    margin-bottom: 30px;
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+  }
+  
+  h1 {
     color: #333;
-    font-size: 14px;
-    margin-bottom: 4px;
+    font-size: 32px;
+    margin-bottom: 20px;
+    font-weight: 700;
   }
   
-  .feature-card .desc {
-    font-size: 12px;
+  .subtitle {
+    color: #667eea;
+    font-size: 20px;
+    margin-bottom: 30px;
+    font-weight: 600;
+  }
+  
+  .message {
     color: #666;
+    font-size: 16px;
+    line-height: 1.8;
+    margin-bottom: 40px;
+  }
+  
+  .info-box {
+    background: #f8f9ff;
+    border-left: 4px solid #667eea;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 30px 0;
+    text-align: left;
+  }
+  
+  .info-box h3 {
+    color: #667eea;
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+  
+  .info-box p {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 8px 0;
+  }
+  
+  .status {
+    display: inline-block;
+    background: #ffc107;
+    color: #fff;
+    padding: 10px 30px;
+    border-radius: 25px;
+    font-weight: bold;
+    font-size: 16px;
+    margin-top: 20px;
+  }
+  
+  .footer {
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 1px solid #eee;
+    color: #999;
+    font-size: 14px;
+  }
+  
+  @media (max-width: 600px) {
+    .maintenance-card {
+      padding: 40px 20px;
+    }
+    
+    .icon {
+      font-size: 80px;
+    }
+    
+    h1 {
+      font-size: 24px;
+    }
+    
+    .subtitle {
+      font-size: 18px;
+    }
   }
 </style>
 </head>
 <body>
-<script>
-// 🔧 處理 LIFF 登入回調（禁用自動重定向，防止循環）
-/*
-(function() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const liffState = urlParams.get('liff.state');
+
+<div class="maintenance-card">
+  <div class="icon">🔧</div>
   
-  if (liffState) {
-    console.log('檢測到 LIFF 重定向，目標頁面:', liffState);
-    // 暫時禁用自動重定向
-    // window.location.href = liffState.startsWith('/') ? liffState.substring(1) : liffState;
-  }
-})();
-*/
-</script>
-<div class="welcome-container">
-  <div class="welcome-card">
-    <div class="welcome-header">
-      <div class="logo">❤️</div>
-      <h1>公益慈善會員系統</h1>
-      <p>傳遞愛心，讓善意延續</p>
-    </div>
-    
-    <div class="login-options">
-      <h3 style="text-align: center; color: #333; margin-bottom: 20px; font-size: 18px;">選擇登入方式</h3>
-      
-      <a href="login.html" class="login-option primary">
-        <span style="font-size: 24px;">🔐</span>
-        <span>帳號密碼登入</span>
-      </a>
-      
-      <a href="https://liff.line.me/2008231108-2PDbO5qk/register.html" class="login-option line">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
-        </svg>
-        <span>LINE 登入</span>
-      </a>
-      
-      <div style="text-align: center; margin: 16px 0; color: #999; font-size: 14px;">
-        <span>或</span>
-      </div>
-      
-      <a href="web-register.html" class="login-option outline">
-        <span style="font-size: 24px;">✨</span>
-        <span>立即註冊</span>
-      </a>
-    </div>
-    
-    <div class="features">
-      <h3>系統特色</h3>
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="icon">💰</div>
-          <div class="title">購買點數</div>
-          <div class="desc">支持公益慈善</div>
-        </div>
-        <div class="feature-card">
-          <div class="icon">❤️</div>
-          <div class="title">分享點數</div>
-          <div class="desc">傳遞愛心</div>
-        </div>
-        <div class="feature-card">
-          <div class="icon">🎁</div>
-          <div class="title">推薦好友</div>
-          <div class="desc">獲得 20% 獎勵</div>
-        </div>
-        <div class="feature-card">
-          <div class="icon">📊</div>
-          <div class="title">點數記錄</div>
-          <div class="desc">清楚透明</div>
-        </div>
-      </div>
-    </div>
+  <h1>系統維護中</h1>
+  <div class="subtitle">公益慈善會員系統</div>
+  
+  <div class="status">⏸️ 暫停服務</div>
+  
+  <div class="message">
+    <p>親愛的會員您好，</p>
+    <p>系統目前正在進行優化調整，暫時無法提供服務。</p>
+    <p>我們正在努力改善，預計很快恢復正常。</p>
+  </div>
+  
+  <div class="info-box">
+    <h3>🔍 維護原因</h3>
+    <p>• 修復 LINE 登入循環問題</p>
+    <p>• 優化系統流程</p>
+    <p>• 簡化操作邏輯</p>
+    <p>• 提升使用體驗</p>
+  </div>
+  
+  <div class="info-box">
+    <h3>⏰ 預計恢復時間</h3>
+    <p>我們正在加緊處理，請稍後再試。</p>
+    <p>如有緊急需求，請聯繫客服。</p>
+  </div>
+  
+  <div class="footer">
+    <p>感謝您的耐心等待 ❤️</p>
+    <p style="margin-top: 10px; font-size: 12px;">
+      維護開始時間：2025-10-19
+    </p>
   </div>
 </div>
 
-<script src="./assets/auth.js"></script>
 <script>
-// 🔧 暫時禁用所有自動跳轉，防止循環
-/*
-window.addEventListener('load', async () => {
-  const isInLIFF = window.location.href.includes('liff.line.me');
-  
-  if (!isInLIFF) {
-    const isLoggedIn = await AUTH.isLoggedIn();
-    if (isLoggedIn) {
-      window.location.href = 'profile.html';
-    }
-  }
-});
-*/
+// 每 30 秒自动刷新检查是否恢复
+setTimeout(() => {
+  location.reload();
+}, 30000);
+
+console.log('系統維護中，30秒後自動重新檢查');
 </script>
+
 </body>
 </html>
