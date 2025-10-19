@@ -1,1 +1,282 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.location.replace('maintenance.html');</script></head><body><p>跳轉中...</p></body></html> 
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>點數記錄</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  .history-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .history-header h1 {
+    font-size: 24px;
+    color: var(--text-primary);
+    margin: 0 0 5px 0;
+  }
+  .history-header p {
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+  .transaction-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    transition: var(--transition);
+    border-left: 4px solid transparent;
+  }
+  .transaction-item.plus {
+    border-left-color: #06C755;
+  }
+  .transaction-item.minus {
+    border-left-color: #ff5252;
+  }
+  .transaction-item:hover {
+    transform: translateX(5px);
+    box-shadow: var(--shadow-md);
+  }
+  .transaction-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+  }
+  .transaction-type {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 16px;
+  }
+  .transaction-detail {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .transaction-date {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .transaction-amount {
+    font-weight: bold;
+    font-size: 20px;
+    white-space: nowrap;
+    margin-left: 15px;
+  }
+  .transaction-amount.plus { 
+    color: #06C755; 
+  }
+  .transaction-amount.minus { 
+    color: #ff5252; 
+  }
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .empty-state .icon {
+    font-size: 64px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+  }
+  .empty-state h3 {
+    color: var(--text-secondary);
+    font-size: 18px;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="profile-card">
+    <div class="page-header">
+      <button class="btn-back" onclick="goBack()">← 返回</button>
+      <h1>點數記錄</h1>
+    </div>
+    
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>載入中...</p>
+    </div>
+    
+    <ul class="transaction-list" id="transactions" style="display:none;"></ul>
+  </div>
+</div>
+
+<script src="./assets/cache-manager.js"></script>
+<script>
+const LIFF_ID = "2008231108-2PDbO5qk"; // 統一使用主要 LIFF ID
+const API_URL = "https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec";
+
+// 🔧 安全關閉視窗函數
+function safeCloseWindow() {
+  try {
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        alert('請關閉此頁面');
+      }
+    }
+  } catch (error) {
+    console.warn('關閉視窗失敗:', error);
+    if (window.history.length > 1) {
+      window.history.back();
+    }
+  }
+}
+
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    
+    if (!liff.isLoggedIn()) {
+      // 🔧 優化：使用 redirectUri 保留當前頁面
+      liff.login({ redirectUri: window.location.href });
+      return;
+    }
+
+    const profile = await liff.getProfile();
+    const userId = profile.userId;
+
+    // 🚀 優化：使用快取機制
+    const result = await CacheManager.getOrFetch(
+      `transactions_${userId}`,
+      async () => {
+        const res = await fetch(`${API_URL}?action=transactions&lineUserId=${userId}&limit=50`);
+        return await res.json();
+      },
+      2 * 60 * 1000 // 交易記錄快取 2 分鐘
+    );
+    
+    const data = result.data;
+    console.log(result.fromCache ? '📦 使用快取的交易記錄' : '🔄 從 API 載入交易記錄');
+
+    const loading = document.getElementById("loading");
+    const list = document.getElementById("transactions");
+    
+    loading.style.display = 'none';
+    list.style.display = 'flex';
+
+    if (!data.success || !data.transactions || data.transactions.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">📊</div>
+          <h3>尚無交易紀錄</h3>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = data.transactions.map(item => {
+      // 🔧 更新：包含所有增加點數的交易類型
+      const isPositive = [
+        'transfer_in',           // 收到轉點
+        'register',              // 註冊贈送
+        'admin_add',             // 管理員新增
+        'purchase',              // 購買點數 🔧 新增
+        'referral_purchase_reward',  // 推薦購買獎勵 🔧 新增
+        'referral_withdraw_reward',  // 推薦提領獎勵 🔧 新增
+        'referral_bonus',        // 推薦註冊獎勵（舊版）
+        'mall_sale'              // 商城銷售收入 🔧 新增
+      ].includes(item.type);
+      
+      const displayPoints = Math.abs(item.points);
+      
+      return `
+        <li class="transaction-item ${isPositive ? 'plus' : 'minus'}">
+          <div class="transaction-info">
+            <span class="transaction-type">${translateType(item.type)}</span>
+            ${getTransactionDetail(item)}
+            <span class="transaction-date">${formatDate(item.createdAt)}</span>
+          </div>
+          <span class="transaction-amount ${isPositive ? 'plus' : 'minus'}">
+            ${isPositive ? '+' : '-'}${displayPoints}
+          </span>
+        </li>
+      `;
+    }).join('');
+    
+  } catch (err) {
+    console.error('載入錯誤:', err);
+    document.getElementById("loading").style.display = 'none';
+    document.getElementById("transactions").innerHTML = `
+      <div class="empty-state">
+        <div class="icon">❌</div>
+        <h3>載入錯誤，請稍後再試</h3>
+      </div>
+    `;
+    document.getElementById("transactions").style.display = 'flex';
+  }
+}
+
+function translateType(type) {
+  const map = {
+    'register': '🎁 註冊贈點',
+    'transfer_in': '📥 轉入點數',
+    'transfer_out': '📤 轉出點數',
+    'purchase': '💰 購買點數',
+    'withdraw': '💵 提領兌現',
+    'referral_purchase_reward': '🎁 推薦購買獎勵',
+    'referral_withdraw_reward': '🎁 推薦提領獎勵',
+    'referral_bonus': '🎁 推薦註冊獎勵',
+    'referral_reward': '🎁 推薦獎勵',
+    'admin_add': '➕ 管理員加點',
+    'admin_deduct': '➖ 管理員扣點',
+    'mall_purchase': '🛒 商城購買',
+    'mall_sale': '💰 商品售出'
+  };
+  return map[type] || '其他';
+}
+
+function getTransactionDetail(item) {
+  if (item.type === 'transfer_in' && item.senderName) {
+    return `<span class="transaction-detail">來自：${item.senderName}</span>`;
+  } else if (item.type === 'transfer_out' && item.receiverName) {
+    return `<span class="transaction-detail">轉給：${item.receiverName}</span>`;
+  } else if (item.type === 'purchase') {
+    return `<span class="transaction-detail">購買公益點數</span>`;
+  } else if (item.type === 'withdraw') {
+    return `<span class="transaction-detail">提領兌現 NT$ ${Math.abs(item.points).toLocaleString()}</span>`;
+  } else if (item.type === 'referral_purchase_reward' || item.type === 'referral_withdraw_reward') {
+    return `<span class="transaction-detail">${item.message || '推薦獎勵'}</span>`;
+  } else if (item.type === 'mall_purchase') {
+    return `<span class="transaction-detail">${item.message || '購買商城商品'}</span>`;
+  } else if (item.type === 'mall_sale') {
+    return `<span class="transaction-detail">${item.message || '商品售出收入'}</span>`;
+  } else if (item.message) {
+    return `<span class="transaction-detail">${item.message}</span>`;
+  }
+  return '';
+}
+
+function formatDate(ts) {
+  const d = new Date(ts);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${year}/${month}/${day} ${hours}:${minutes}`;
+}
+
+function goBack() {
+  safeCloseWindow(); // 🔧 使用安全關閉函數
+}
+
+initLiff();
+</script>
+</body>
+</html>
+

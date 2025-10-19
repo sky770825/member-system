@@ -1,1 +1,192 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.location.replace('maintenance.html');</script></head><body><p>跳轉中...</p></body></html> 
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>編輯會員資料</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="register-card">
+    <div class="page-header">
+      <button class="btn-back" onclick="goBack()">← 返回</button>
+      <h1>編輯會員資料</h1>
+    </div>
+    
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>載入中...</p>
+    </div>
+    
+    <form id="editForm" style="display:none;">
+      <div class="form-grid">
+        <div class="form-group form-group-full">
+          <label for="phone">手機號碼（不可更改）</label>
+          <input type="tel" id="phone" disabled>
+        </div>
+        
+        <div class="form-group">
+          <label for="email">電子郵件</label>
+          <input type="email" id="email" placeholder="example@email.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="birthday">生日</label>
+          <input type="date" id="birthday">
+        </div>
+      </div>
+      
+      <button type="submit" class="btn btn-primary btn-large" id="submitBtn">
+        <span class="btn-icon">💾</span>
+        儲存修改
+      </button>
+    </form>
+    
+    <div id="message" class="message"></div>
+  </div>
+</div>
+
+<script src="./assets/cache-manager.js"></script>
+<script>
+const LIFF_ID = "2008231108-2PDbO5qk"; // 統一使用主要 LIFF ID
+const API_URL = "https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec";
+
+let lineUserId = '';
+
+// 🔧 安全關閉視窗函數
+function safeCloseWindow() {
+  try {
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        showMessage('✅ 操作完成！請關閉此頁面', 'success');
+      }
+    }
+  } catch (error) {
+    console.warn('關閉視窗失敗:', error);
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      showMessage('✅ 操作完成！請關閉此頁面', 'success');
+    }
+  }
+}
+
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    
+    if (!liff.isLoggedIn()) {
+      // 🔧 優化：使用 redirectUri 保留當前頁面
+      liff.login({ redirectUri: window.location.href });
+      return;
+    }
+    
+    const profile = await liff.getProfile();
+    lineUserId = profile.userId;
+    
+    // 取得現有資料
+    const res = await fetch(`${API_URL}?action=profile&lineUserId=${lineUserId}`);
+    const data = await res.json();
+    
+    // 🔧 檢查會員是否存在，不存在則跳轉到首頁註冊
+    if (!data || !data.success || data.success === false) {
+      console.log('❌ 會員不存在，跳轉到首頁註冊');
+      alert('您還不是會員，請先註冊！\n\n將為您跳轉到註冊頁面...');
+      window.location.href = 'index.html';
+      return;
+    }
+    
+    if (data.success) {
+      document.getElementById('phone').value = data.phone || '';
+      document.getElementById('email').value = data.email || '';
+      document.getElementById('birthday').value = data.birthday || '';
+      
+      // 顯示表單，隱藏載入中
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('editForm').style.display = 'block';
+    } else {
+      throw new Error(data.message || '載入失敗');
+    }
+    
+  } catch (error) {
+    console.error('LIFF 初始化錯誤:', error);
+    document.getElementById('loading').style.display = 'none';
+    showMessage('載入錯誤，請稍後再試', 'error');
+  }
+}
+
+document.getElementById('editForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-small"></span> 儲存中...';
+  
+  const payload = {
+    lineUserId: lineUserId,
+    email: document.getElementById('email').value,
+    birthday: document.getElementById('birthday').value
+  };
+  
+  try {
+    // 使用 URL 參數方式避免 CORS 預檢請求
+    const params = new URLSearchParams({
+      action: 'update-profile',
+      lineUserId: payload.lineUserId,
+      email: payload.email,
+      birthday: payload.birthday
+    });
+    
+    const res = await fetch(`${API_URL}?${params.toString()}`, {
+      method: 'GET',
+      redirect: 'follow'
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      showMessage('✅ 修改成功！即將返回...', 'success');
+      setTimeout(() => {
+        safeCloseWindow(); // 🔧 使用安全關閉函數
+      }, 2000);
+    } else {
+      showMessage('修改失敗：' + (data.message || '請稍後再試'), 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="btn-icon">💾</span> 儲存修改';
+    }
+  } catch (error) {
+    console.error('更新錯誤:', error);
+    showMessage('系統錯誤，請稍後再試', 'error');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="btn-icon">💾</span> 儲存修改';
+  }
+});
+
+function showMessage(msg, type) {
+  const messageDiv = document.getElementById('message');
+  messageDiv.textContent = msg;
+  messageDiv.className = `message ${type}`;
+  messageDiv.style.display = 'block';
+  
+  setTimeout(() => {
+    if (type === 'error') {
+      messageDiv.style.display = 'none';
+    }
+  }, 5000);
+}
+
+function goBack() {
+  safeCloseWindow(); // 🔧 使用安全關閉函數
+}
+
+initLiff();
+</script>
+</body>
+</html>
+
