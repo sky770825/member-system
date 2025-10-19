@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>會員中心</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+<div class="container" id="profile">
+  <div class="loading">
+    <div class="spinner"></div>
+    <p style="margin-top: 15px; color: #666;">載入會員資料中...</p>
+  </div>
+</div>
+
+<script src="./assets/cache-manager.js"></script>
+<script>
+let currentUserId = '';
+let currentPoints = 0;
+let autoRefreshInterval = null;
+let lastNotifiedTransaction = null; // 🔧 記錄最後通知的交易ID，防止重複彈窗
+
+async function initLiff() {
+  try {
+    // 記錄開始時間
+    const startTime = Date.now();
+    
+    await liff.init({ liffId: "2008231108-2PDbO5qk" });
+    
+    if (!liff.isLoggedIn()) {
+      // 🔧 優化：使用 redirectUri 保留當前頁面
+      liff.login({ redirectUri: window.location.href });
+      return;
+    }
+    
+    const profile = await liff.getProfile();
+    const lineUserId = profile.userId;
+    const displayName = profile.displayName;
+    const pictureUrl = profile.pictureUrl;
+    
+    // 保存當前用戶 ID
+    currentUserId = lineUserId;
+    
+    // 🚀 優化：使用統一快取管理器
+    const result = await CacheManager.getOrFetch(
+      `profile_${lineUserId}`,
+      async () => {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?action=profile&lineUserId=" + lineUserId);
+        return await res.json();
+      },
+      5 * 60 * 1000 // 會員資料快取 5 分鐘
+    );
+    
+    const data = result.data;
+    
+    // 🔧 简化：不强制跳转，让用户看到错误信息
+    if (!data || !data.success || data.success === false) {
+      console.log('⚠️ 會員資料載入失敗:', data);
+      // 不自动跳转，显示错误信息让用户决定
+      document.getElementById("profile").innerHTML = `
+        <div class="error-card" style="text-align: center; padding: 40px;">
+          <div class="error-icon" style="font-size: 64px; margin-bottom: 20px;">⚠️</div>
+          <h3 style="color: #856404;">無法載入會員資料</h3>
+          <p style="color: #666; margin: 20px 0;">
+            ${data && data.message ? data.message : '找不到會員資料，您可能尚未註冊'}
+          </p>
+          <a href="register.html" class="btn btn-primary" style="display: inline-block; margin: 10px; padding: 15px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+            📝 前往註冊
+          </a>
+          <button class="btn btn-secondary" onclick="location.reload()" style="display: inline-block; margin: 10px; padding: 15px 30px; background: #6c757d; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+            🔄 重新載入
+          </button>
+        </div>
+      `;
+      return;
+    }
+    
+    // 記錄載入時間
+    const loadTime = Date.now() - startTime;
+    console.log(`⚡ 會員中心載入時間: ${loadTime}ms ${result.fromCache ? '(使用快取)' : '(從 API)'}`);
+    
+    // 保存當前點數
+    currentPoints = data.points || 0;
+    
+    // 渲染資料
+    renderProfile(data, pictureUrl, displayName);
+    
+    // 🔧 啟動自動刷新（每 10 秒檢查一次）
+    startAutoRefresh(lineUserId, pictureUrl, displayName);
+    
+  } catch (error) {
+    console.error('LIFF 初始化錯誤:', error);
+    document.getElementById("profile").innerHTML = `
+      <div class="error-card">
+        <div class="error-icon">❌</div>
+        <h3>載入失敗</h3>
+        <p>請稍後再試或聯繫客服</p>
+        <button class="btn btn-primary" onclick="initLiff()">重新載入</button>
+      </div>
+    `;
+  }
+}
+
+// 🔧 自動刷新功能
+function startAutoRefresh(lineUserId, pictureUrl, displayName) {
+  // 清除舊的定時器
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+  }
+  
+  console.log('🔄 啟動自動刷新（每 5 秒檢查一次）');
+  
+  // 每 5 秒檢查一次
+  autoRefreshInterval = setInterval(async () => {
+    try {
+      console.log('🔍 檢查點數更新中...', new Date().toLocaleTimeString());
+      
+      const res = await fetch("https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?action=profile&lineUserId=" + lineUserId);
+      const data = await res.json();
+      
+      const newPoints = data.points || 0;
+      
+      console.log(`當前點數: ${currentPoints} → 最新點數: ${newPoints}`);
+      
+      // 如果點數有變化
+      if (newPoints !== currentPoints) {
+        const pointsDiff = newPoints - currentPoints;
+        
+        console.log(`🎉 點數變動: ${pointsDiff > 0 ? '+' : ''}${pointsDiff}`);
+        
+        // 如果是增加（收到點數）
+        if (pointsDiff > 0) {
+          // 🔧 獲取最新交易記錄，查看是誰轉的
+          await showReceivedPointsNotification(lineUserId, pointsDiff);
+        }
+        
+        // 更新當前點數
+        currentPoints = newPoints;
+        
+        // 重新渲染
+        renderProfile(data, pictureUrl, displayName);
+        
+        console.log('✅ 頁面已更新');
+      } else {
+        console.log('⏸️ 點數無變化');
+      }
+    } catch (error) {
+      console.error('❌ 自動刷新失敗:', error);
+    }
+  }, 5000); // 5 秒
+  
+  console.log('✅ 自動刷新已啟動（每 5 秒檢查一次）');
+}
+
+// 🔧 頁面可見性檢測：當用戶切回頁面時立即檢查
+document.addEventListener('visibilitychange', async () => {
+  if (!document.hidden && currentUserId) {
+    console.log('👁️ 頁面重新可見，立即檢查點數');
+    try {
+      const profile = await liff.getProfile();
+      const res = await fetch("https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec?action=profile&lineUserId=" + currentUserId);
+      const data = await res.json();
+      
+      const newPoints = data.points || 0;
+      if (newPoints !== currentPoints) {
+        const pointsDiff = newPoints - currentPoints;
+        if (pointsDiff > 0) {
+          await showReceivedPointsNotification(currentUserId, pointsDiff);
+        }
+        currentPoints = newPoints;
+        renderProfile(data, profile.pictureUrl, profile.displayName);
+        console.log('✅ 頁面已更新');
+      }
+    } catch (error) {
+      console.error('❌ 立即檢查失敗:', error);
+    }
+  }
+});
+
+// 🔧 顯示收到點數的通知
+async function showReceivedPointsNotification(lineUserId, pointsDiff) {
+  try {
+    // 獲取最新的交易記錄
+      const res = await fetch(`https://script.google.com/macros/s/AKfycbxh10yJHbTDcwBDTX_V30jRR4CqshDc3pePR0t_rPqCxZg40h636WKIo3-Y--L0cDnP/exec?action=transactions&lineUserId=${lineUserId}&limit=5`);
+    const data = await res.json();
+    
+    if (data.success && data.transactions && data.transactions.length > 0) {
+      // 找出最新的轉入記錄（或任何增加點數的交易）
+      const latestTransaction = data.transactions.find(t => 
+        t.type === 'transfer_in' || 
+        t.type === 'referral_purchase_reward' || 
+        t.type === 'referral_withdraw_reward' ||
+        t.type === 'mall_sale'
+      );
+      
+      // 🔧 防止重複通知：檢查是否已經通知過這筆交易
+      if (latestTransaction && latestTransaction.id === lastNotifiedTransaction) {
+        console.log('⏸️ 這筆交易已經通知過了，跳過');
+        return;
+      }
+      
+      let senderName = '系統';
+      if (latestTransaction) {
+        // 記錄這筆交易ID
+        lastNotifiedTransaction = latestTransaction.id;
+        
+        if (latestTransaction.senderName) {
+          senderName = latestTransaction.senderName;
+        }
+        
+        // 根據交易類型顯示不同訊息
+        if (latestTransaction.type === 'referral_purchase_reward') {
+          senderName = latestTransaction.senderName + '（推薦購買獎勵）';
+        } else if (latestTransaction.type === 'referral_withdraw_reward') {
+          senderName = latestTransaction.senderName + '（推薦提領獎勵）';
+        } else if (latestTransaction.type === 'mall_sale') {
+          senderName = latestTransaction.senderName + '（商品售出）';
+        }
+      }
+      
+      // 顯示通知
+      showPointsNotification(senderName, pointsDiff);
+    } else {
+      // 沒有交易記錄，顯示一般通知
+      showPointsNotification('系統', pointsDiff);
+    }
+  } catch (error) {
+    console.error('獲取交易記錄失敗:', error);
+    showPointsNotification('某位好友', pointsDiff);
+  }
+}
+
+// 🔧 顯示點數通知彈窗
+function showPointsNotification(senderName, points) {
+  // 創建通知元素
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #FFF3CD, #FFE69C);
+    border: 3px solid #FFB800;
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 12px 48px rgba(255, 184, 0, 0.4);
+    z-index: 10000;
+    text-align: center;
+    min-width: 280px;
+    animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  `;
+  
+  notification.innerHTML = `
+    <div style="font-size: 64px; margin-bottom: 16px; animation: pulse 1s ease infinite;">❤️</div>
+    <h3 style="margin: 0 0 12px 0; color: #FFB800; font-size: 22px; font-weight: bold;">收到公益點數！</h3>
+    <p style="margin: 0 0 8px 0; font-size: 18px; color: #333;">
+      來自 <strong style="color: #FFB800;">${senderName}</strong>
+    </p>
+    <p style="margin: 0; font-size: 32px; font-weight: 800; color: #FFB800;">
+      +${points} <span style="font-size: 18px;">點</span>
+    </p>
+  `;
+  
+  // 添加動畫樣式
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes bounceIn {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+      70% { transform: translate(-50%, -50%) scale(0.9); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // 添加到頁面
+  document.body.appendChild(notification);
+  
+  // 3 秒後自動移除
+  setTimeout(() => {
+    notification.style.animation = 'fadeOut 0.3s ease';
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 300);
+  }, 3000);
+  
+  // 播放提示音（可選）
+  try {
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGa57OmfTgwNUKXh8bllHQU2jdXxx3ElBSh+zPDckD8KFmC28OqnVRIKRp/g8r5sIQYrf88=' );
+    audio.volume = 0.3;
+    audio.play().catch(() => {});
+  } catch (e) {}
+}
+
+// 渲染會員資料
+function renderProfile(data, pictureUrl, displayName) {
+  document.getElementById("profile").innerHTML = `
+    <div class="profile-card">
+      <div class="profile-header">
+        <img src="${pictureUrl}" alt="頭像" class="profile-avatar">
+        <div class="profile-header-center">
+          <h2 style="text-align:left;margin:0;">${data.name || displayName || '會員'}</h2>
+        </div>
+        <div class="points-card">
+          <div class="points-icon">❤️</div>
+          <div class="points-info">
+            <p class="points-label" style="color: #856404; font-weight: 600;">公益點數</p>
+            <p class="points-value" style="color: #FFB800;">${data.points || 0} <span style="color: #856404;">點</span></p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="profile-info">
+        <div class="info-item">
+          <span class="info-label">📱 電話</span>
+          <span class="info-value">${data.phone || '未登錄'}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">📧 Email</span>
+          <span class="info-value">${data.email || '未登錄'}</span>
+        </div>
+      </div>
+      
+      <!-- ❤️ 公益推薦區塊 -->
+      <div class="referral-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; margin: 20px 0; color: white; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+          <span style="font-size: 28px;">❤️</span>
+          <div>
+            <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: #fff;">邀請好友一起做公益</h3>
+            <p style="margin: 5px 0 0 0; font-size: 14px; color: rgba(255,255,255,0.95); font-weight: 500;">傳遞愛心，讓善意延續</p>
+          </div>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 14px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.3);">
+          <p style="margin: 0 0 10px 0; font-size: 14px; color: #fff; font-weight: 600;">您的專屬推薦碼</p>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="text" id="referralCodeDisplay" value="${data.referralCode || '載入中...'}" readonly 
+                   style="flex: 1; background: rgba(255,255,255,0.95); border: none; border-radius: 6px; padding: 12px 14px; font-size: 20px; font-weight: 800; letter-spacing: 3px; text-align: center; color: #764ba2;">
+            <button onclick="copyReferralCode('${data.referralCode}')" 
+                    style="background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.6); border-radius: 6px; padding: 12px 18px; color: #fff; font-weight: bold; cursor: pointer; transition: all 0.3s; font-size: 14px;">
+              📋 複製
+            </button>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 8px;">
+          <button onclick="shareReferralLink('${data.referralCode}')" class="btn" 
+                  style="flex: 1; background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.6); color: #fff; font-weight: bold; padding: 12px; font-size: 14px;">
+            <span style="font-size: 18px;">📤</span> 分享推薦
+          </button>
+          <button onclick="viewReferralStats()" class="btn" 
+                  style="flex: 1; background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.6); color: #fff; font-weight: bold; padding: 12px; font-size: 14px;">
+            <span style="font-size: 18px;">📊</span> 推薦記錄
+          </button>
+        </div>
+        
+        <p style="margin: 12px 0 0 0; font-size: 13px; text-align: center; color: #fff; font-weight: 500;">
+          您已推薦 <strong style="font-size: 18px; color: #FFD700; font-weight: 800;">${data.referralCount || 0}</strong> 位好友加入公益行列 ❤️
+        </p>
+      </div>
+      
+      <div class="action-buttons">
+        <button class="btn btn-primary" onclick="goMall()" style="background: linear-gradient(135deg, #667eea, #764ba2); border-color: #667eea;">
+          <span class="btn-icon">🛒</span>
+          公益商城
+        </button>
+        <button class="btn btn-primary" onclick="goUploadProduct()" style="background: linear-gradient(135deg, #11998e, #38ef7d); border-color: #11998e;">
+          <span class="btn-icon">🏪</span>
+          上架商品
+        </button>
+        <button class="btn btn-primary" onclick="goPurchase()" style="background: linear-gradient(135deg, #FFB800, #E69500); border-color: #FFB800;">
+          <span class="btn-icon">💰</span>
+          購買公益點數
+        </button>
+        <button class="btn btn-secondary" onclick="goMyOrders()" style="background: linear-gradient(135deg, #667eea, #764ba2); border-color: #667eea; color: white;">
+          <span class="btn-icon">📦</span>
+          我的訂單
+        </button>
+        <button class="btn btn-primary" onclick="goWithdraw()" style="background: linear-gradient(135deg, #FF6B00, #E65100); border-color: #FF6B00;">
+          <span class="btn-icon">💵</span>
+          提領兌現
+        </button>
+        <button class="btn btn-secondary" onclick="goWithdrawalHistory()" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2); border-color: #9C27B0; color: white;">
+          <span class="btn-icon">📋</span>
+          提領記錄
+        </button>
+        <button class="btn btn-primary" onclick="goTransfer()">
+          <span class="btn-icon">❤️</span>
+          分享公益點數
+        </button>
+        <button class="btn btn-secondary" onclick="goHistory()">
+          <span class="btn-icon">📊</span>
+          點數記錄
+        </button>
+        <button class="btn btn-outline" onclick="editProfile()">
+          <span class="btn-icon">✏️</span>
+          編輯資料
+        </button>
+        <button class="btn btn-outline" id="setPasswordBtn" onclick="goSetPassword()" style="display: none; border-color: #FFB800; color: #FFB800;">
+          <span class="btn-icon">🔐</span>
+          設定帳號密碼
+        </button>
+      </div>
+      
+      <!-- 登入類型顯示 -->
+      <div id="loginTypeStatus" style="text-align: center; margin-top: 16px; padding: 12px; background: #f8f9fa; border-radius: 10px; font-size: 14px; display: none;">
+        <span style="color: #666;">登入方式：</span>
+        <span id="loginTypeText" style="font-weight: 600; color: #667eea;"></span>
+      </div>
+    </div>
+  `;
+  
+  // 根據登入類型顯示相應的提示
+  const loginType = data.loginType || 'line';
+  const loginTypeStatus = document.getElementById('loginTypeStatus');
+  const loginTypeText = document.getElementById('loginTypeText');
+  const setPasswordBtn = document.getElementById('setPasswordBtn');
+  
+  if (loginType === 'line' || !loginType) {
+    // 只有 LINE 登入，顯示設定帳號密碼按鈕
+    setPasswordBtn.style.display = 'block';
+    loginTypeStatus.style.display = 'block';
+    loginTypeText.textContent = '僅 LINE 登入';
+    loginTypeText.style.color = '#666';
+  } else if (loginType === 'both') {
+    // 雙重登入
+    loginTypeStatus.style.display = 'block';
+    loginTypeText.textContent = '✅ LINE + 帳號密碼（雙重登入）';
+    loginTypeText.style.color = '#4CAF50';
+  } else if (loginType === 'password') {
+    // 僅帳號密碼
+    loginTypeStatus.style.display = 'block';
+    loginTypeText.textContent = '帳號密碼登入';
+    loginTypeText.style.color = '#667eea';
+  }
+}
+
+// 快取函數已移至 cache-manager.js 統一管理
+
+function goMall() {
+  window.location.href = "mall.html";
+}
+
+function goUploadProduct() {
+  window.location.href = "upload-product.html";
+}
+
+function goPurchase() {
+  window.location.href = "purchase.html";
+}
+
+function goMyOrders() {
+  window.location.href = "my-orders.html";
+}
+
+function goWithdraw() {
+  window.location.href = "withdraw.html";
+}
+
+function goWithdrawalHistory() {
+  window.location.href = "withdrawal-history.html";
+}
+
+function goTransfer() {
+  window.location.href = "transfer.html";
+}
+
+function goHistory() {
+  window.location.href = "history.html";
+}
+
+function editProfile() {
+  window.location.href = "edit.html";
+}
+
+function goSetPassword() {
+  window.location.href = "set-password.html";
+}
+
+// 🎁 複製推薦碼
+function copyReferralCode(code) {
+  if (!code || code === '載入中...') {
+    alert('推薦碼尚未載入，請稍後再試');
+    return;
+  }
+  
+  // 複製到剪貼簿
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(code).then(() => {
+      alert('✅ 推薦碼已複製！\n\n' + code);
+    }).catch(() => {
+      // 降級方案
+      fallbackCopyTextToClipboard(code);
+    });
+  } else {
+    fallbackCopyTextToClipboard(code);
+  }
+}
+
+// 降級複製方案
+function fallbackCopyTextToClipboard(text) {
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.style.position = "fixed";
+  textArea.style.top = "-999999px";
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  
+  try {
+    document.execCommand('copy');
+    alert('✅ 推薦碼已複製！\n\n' + text);
+  } catch (err) {
+    alert('❌ 複製失敗，請手動複製：\n\n' + text);
+  }
+  
+  document.body.removeChild(textArea);
+}
+
+// 📤 分享推薦連結
+function shareReferralLink(code) {
+  if (!code || code === '載入中...') {
+    alert('推薦碼尚未載入，請稍後再試');
+    return;
+  }
+  
+  // 🔗 生成推薦連結（請替換為你的實際網址）
+  const baseUrl = window.location.origin + window.location.pathname.replace('profile.html', '');
+  const referralLink = `${baseUrl}register.html?ref=${code}`;
+  
+  // 分享訊息（公益慈善版）
+  const shareMessage = `❤️ 邀請你一起做公益！\n\n` +
+                      `加入公益慈善會員，傳遞愛心、幫助需要的人。\n` +
+                      `註冊即贈送 100 公益點數，讓您立即開始行善！\n\n` +
+                      `👉 立即加入：${referralLink}\n\n` +
+                      `推薦碼：${code}\n` +
+                      `讓我們一起讓世界更美好 🌟`;
+  
+  // 如果在 LINE LIFF 環境中，使用 LINE 分享
+  if (typeof liff !== 'undefined' && liff.isInClient()) {
+    liff.shareTargetPicker([
+      {
+        type: 'text',
+        text: shareMessage
+      }
+    ]).then(() => {
+      console.log('分享成功');
+    }).catch((err) => {
+      console.error('分享失敗', err);
+      // 降級使用複製連結
+      fallbackShare(referralLink, shareMessage);
+    });
+  } else {
+    // 使用 Web Share API 或降級方案
+    if (navigator.share) {
+      navigator.share({
+        title: '邀請好友加入會員',
+        text: shareMessage
+      }).catch(() => {
+        fallbackShare(referralLink, shareMessage);
+      });
+    } else {
+      fallbackShare(referralLink, shareMessage);
+    }
+  }
+}
+
+// 降級分享方案
+function fallbackShare(link, message) {
+  if (confirm('📋 是否複製推薦連結到剪貼簿？\n\n你可以貼到任何地方分享給好友！')) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(link).then(() => {
+        alert('✅ 推薦連結已複製！\n\n' + link + '\n\n快去分享給好友吧！');
+      });
+    } else {
+      fallbackCopyTextToClipboard(link);
+    }
+  }
+}
+
+// 📊 查看推薦統計
+function viewReferralStats() {
+  window.location.href = 'referral-stats.html';
+}
+
+// 舊的提示功能（已棄用）
+function viewReferralStatsOld() {
+  alert('📊 推薦統計功能開發中...\n\n' +
+        '即將顯示：\n' +
+        '• 推薦人數\n' +
+        '• 獲得獎勵\n' +
+        '• 推薦明細');
+}
+
+initLiff();
+</script>
+</body>
+</html>
+

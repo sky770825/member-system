@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>購買公益點數</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h1>💰 購買公益點數</h1>
+      <p style="color: #E69500; font-weight: 600;">支持公益慈善，幫助更多需要的人</p>
+    </div>
+    
+    <!-- 當前點數顯示 -->
+    <div class="current-points" id="currentPoints" style="border-color: #FFB800;">
+      <p class="points-label" style="color: #856404; font-weight: 600;">❤️ 目前公益點數</p>
+      <p class="points-value" style="color: #FFB800; font-weight: 800;">-- <span style="color: #856404; font-size: 20px; font-weight: 600;">點</span></p>
+    </div>
+    
+    <!-- 購買方案 -->
+    <div style="margin: 24px 0;">
+      <h3 style="margin: 0 0 16px 0; color: #333; font-size: 16px; font-weight: 600;">⚡ 選擇購買方案</h3>
+      
+      <div class="purchase-plans">
+        <div class="plan-card" onclick="selectPlan(1000, 1000)">
+          <div class="plan-badge">入門</div>
+          <div class="plan-points">1,000<span>點</span></div>
+          <div class="plan-price">NT$ 1,000</div>
+          <div class="plan-unit">1.0 元/點</div>
+        </div>
+        
+        <div class="plan-card plan-popular" onclick="selectPlan(5000, 5000)">
+          <div class="plan-badge popular">熱門</div>
+          <div class="plan-points">5,000<span>點</span></div>
+          <div class="plan-price">NT$ 5,000</div>
+          <div class="plan-unit">1.0 元/點</div>
+        </div>
+        
+        <div class="plan-card" onclick="selectPlan(10000, 10000)">
+          <div class="plan-badge">推薦</div>
+          <div class="plan-points">10,000<span>點</span></div>
+          <div class="plan-price">NT$ 10,000</div>
+          <div class="plan-unit">1.0 元/點</div>
+        </div>
+        
+        <div class="plan-card" onclick="selectPlan(50000, 50000)">
+          <div class="plan-badge">超值</div>
+          <div class="plan-points">50,000<span>點</span></div>
+          <div class="plan-price">NT$ 50,000</div>
+          <div class="plan-unit">1.0 元/點</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 自訂金額 -->
+    <div style="margin: 24px 0;">
+      <h3 style="margin: 0 0 12px 0; color: #333; font-size: 16px; font-weight: 600;">💳 自訂購買金額</h3>
+      
+      <div class="form-group">
+        <label for="customPoints">購買點數 *</label>
+        <input type="number" id="customPoints" placeholder="請輸入點數" min="100" step="100">
+        <small>最少購買 100 點，建議以 100 的倍數購買</small>
+      </div>
+      
+      <div class="form-group">
+        <label for="customAmount">付款金額（台幣）*</label>
+        <input type="number" id="customAmount" placeholder="請輸入金額" min="100" step="100">
+        <small>系統將自動計算單價</small>
+      </div>
+      
+      <div class="form-group">
+        <label for="paymentMethod">付款方式 *</label>
+        <select id="paymentMethod">
+          <option value="">請選擇付款方式</option>
+          <option value="line_pay">LINE Pay</option>
+          <option value="credit_card">信用卡</option>
+          <option value="bank_transfer">ATM 轉帳</option>
+          <option value="manual">手動處理</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="notes">備註（選填）</label>
+        <textarea id="notes" placeholder="特殊需求或備註..." rows="3" maxlength="200"></textarea>
+      </div>
+    </div>
+    
+    <!-- 購買明細 -->
+    <div id="purchaseDetail" style="display: none; background: linear-gradient(135deg, #FFFBF0, #FFF8E1); padding: 16px; border-radius: 12px; border: 2px solid #FFB800; margin: 20px 0;">
+      <h3 style="margin: 0 0 12px 0; color: #856404; font-size: 16px; font-weight: 600;">📋 購買明細</h3>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #666;">購買點數：</span>
+          <span id="detailPoints" style="font-weight: 700; color: #FFB800;">--</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #666;">付款金額：</span>
+          <span id="detailAmount" style="font-weight: 700; color: #FFB800;">--</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #666;">單價：</span>
+          <span id="detailUnitPrice" style="font-weight: 700; color: #856404;">--</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #666;">付款方式：</span>
+          <span id="detailPayment" style="font-weight: 700; color: #856404;">--</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 推薦人資訊 -->
+    <div id="referrerInfo" style="display: none; background: linear-gradient(135deg, #E8EAF6, #C5CAE9); padding: 14px 18px; border-radius: 12px; border: 2px solid #667eea; margin: 20px 0;">
+      <p style="margin: 0; color: #333; font-size: 14px; font-weight: 600;">
+        👤 推薦人：<strong id="referrerName" style="color: #667eea; font-size: 16px;">--</strong> (<span id="referrerCode" style="color: #999; font-size: 13px;">--</span>)
+      </p>
+    </div>
+    
+    <button class="btn btn-primary btn-large" id="purchaseBtn" onclick="confirmPurchase()" disabled>
+      <span class="btn-icon">💳</span>
+      確認購買
+    </button>
+    
+    <button class="btn btn-back" onclick="goBack()">
+      ← 返回會員中心
+    </button>
+    
+    <div id="message" class="message" style="display:none;"></div>
+  </div>
+</div>
+
+<style>
+.purchase-plans {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .purchase-plans {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.plan-card {
+  background: linear-gradient(135deg, #fff, #f8f9fa);
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.plan-card:hover {
+  border-color: #FFB800;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(255, 184, 0, 0.3);
+}
+
+.plan-card.selected {
+  border-color: #FFB800;
+  background: linear-gradient(135deg, #FFF3CD, #FFE69C);
+  box-shadow: 0 8px 24px rgba(255, 184, 0, 0.4);
+}
+
+.plan-card.plan-popular {
+  border-color: #667eea;
+}
+
+.plan-card.plan-popular:hover {
+  border-color: #667eea;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.plan-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #e0e0e0;
+  color: #666;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.plan-badge.popular {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.plan-points {
+  font-size: 32px;
+  font-weight: 800;
+  color: #FFB800;
+  margin: 12px 0 8px 0;
+}
+
+.plan-points span {
+  font-size: 16px;
+  color: #856404;
+  font-weight: 600;
+}
+
+.plan-price {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.plan-unit {
+  font-size: 13px;
+  color: #666;
+}
+</style>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbzMUwqroi_W_5m7rcjVs-U-o6tEo9W0327BeMmU38Rxinmycd5d1HyyF3BnugGvNF6r/exec';
+
+let currentUserId = '';
+let currentUserName = '';
+let currentPoints = 0;
+let selectedPoints = 0;
+let selectedAmount = 0;
+let referrerInfo = null;
+
+async function initLiff() {
+  try {
+    await liff.init({ liffId: "2008231108-2PDbO5qk" });
+    
+    if (!liff.isLoggedIn()) {
+      liff.login({ redirectUri: window.location.href });
+      return;
+    }
+    
+    const profile = await liff.getProfile();
+    currentUserId = profile.userId;
+    
+    // 取得會員資料
+    const res = await fetch(`${API_URL}?action=profile&lineUserId=${currentUserId}`);
+    const data = await res.json();
+    
+    // 🔧 檢查會員是否存在，不存在則跳轉到首頁註冊
+    if (!data || !data.success || data.success === false) {
+      console.log('❌ 會員不存在，跳轉到首頁註冊');
+      alert('您還不是會員，請先註冊！\n\n將為您跳轉到註冊頁面...');
+      window.location.href = 'index.html';
+      return;
+    }
+    
+    if (data.success) {
+      currentUserName = data.name;
+      currentPoints = data.points || 0;
+      
+      // 顯示當前點數
+      document.getElementById('currentPoints').innerHTML = `
+        <p class="points-label" style="color: #856404; font-weight: 600;">❤️ 目前公益點數</p>
+        <p class="points-value" style="color: #FFB800; font-weight: 800;">${currentPoints} <span style="color: #856404; font-size: 20px; font-weight: 600;">點</span></p>
+      `;
+      
+      // 檢查是否有推薦人
+      checkReferrer();
+    }
+    
+  } catch (error) {
+    console.error('LIFF 初始化錯誤:', error);
+    showMessage('❌ 載入失敗，請重新整理頁面', 'error');
+  }
+}
+
+// 檢查推薦人
+async function checkReferrer() {
+  try {
+    const res = await fetch(`${API_URL}?action=profile&lineUserId=${currentUserId}`);
+    const data = await res.json();
+    
+    if (data.referredBy) {
+      // 有推薦人，查詢推薦人詳細資訊
+      const verifyRes = await fetch(`${API_URL}?action=verify-referral&referralCode=${data.referredBy}`);
+      const verifyData = await verifyRes.json();
+      
+      if (verifyData.success && verifyData.referrer) {
+        document.getElementById('referrerInfo').style.display = 'block';
+        document.getElementById('referrerName').textContent = verifyData.referrer.name;
+        document.getElementById('referrerCode').textContent = data.referredBy;
+        
+        // 儲存推薦人資訊供後續使用
+        referrerInfo = {
+          name: verifyData.referrer.name,
+          code: data.referredBy
+        };
+      }
+    }
+  } catch (error) {
+    console.error('檢查推薦人失敗:', error);
+  }
+}
+
+// 選擇方案
+function selectPlan(points, amount) {
+  // 移除所有選中狀態
+  document.querySelectorAll('.plan-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+  
+  // 標記選中的方案
+  event.currentTarget.classList.add('selected');
+  
+  // 設定購買金額
+  selectedPoints = points;
+  selectedAmount = amount;
+  
+  document.getElementById('customPoints').value = points;
+  document.getElementById('customAmount').value = amount;
+  
+  updatePurchaseDetail();
+}
+
+// 監聽自訂金額變化
+document.getElementById('customPoints').addEventListener('input', function() {
+  selectedPoints = parseInt(this.value) || 0;
+  if (!document.getElementById('customAmount').value) {
+    document.getElementById('customAmount').value = selectedPoints;
+    selectedAmount = selectedPoints;
+  }
+  updatePurchaseDetail();
+});
+
+document.getElementById('customAmount').addEventListener('input', function() {
+  selectedAmount = parseFloat(this.value) || 0;
+  updatePurchaseDetail();
+});
+
+document.getElementById('paymentMethod').addEventListener('change', updatePurchaseDetail);
+
+// 更新購買明細
+function updatePurchaseDetail() {
+  const points = selectedPoints;
+  const amount = selectedAmount;
+  const paymentMethod = document.getElementById('paymentMethod').value;
+  
+  if (points > 0 && amount > 0 && paymentMethod) {
+    const unitPrice = (amount / points).toFixed(2);
+    
+    document.getElementById('purchaseDetail').style.display = 'block';
+    document.getElementById('detailPoints').textContent = points.toLocaleString() + ' 點';
+    document.getElementById('detailAmount').textContent = 'NT$ ' + amount.toLocaleString();
+    document.getElementById('detailUnitPrice').textContent = unitPrice + ' 元/點';
+    document.getElementById('detailPayment').textContent = getPaymentMethodName(paymentMethod);
+    
+    document.getElementById('purchaseBtn').disabled = false;
+  } else {
+    document.getElementById('purchaseDetail').style.display = 'none';
+    document.getElementById('purchaseBtn').disabled = true;
+  }
+}
+
+// 取得付款方式名稱
+function getPaymentMethodName(method) {
+  const names = {
+    'line_pay': 'LINE Pay',
+    'credit_card': '信用卡',
+    'bank_transfer': 'ATM 轉帳',
+    'manual': '手動處理'
+  };
+  return names[method] || method;
+}
+
+// 確認購買
+async function confirmPurchase() {
+  const points = selectedPoints;
+  const amount = selectedAmount;
+  const paymentMethod = document.getElementById('paymentMethod').value;
+  const notes = document.getElementById('notes').value;
+  
+  if (!points || !amount || !paymentMethod) {
+    showMessage('❌ 請完整填寫購買資訊', 'error');
+    return;
+  }
+  
+  if (points < 100) {
+    showMessage('❌ 最少購買 100 點', 'error');
+    return;
+  }
+  
+  // 確認對話框
+  const confirmMsg = `確認購買資訊：\n\n` +
+                     `購買點數：${points.toLocaleString()} 點\n` +
+                     `付款金額：NT$ ${amount.toLocaleString()}\n` +
+                     `付款方式：${getPaymentMethodName(paymentMethod)}\n\n` +
+                     `確定要購買嗎？`;
+  
+  if (!confirm(confirmMsg)) {
+    return;
+  }
+  
+  const btn = document.getElementById('purchaseBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-icon">⏳</span> 處理中...';
+  
+  try {
+    const params = new URLSearchParams({
+      action: 'purchase',
+      lineUserId: currentUserId,
+      points: points,
+      amount: amount,
+      paymentMethod: paymentMethod,
+      paymentStatus: 'paid',
+      notes: notes
+    });
+    
+    const res = await fetch(`${API_URL}?${params.toString()}`);
+    const data = await res.json();
+    
+    if (data.success) {
+      let successMsg = `🎉 購買成功！\n\n已獲得 ${points.toLocaleString()} 公益點數`;
+      
+      showMessage(successMsg, 'success');
+      
+      setTimeout(() => {
+        window.location.href = 'profile.html';
+      }, 3000);
+    } else {
+      showMessage('❌ ' + (data.message || '購買失敗'), 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<span class="btn-icon">💳</span> 確認購買';
+    }
+  } catch (error) {
+    console.error('購買錯誤:', error);
+    showMessage('❌ 系統錯誤: ' + error.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<span class="btn-icon">💳</span> 確認購買';
+  }
+}
+
+function showMessage(msg, type) {
+  const messageDiv = document.getElementById('message');
+  messageDiv.textContent = msg;
+  messageDiv.className = `message ${type}`;
+  messageDiv.style.display = 'block';
+  
+  // 自動隱藏成功訊息
+  if (type === 'success') {
+    setTimeout(() => {
+      messageDiv.style.display = 'none';
+    }, 5000);
+  }
+}
+
+function goBack() {
+  window.location.href = 'profile.html';
+}
+
+initLiff();
+</script>
+</body>
+</html>
+
