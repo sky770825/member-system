@@ -362,7 +362,7 @@ async function buyProduct() {
       alert('🎉 兌換成功！\n\n訂單編號：' + (data.orderNumber || '系統生成中') + '\n\n請至「我的訂單」查看詳情');
       
       setTimeout(() => {
-        window.location.href = 'my-orders.html';
+        window.location.href = 'https://liff.line.me/2008231108-2PDbO5qk/my-orders.html';
       }, 1000);
     } else {
       alert('❌ ' + (data.message || '兌換失敗'));
@@ -388,11 +388,11 @@ function showError(message) {
 }
 
 function goPurchase() {
-  window.location.href = 'purchase.html';
+  window.location.href = 'https://liff.line.me/2008231108-2PDbO5qk/purchase.html';
 }
 
 function goBack() {
-  window.location.href = 'mall.html';
+  window.location.href = 'https://liff.line.me/2008231108-2PDbO5qk/mall.html';
 }
 
 initLiff();
