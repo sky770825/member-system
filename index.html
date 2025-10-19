@@ -204,7 +204,16 @@
   </div>
 </div>
 
-<!-- 🔧 首頁不需要 LIFF 初始化，避免自動彈窗 -->
-<!-- 所有按鈕都使用直接的連結跳轉 -->
+<script src="./assets/auth.js"></script>
+<script>
+// 檢查是否已登入，自動跳轉
+window.addEventListener('load', async () => {
+  const isLoggedIn = await AUTH.isLoggedIn();
+  if (isLoggedIn) {
+    // 已經登入，直接跳轉到會員中心
+    window.location.href = 'profile.html';
+  }
+});
+</script>
 </body>
 </html>

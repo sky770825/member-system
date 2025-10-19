@@ -126,7 +126,7 @@ async function initLiff() {
     getReferralCodeFromURL();
     
     // 🔧 優化：保留當前網址作為登入後的返回地址
-    await liff.init({ liffId: "2008231108-2PDbO5qk" }); // 統一使用主要 LIFF ID
+    await liff.init({ liffId: "2008231108-2PDbO5qk" });
     
     if (!liff.isLoggedIn()) {
       // 🔧 優化：使用 redirectUri 保留當前頁面狀態

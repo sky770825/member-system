@@ -27,7 +27,7 @@ async function initLiff() {
     // 記錄開始時間
     const startTime = Date.now();
     
-    await liff.init({ liffId: "2008231108-2PDbO5qk" }); // 🔧 統一使用主要 LIFF ID
+    await liff.init({ liffId: "2008231108-2PDbO5qk" });
     
     if (!liff.isLoggedIn()) {
       // 🔧 優化：使用 redirectUri 保留當前頁面
@@ -443,7 +443,7 @@ function renderProfile(data, pictureUrl, displayName) {
 
 // 快取函數已移至 cache-manager.js 統一管理
 
-// 🔧 修復：所有跳轉都使用完整 LIFF URL，避免在 LINE 中跳出
+// 🔧 所有跳轉使用完整 LIFF URL，避免在 LINE 中跳出
 function goMall() {
   window.location.href = "https://liff.line.me/2008231108-2PDbO5qk/mall.html";
 }

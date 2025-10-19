@@ -360,7 +360,7 @@ async function loginWithLine() {
       return;
     }
     
-    await liff.init({ liffId: "2008231108-2PDbO5qk" }); // 統一使用主要 LIFF ID
+    await liff.init({ liffId: "2008231108-2PDbO5qk" });
     
     if (!liff.isLoggedIn()) {
       // 修正 redirectUri，移除不必要的路徑前綴
@@ -414,7 +414,7 @@ window.addEventListener('load', async () => {
   
   // 檢查 LINE 登入狀態
   try {
-    await liff.init({ liffId: "2008231108-2PDbO5qk" }); // 統一使用主要 LIFF ID
+    await liff.init({ liffId: "2008231108-2PDbO5qk" });
     if (liff.isLoggedIn()) {
       window.location.href = 'profile.html';
     }
